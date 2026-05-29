@@ -7,8 +7,9 @@ It contains:
 - a working custom campaign package
 - verified package/build rules for MNW `.kyt` content
 - editable mission and campaign source files
+- a local-only database inventory script for MNW platform archives
 - helper scripts to rebuild and deploy packages
-- research notes on the game’s scenario structure
+- research notes on the game's scenario structure
 
 The intent is simple: you should be able to point any generative AI coding tool at this repository and use it to create new scenarios, new campaigns, or eventually a full dynamic campaign generator on top of the same file structure.
 
@@ -19,6 +20,7 @@ This repo is a starter framework for:
 - authoring custom `.mis` mission files
 - authoring custom `.cmp` campaign chains
 - packaging MNW content into valid `.kyt` archives
+- indexing local MNW database archives without redistributing them
 - testing custom content in a real game install
 - evolving from hand-authored scenarios into AI-assisted generation
 
@@ -33,6 +35,7 @@ Right now it provides:
 - package structure
 - sample authored content
 - build and deploy tooling
+- local DB inventory tooling
 - format knowledge
 
 The next layer, if you want it, is adding local campaign-state files and a generator that writes future missions from previous mission outcomes.
@@ -59,7 +62,9 @@ src/
 tools/
   build.ps1
   deploy.ps1
+  index-db.ps1
 dist/
+generated/
 ```
 
 ## Core Concepts
@@ -69,9 +74,10 @@ MNW content authoring in this repo is built around a few practical facts:
 - `.kyt` files are ZIP archives
 - campaign structure is driven by plain-text `.cmp` scripts
 - scenario logic is driven by plain-text `.mis` scripts
-- `.mis.json` and `.cmp.json` sidecars hold visible metadata/localization
+- `.mis.json` and `.cmp.json` sidecars hold visible metadata and localization
 - `locale.csv` also contains visible strings
 - archive entry paths matter; MNW expects forward-slash ZIP paths
+- `Var\DB` archives are locally readable and can be indexed without shipping them in the repo
 
 The current build script already handles the packaging details that are easy to get wrong.
 
@@ -95,17 +101,19 @@ Examples:
 2. Tell it your design goal.
 3. Point it at `RESEARCH.md` first so it understands MNW packaging and scenario structure.
 4. Tell it to use `src/package/` as the source of truth.
-5. Have it modify or duplicate the sample campaign under `src/package/norwegian_shadow/`.
-6. Have it run `tools/build.ps1`.
-7. Optionally have it run `tools/deploy.ps1`.
-8. Test in game.
-9. Iterate based on in-game behavior and `Player.log`.
+5. If it needs platform context, have it run `tools/index-db.ps1` against the user's local MNW install.
+6. Have it modify or duplicate the sample campaign under `src/package/norwegian_shadow/`.
+7. Have it run `tools/build.ps1`.
+8. Optionally have it run `tools/deploy.ps1`.
+9. Test in game.
+10. Iterate based on in-game behavior and `Player.log`.
 
 ### Good Prompts To Give An AI
 
 - `Create a new three-mission US submarine campaign using the existing package structure in src/package.`
 - `Duplicate the sample campaign, rename its internal package key, and replace the missions with a North Atlantic convoy storyline.`
 - `Use the existing mission scripts as templates and generate a new single mission focused on ASW prosecution near island terrain.`
+- `Run the local DB indexer, summarize the available aircraft, ship, missile, and torpedo groups, and use that to build a new force package.`
 - `Add a local campaign_state.json design and scaffold a generator that can produce the next mission from previous outcomes.`
 - `Inspect RESEARCH.md and explain how MNW campaign chaining works, then implement a branching campaign example.`
 
@@ -118,6 +126,7 @@ Tell it:
 - preserve forward-slash ZIP entry names
 - treat `src/package/` as the editable source tree
 - update `manifest.json` hashes whenever package files change
+- use `generated/db/` only as a local index derived from the user's own game install
 - use the existing campaign as a pattern, not a hard constraint
 
 That last point matters. The included `norwegian_shadow` package is a working reference implementation, not the final desired architecture.
@@ -128,14 +137,14 @@ The included sample package currently contains:
 
 - one custom campaign chain
 - two missions
-- working build/deploy flow
+- working build and deploy flow
 - a known-good in-game package layout
 
 Use it as:
 
 - a template for new campaigns
 - a test fixture while improving tooling
-- a safe baseline when debugging loader/package issues
+- a safe baseline when debugging loader and package issues
 
 The internal package folder still uses `norwegian_shadow` because it was the first stable working custom package. That does not limit what you can build next.
 
@@ -158,6 +167,43 @@ The build script:
 - recalculates `manifest.json` hashes
 - writes official-style ZIP entries
 - preserves forward-slash archive paths
+
+## Local Database Inventory
+
+This repo does not ship MNW database files.
+
+Instead, it includes a local-only inventory helper that scans the user's own installed `Var\DB` archives and emits a machine-friendly index under `generated/db/`.
+
+Run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\index-db.ps1
+```
+
+Default source path:
+
+```text
+C:\Program Files (x86)\Steam\steamapps\common\Modern Naval Warfare\Var\DB
+```
+
+Outputs:
+
+- `generated/db/db_index.json`
+- one `*.summary.json` file per local DB archive
+- one `*.entries.csv` file per local DB archive
+
+The script currently:
+
+- inventories `.core` and `.ais` archives
+- records entry names, sizes, extensions, and top-level groups
+- samples printable strings from a few `.msg` payloads
+- gives AI tools a local DB index without committing copyrighted game content
+
+If your install path differs:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\index-db.ps1 -DbDir "C:\Path\To\Modern Naval Warfare\Var\DB"
+```
 
 ## Deploy
 
@@ -183,12 +229,13 @@ powershell -ExecutionPolicy Bypass -File .\tools\deploy.ps1 -GameCampaignPath "C
 When new content fails, the usual workflow is:
 
 1. build package
-2. deploy package
-3. launch MNW
-4. test mission/campaign load
-5. inspect `Player.log`
-6. patch source in `src/package/`
-7. rebuild and retry
+2. optionally index local DB archives
+3. deploy package
+4. launch MNW
+5. test mission and campaign load
+6. inspect `Player.log`
+7. patch source in `src/package/`
+8. rebuild and retry
 
 This repo was assembled through exactly that loop.
 
@@ -198,6 +245,7 @@ The clean architecture is:
 
 - keep campaign state outside the game
 - store results locally in JSON or another simple format
+- index the local DB and use it as force-pool input
 - generate the next `.mis` and `.cmp` content from that state
 - rebuild the `.kyt`
 - redeploy into MNW
@@ -208,8 +256,9 @@ Likely future additions:
 
 - `campaign_state.json`
 - `mission_history.json`
-- OOB/readiness tracking
+- OOB and readiness tracking
 - branching mission generation
+- DB-aware platform selection and force assembly
 - post-mission parsers
 - scenario templating utilities
 
@@ -226,6 +275,7 @@ Commit:
 Do not commit:
 
 - `tmp/` extracted reference content
+- `generated/` local DB summaries
 - generated release artifacts unless you want them versioned
 - local game logs
 - anything from your actual game install directories
@@ -240,6 +290,7 @@ That file captures the important reverse-engineering work behind this repo:
 - package paths
 - `.kyt` structure
 - `.cmp` and `.mis` script behavior
+- DB archive observations
 - constraints discovered through real load testing
 
 ## Practical Advice
@@ -248,6 +299,8 @@ Do not start by asking an AI to invent a full dynamic campaign engine from scrat
 
 Start by asking it to:
 
+- run the local DB indexer
+- summarize the available force categories
 - duplicate the sample package
 - rename it safely
 - change mission text and force composition
