@@ -1,0 +1,219 @@
+import random
+
+##
+# Globals
+##
+_debug_mode = False
+_version = "0.0.0"
+_msv = "0.113.1"
+_author = "Codex"
+_operation_type = OperationType.ASW
+_date_time = "2028/03/14 02:30:00"
+_weather = EnvTools.GetRandomWeatherParameters()
+
+# Civilians faction code
+civ_fact = 0
+# USA faction code
+us_fact = 236
+# Russia faction code
+rus_fact = 183
+
+# Virginia Block III DB ID
+virginia_id = 1015
+# Yasen-class DB ID
+yasen_id = 667
+# Akula / escort DB ID
+suka_b_id = 34
+
+# Cargo ships
+cargo_ids = [
+99992101, 99992105, 99992106, 99992107, 99992108,
+99992109, 99992110, 99992111, 99992201, 99992202,
+99992203, 99992204, 99992205, 99992206, 99992207,
+99992208, 99992209, 99992210, 99992211, 99992301,
+99992302, 99992303, 99992304, 99992305, 99992306,
+99992307, 99992308, 99992309, 99992310, 99992311,
+99992312, 99992313, 99992314, 99992315, 99992401
+]
+def _get_random_cargo():
+    return cargo_ids[random.randrange(0, len(cargo_ids))]
+
+# South China Sea reference points
+player_spawn_pos = GC(13.469526, 118.611743)
+russian_spawn_pos = GC(13.402453, 119.319930)
+datum_pos = GC(13.596929, 119.596561)
+egress_pos = GC(13.100000, 117.700000)
+battle_area_center = GC(13.596929, 119.050000)
+escort_spawn_pos = GC(13.780000, 119.150000)
+barrier_a = GC(14.050000, 118.150000)
+barrier_b = GC(12.850000, 118.000000)
+withdrawal_zone_pos = player_spawn_pos
+
+##
+# Diplomacy
+##
+_diplomacy.AddFactions([civ_fact, us_fact, rus_fact])
+_diplomacy.SetTensionLevel(TensionLevel.Increased).SetMissionROE(RulesOfEngagement.Free)
+_diplomacy.SetStatus(civ_fact).SetStatus(us_fact).SetStatus(rus_fact, CoalitionStatus.Enemy)
+
+##
+# Objectives
+##
+objectives = [
+    Obj(_objectives["primary_withdraw_intact"], True).SetStatus(ObjectiveStatus.InProgress),
+]
+
+##
+# Player
+##
+player_spawn_zone = _Z.Circular("Player Spawn Zone", player_spawn_pos, 1000)
+player_props = Element.Props.FromElementID(us_fact, "(Player) Virginia B3", ElementCategory.Submarine, virginia_id, player_spawn_zone.RandomPosition())
+player_element = Element(player_props).SetElevation(-120).SetHeading(15).SetPlayable().SetScope(Global.Scope.Player)
+player_spawn_process = _P.Element.Spawn(_mission_started, player_element, player_element.Position)
+
+player_mk48_arsenal_process = _P.Element.Arsenal(player_spawn_process, player_element, BaseCategory.Subsurface, ElementCategory.Torpedo, 1712, 12)
+player_mk3_arsenal_process = _P.Element.Arsenal(player_mk48_arsenal_process, player_element, BaseCategory.Subsurface, ElementCategory.Expendable, 126, 12)
+player_mk4_arsenal_process = _P.Element.Arsenal(player_mk3_arsenal_process, player_element, BaseCategory.Subsurface, ElementCategory.Expendable, 2458, 12)
+
+preloads = []
+
+for i in range(4):
+    preloads.append(ArsenalPacket(BaseCategory.Subsurface, ElementCategory.Torpedo, 1712))
+
+for j in range(14):
+    if j <= 7:
+        preloads.append(ArsenalPacket(BaseCategory.Subsurface, ElementCategory.Expendable, 126))
+    else:
+        preloads.append(ArsenalPacket(BaseCategory.Subsurface, ElementCategory.Expendable, 2458))
+
+player_preload_process = _P.Element.PreloadArsenal(player_mk4_arsenal_process, player_element, preloads)
+
+##
+# Messages
+##
+messageModel = MessageModel(
+    EMFTools.Protocol.Link_16,
+    EMFTools.MicroWaveBands.UHF,
+    _date_time,
+    MessagePriority.High,
+    _messages["mission_from"],
+    _messages["mission_to"],
+    "TASKING ORDER",
+    _messages["mission_objectives"]
+)
+datum_poi = PointOfInterest("Last Known Datum", Waypoint(datum_pos))
+egress_poi = PointOfInterest("Atlantic Egress Axis", Waypoint(egress_pos))
+barrier_poi = PointOfInterest("Barrier Line Center", Waypoint(GC(13.450000, 118.075000)))
+withdrawal_poi = PointOfInterest("Withdrawal Box", Waypoint(withdrawal_zone_pos))
+messageModel.AttachPOIs([datum_poi, egress_poi, barrier_poi, withdrawal_poi])
+message_process = _P.Message(player_spawn_process, messageModel)
+
+##
+# Transmissions
+##
+sat_spawn_zone = _Z.Circular("Sat Spawn Zone", player_spawn_pos, 10000)
+sat_props = Element.Props.FromDatabaseID(us_fact, "MUOS", ElementCategory.SpaceElement, 1, sat_spawn_zone.RandomPosition())
+sat_element = Element(sat_props).SetElevation(500)
+sat_spawn_process = _P.Element.Spawn(player_spawn_process, sat_element, sat_element.Position)
+
+transmission = Transmission.Create(EMFTools.Protocol.Link_16, _date_time, 60, 10, 500, EMFTools.MicroWaveBands.UHF)
+transmission_process = _P.Element.Radio(sat_spawn_process, sat_element, transmission)
+
+##
+# Ambient biologics
+##
+bios_zone = _Z.Circular("Biologics Zone", battle_area_center, 80000)
+
+bio_0_props = Element.Props.FromDatabaseID(civ_fact, "Biologic 0", ElementCategory.Biologic, 1, bios_zone.RandomPosition())
+bio_0_element = Element(bio_0_props).SetElevation(-60).SetHeading(random.randrange(0, 359))
+bio_0_spawn = _P.Element.Spawn(player_spawn_process, bio_0_element, bio_0_element.Position)
+
+bio_1_props = Element.Props.FromDatabaseID(civ_fact, "Biologic 1", ElementCategory.Biologic, 1, bios_zone.RandomPosition())
+bio_1_element = Element(bio_1_props).SetElevation(-90).SetHeading(random.randrange(0, 359))
+bio_1_spawn = _P.Element.Spawn(player_spawn_process, bio_1_element, bio_1_element.Position)
+
+bio_2_props = Element.Props.FromDatabaseID(civ_fact, "Biologic 2", ElementCategory.Biologic, 1, bios_zone.RandomPosition())
+bio_2_element = Element(bio_2_props).SetElevation(-120).SetHeading(random.randrange(0, 359))
+bio_2_spawn = _P.Element.Spawn(player_spawn_process, bio_2_element, bio_2_element.Position)
+
+bio_3_props = Element.Props.FromDatabaseID(civ_fact, "Biologic 3", ElementCategory.Biologic, 1, bios_zone.RandomPosition())
+bio_3_element = Element(bio_3_props).SetElevation(-180).SetHeading(random.randrange(0, 359))
+bio_3_spawn = _P.Element.Spawn(player_spawn_process, bio_3_element, bio_3_element.Position)
+
+bio_4_props = Element.Props.FromDatabaseID(civ_fact, "Biologic 4", ElementCategory.Biologic, 1, bios_zone.RandomPosition())
+bio_4_element = Element(bio_4_props).SetElevation(-220).SetHeading(random.randrange(0, 359))
+bio_4_spawn = _P.Element.Spawn(player_spawn_process, bio_4_element, bio_4_element.Position)
+
+##
+# Civilian traffic
+##
+civ_zone = _Z.Circular("Civilian Traffic Zone", battle_area_center, 120000)
+
+cargo_0_props = Element.Props.FromDatabaseID(civ_fact, "Merchant 1", ElementCategory.Ship, _get_random_cargo(), civ_zone.RandomPosition())
+cargo_0_element = Element(cargo_0_props).SetHeading(random.randrange(200, 280))
+cargo_0_spawn = _P.Element.Spawn(player_spawn_process, cargo_0_element, cargo_0_element.Position)
+
+cargo_1_props = Element.Props.FromDatabaseID(civ_fact, "Merchant 2", ElementCategory.Ship, _get_random_cargo(), civ_zone.RandomPosition())
+cargo_1_element = Element(cargo_1_props).SetHeading(random.randrange(200, 280))
+cargo_1_spawn = _P.Element.Spawn(player_spawn_process, cargo_1_element, cargo_1_element.Position)
+
+cargo_2_props = Element.Props.FromDatabaseID(civ_fact, "Merchant 3", ElementCategory.Ship, _get_random_cargo(), civ_zone.RandomPosition())
+cargo_2_element = Element(cargo_2_props).SetHeading(random.randrange(200, 280))
+cargo_2_spawn = _P.Element.Spawn(player_spawn_process, cargo_2_element, cargo_2_element.Position)
+
+##
+# Hostile submarines
+##
+russian_spawn_zone = _Z.Circular("Russian Spawn Zone", russian_spawn_pos, 12000)
+russian_props = Element.Props.FromDatabaseID(rus_fact, "Yasen Vladivostok", ElementCategory.Submarine, yasen_id, russian_spawn_zone.RandomPosition())
+russian_element = Element(russian_props).SetElevation(-140).SetHeading(235)
+russian_spawn_process = _P.Element.Spawn(player_spawn_process, russian_element, russian_element.Position)
+
+escort_spawn_zone = _Z.Circular("Escort Spawn Zone", escort_spawn_pos, 10000)
+escort_props = Element.Props.FromDatabaseID(rus_fact, "Suka B", ElementCategory.Submarine, suka_b_id, escort_spawn_zone.RandomPosition())
+escort_element = Element(escort_props).SetElevation(-160).SetHeading(235).SetHVU(True)
+escort_spawn_process = _P.Element.Spawn(player_spawn_process, escort_element, escort_element.Position)
+
+asw_formation_props = ASWFormation.ASWFormationProps()
+asw_formation_props.SetCourse(235.0)
+russian_squad = Squadron(rus_fact, "Breakout Group", [russian_element, escort_element], russian_spawn_zone.RandomPosition(), asw_formation_props)
+russian_plot = _P.Squadron.Plot(escort_spawn_process, russian_squad, Waypoint(egress_pos))
+
+##
+# Objective changes
+##
+withdrawal_zone = _Z.Circular("Withdrawal Zone", withdrawal_zone_pos, 5000)
+withdrawal_zone_props = _T.Zone.Props(_T.ZoneEvent.IsInside, _T.AnyAll.Any)
+withdrawal_zone_trigger = _T.Zone(withdrawal_zone, [player_element], withdrawal_zone_props)
+withdrawal_antenna_trigger = _T.AntennasRaised(True)
+player_element.NotifyOnAntennaRaised(withdrawal_antenna_trigger)
+withdrawal_complete = _P.Objective.Status(withdrawal_antenna_trigger, objectives[0], ObjectiveStatus.Completed)
+
+player_death_trigger = _T.Manual()
+player_nop_trigger = _T.NonOperational()
+player_element.NotifyUponDeath(player_death_trigger)
+player_element.NotifyNonOperational(player_nop_trigger)
+player_lost = _T.Or([player_death_trigger, player_nop_trigger])
+player_fail = _P.Objective.Status(player_lost, objectives[0], ObjectiveStatus.Failed)
+
+##
+# Outcomes
+##
+out_trigger = _T.Objective(objectives)
+end_trigger = _T.Manual()
+outcome = Out(out_trigger, end_trigger, us_fact)
+
+end_message_model = MessageModel(
+    EMFTools.Protocol.Link_16,
+    EMFTools.MicroWaveBands.UHF,
+    _date_time,
+    MessagePriority.High,
+    _messages["mission_from"],
+    _messages["mission_to"],
+    "MISSION STATUS UPDATE",
+    _messages["mission_success"]
+)
+end_message_process = _P.Message(out_trigger, end_message_model)
+
+end_transmission = Transmission.Create(EMFTools.Protocol.Link_16, _date_time, 60, 10, 500, EMFTools.MicroWaveBands.UHF)
+end_transmission_process = _P.Element.Radio(end_message_process, sat_element, end_transmission)

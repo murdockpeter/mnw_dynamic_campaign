@@ -1,0 +1,12 @@
+##
+# Globals
+##
+_debug_mode = False
+_version = "0.0.0"
+_msv = "0.113.1"
+_author = "Codex"
+_difficulty_level = 1
+
+## Missions
+_start = Mis("norwegian_shadow.norwegian_shadow.bear_gap")
+_start.PipeMission("norwegian_shadow.norwegian_shadow.broken_datum")

@@ -1,0 +1,105 @@
+{
+    "name": {
+        "de": "",
+        "el": "",
+        "en": "QnJva2VuIERhdHVt",
+        "es": "",
+        "fr": "",
+        "pl": "",
+        "ro": "",
+        "ru": "",
+        "zh": ""
+    },
+    "description": {
+        "de": "",
+        "el": "",
+        "en": "VGhlIFlhc2VuIHN1cnZpdmVkIHRoZSBmaXJzdCBpbnRlcmNlcHQgYW5kIHRoZSBiYXR0bGVzcGFjZSBoYXMgdGhpY2tlbmVkIGFyb3VuZCBpdC4gUmVidWlsZCBjb250YWN0LCBzb3J0IHRoZSBzdXBwb3J0IGdyb3VwLCBhbmQga2lsbCB0aGUgc3VibWFyaW5lIGJlZm9yZSBpdCBzbGlwcyB0aHJvdWdoIHRoZSBjb250YWlubWVudCBsaW5lLg==",
+        "es": "",
+        "fr": "",
+        "pl": "",
+        "ro": "",
+        "ru": "",
+        "zh": ""
+    },
+    "objectives": {
+        "primary_withdraw_intact": {
+            "de": "",
+            "el": "",
+            "en": "S2VlcCB5b3VyIHN1Ym1hcmluZSBjb21iYXQgZWZmZWN0aXZlIGFuZCByYWlzZSBhbnRlbm5hcyB0byBjb25jbHVkZSB0aGUgbWlzc2lvbi4=",
+            "es": "",
+            "fr": "",
+            "pl": "",
+            "ro": "",
+            "ru": "",
+            "zh": ""
+        }
+    },
+    "messages": {
+        "mission_from": {
+            "de": "",
+            "el": "",
+            "en": "Q09NU1VCTEFOVA==",
+            "es": "",
+            "fr": "",
+            "pl": "",
+            "ro": "",
+            "ru": "",
+            "zh": ""
+        },
+        "mission_to": {
+            "de": "",
+            "el": "",
+            "en": "VVNTIE5PUlRIIERBS09UQSAoU1NOLTc4NCk=",
+            "es": "",
+            "fr": "",
+            "pl": "",
+            "ro": "",
+            "ru": "",
+            "zh": ""
+        },
+        "mission_objectives": {
+            "de": "",
+            "el": "",
+            "en": "QlQKU1VCSjogVEFTS0lORyBPUkRFUgoKMS4gVGhlIFJ1c3NpYW4gWWFzZW4gcHJldmlvdXNseSB0cmFpbGVkIGJ5IHlvdXIgdW5pdCByZW1haW5zIHVuY29uZmlybWVkIGRlc3Ryb3llZC4gQWNvdXN0aWMgYW5kIFNJR0lOVCByZXZpZXcgaW5kaWNhdGVzIGl0IGlzIG1vdmluZyB3ZXN0IHVuZGVyIGdyb3dpbmcgcmVnaW9uYWwgc3VwcG9ydC4KCjIuIEFkZGl0aW9uYWwgaG9zdGlsZSBhY3Rpdml0eSBpcyBub3cgcHJlc2VudCBpbiB0aGUgY2VudHJhbCBTb3V0aCBDaGluYSBTZWEuIEEgc3VwcG9ydCBzdXJmYWNlIGdyb3VwIGlzIGFwcHJvYWNoaW5nIHRoZSBvcGVyYXRpbmcgYXJlYSwgaG9zdGlsZSBoZWxpY29wdGVyIGNvdmVyYWdlIGlzIGV4cGVjdGVkLCBhbmQgYSBjb2FzdGFsIGVtaXR0ZXIgaXMgcHJvdmlkaW5nIG9mZi1ib2FyZCBjdWVpbmcuCgozLiBGcmllbmRseSBmb3JjZXMgaGF2ZSBzdXJnZWQgaW4gcmVzcG9uc2UuIFVTUyBTcHJ1YW5jZSBpcyBzY3JlZW5pbmcgdGhlIHdlc3Rlcm4gYXBwcm9hY2ggYW5kIGEgUC04IGlzIHByb3NlY3V0aW5nIGludGVybWl0dGVudCBjdWVzIG5lYXIgdGhlIGJyb2tlbiBkYXR1bS4KCjQuIFByaW1hcnkgdGFzazoKICAgQS4gS2VlcCB5b3VyIHN1Ym1hcmluZSBjb21iYXQgZWZmZWN0aXZlIGFuZCByYWlzZSBhbnRlbm5hcyB3aGVuZXZlciB5b3Ugd2FudCB0byBjb25jbHVkZSB0aGUgbWlzc2lvbi4KCjUuIFdlYXBvbnMgZnJlZSBvbiBwb3NpdGl2ZWx5IGlkZW50aWZpZWQgaG9zdGlsZSBzdWJtYXJpbmVzLiBBdm9pZCBsb3NpbmcgY29udGFjdCBpbiBtZXJjaGFudCBjbHV0dGVyLiBUaGUgd2l0aGRyYXdhbCBib3ggaXMgYXR0YWNoZWQu",
+            "es": "",
+            "fr": "",
+            "pl": "",
+            "ro": "",
+            "ru": "",
+            "zh": ""
+        },
+        "cueing_update": {
+            "de": "",
+            "el": "",
+            "en": "UC04IHJlcG9ydHMgaW50ZXJtaXR0ZW50IGNvbnRhY3Qgbm9ydGggb2YgZGF0dW0gYW5kIHJlY29tbWVuZHMgaW1tZWRpYXRlIHByb3NlY3V0aW9uLiBFeHBlY3QgaG9zdGlsZSBzY3JlZW5pbmcgYmVoYXZpb3IgYW5kIHJhcGlkIG1hbmV1dmVyIHdlc3Qu",
+            "es": "",
+            "fr": "",
+            "pl": "",
+            "ro": "",
+            "ru": "",
+            "zh": ""
+        },
+        "support_group_report": {
+            "de": "",
+            "el": "",
+            "en": "U3VyZmFjZSBncm91cCBpZGVudGlmaWVkLiBSZWdpb25hbCBzdXBwb3J0IHRvIHRoZSBicmVha291dCBpcyBub3cgY29uZmlybWVkLiBDb2FzdGFsIGVtaXR0ZXIgcmVtYWlucyBhY3RpdmUgYW5kIGhlbGljb3B0ZXIgcHJvc2VjdXRpb24gaXMgZXhwZWN0ZWQu",
+            "es": "",
+            "fr": "",
+            "pl": "",
+            "ro": "",
+            "ru": "",
+            "zh": ""
+        },
+        "mission_success": {
+            "de": "",
+            "el": "",
+            "en": "QlQKU1VCSjogTUlTU0lPTiBTVEFUVVMgLSBTVUNDRVNTCgpUaGUgWWFzZW4gd2FzIG5ldXRyYWxpemVkIGJlZm9yZSBpdCBjb3VsZCByZWpvaW4gdGhlIHN1cHBvcnQgZ3JvdXAgb3IgY3Jvc3MgdGhlIGNvbnRhaW5tZW50IGxpbmUuIEFsbGllZCBmb3JjZXMgcmV0YWluIHRoZSBpbml0aWF0aXZlIGluIHRoZSBzZWN0b3Iu",
+            "es": "",
+            "fr": "",
+            "pl": "",
+            "ro": "",
+            "ru": "",
+            "zh": ""
+        }
+    }
+}

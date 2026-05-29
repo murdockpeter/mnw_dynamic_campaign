@@ -1,0 +1,52 @@
+Path,Field,en,de,zh,fr,es,ru,ro,pl,el
+norwegian_shadow/quest.cmp,name,Silent Meridian,,,,,,,,
+norwegian_shadow/quest.cmp,description,A two-mission submarine campaign in the central South China Sea. Hunt a Russian Yasen through a covert breakout, then contain the wider regional escalation gathering around it.,,,,,,,,
+norwegian_shadow/bear_gap.mis,name,Bear Gap,,,,,,,,
+norwegian_shadow/bear_gap.mis,description,"Your Virginia-class submarine has been pushed into the central South China Sea to intercept a Russian breakout. A Yasen-class submarine, screened by an Akula escort and masked by neutral shipping, is attempting to slip west across the theater. Build the picture, hold contact, and kill the Yasen before it crosses the barrier line.",,,,,,,,
+norwegian_shadow/bear_gap.mis,objectives.primary_withdraw_intact,Keep your submarine combat effective and raise antennas to conclude the mission.,,,,,,,,
+norwegian_shadow/bear_gap.mis,messages.mission_from,COMSUBLANT,,,,,,,,
+norwegian_shadow/bear_gap.mis,messages.mission_to,USS NORTH DAKOTA (SSN-784),,,,,,,,
+norwegian_shadow/bear_gap.mis,messages.mission_objectives,"BT
+SUBJ: TASKING ORDER
+
+1. A Russian Yasen-class submarine has entered the central South China Sea with at least one escort and is moving west toward the barrier line.
+
+2. Neutral merchant traffic is present in the area and may complicate the picture. Expect biologics and deep thermal conditions.
+
+3. Primary task:
+   A. Keep your submarine combat effective and raise antennas whenever you want to conclude the mission.
+
+4. Additional guidance:
+   A. The escort is likely an Akula variant operating in close support.
+   B. The last known datum, barrier line, and withdrawal box are attached.
+   C. Weapons free on confirmed hostile submarines if you choose to prosecute.
+
+5. Do not let the target escape west.",,,,,,,,
+norwegian_shadow/bear_gap.mis,messages.mission_success,"BT
+SUBJ: MISSION STATUS - SUCCESS
+
+The Yasen was neutralized before crossing the barrier. COMSUBLANT assesses the breakout attempt defeated.",,,,,,,,
+norwegian_shadow/broken_datum.mis,name,Broken Datum,,,,,,,,
+norwegian_shadow/broken_datum.mis,description,"The Yasen survived the first intercept and the battlespace has thickened around it. Rebuild contact, sort the support group, and kill the submarine before it slips through the containment line.",,,,,,,,
+norwegian_shadow/broken_datum.mis,objectives.primary_withdraw_intact,Keep your submarine combat effective and raise antennas to conclude the mission.,,,,,,,,
+norwegian_shadow/broken_datum.mis,messages.mission_from,COMSUBLANT,,,,,,,,
+norwegian_shadow/broken_datum.mis,messages.mission_to,USS NORTH DAKOTA (SSN-784),,,,,,,,
+norwegian_shadow/broken_datum.mis,messages.mission_objectives,"BT
+SUBJ: TASKING ORDER
+
+1. The Russian Yasen previously trailed by your unit remains unconfirmed destroyed. Acoustic and SIGINT review indicates it is moving west under growing regional support.
+
+2. Additional hostile activity is now present in the central South China Sea. A support surface group is approaching the operating area, hostile helicopter coverage is expected, and a coastal emitter is providing off-board cueing.
+
+3. Friendly forces have surged in response. USS Spruance is screening the western approach and a P-8 is prosecuting intermittent cues near the broken datum.
+
+4. Primary task:
+   A. Keep your submarine combat effective and raise antennas whenever you want to conclude the mission.
+
+5. Weapons free on positively identified hostile submarines. Avoid losing contact in merchant clutter. The withdrawal box is attached.",,,,,,,,
+norwegian_shadow/broken_datum.mis,messages.cueing_update,"P-8 reports intermittent contact north of datum and recommends immediate prosecution. Expect hostile screening behavior and rapid maneuver west.",,,,,,,,
+norwegian_shadow/broken_datum.mis,messages.support_group_report,"Surface group identified. Regional support to the breakout is now confirmed. Coastal emitter remains active and helicopter prosecution is expected.",,,,,,,,
+norwegian_shadow/broken_datum.mis,messages.mission_success,"BT
+SUBJ: MISSION STATUS - SUCCESS
+
+The Yasen was neutralized before it could rejoin the support group or cross the containment line. Allied forces retain the initiative in the sector.",,,,,,,,
