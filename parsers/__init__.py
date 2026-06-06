@@ -1,0 +1,1 @@
+"""Result parsers and adapters."""

@@ -1,0 +1,7 @@
+{
+  "campaign_id": "silent_meridian",
+  "title": "Silent Meridian",
+  "theater": "South China Sea",
+  "description": "Sample modular persistence configuration for the included MNW campaign package.",
+  "active_persistence_system": "baseline_modular"
+}

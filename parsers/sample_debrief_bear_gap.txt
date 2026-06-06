@@ -1,0 +1,21 @@
+Mission Name: Bear Gap
+
+Author: Codex
+Version: 0.0.0
+Reporting Date & Time: 2028/03/14 02:30:00
+
+Mission Description:
+Your Virginia-class submarine has been pushed into the central South China Sea to intercept a Russian breakout.
+
+Primary Objectives:
+- Keep your submarine combat effective and raise antennas to conclude the mission.
+
+Damage Logs:
+Ownship: SSN SSN-774 Virginia Block III - Country: US
+ - Status: Operational
+- Vessel: SSN Project 885M Yasen-M (Severodvinsk), - Country: RU
+ - Status: Operational
+- Vessel: SSN Project 971M Shchuka-B (Akula III), - Country: RU
+ - Status: Operational
+
+SUCCESS

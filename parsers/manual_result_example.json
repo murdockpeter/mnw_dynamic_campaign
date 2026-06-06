@@ -1,0 +1,27 @@
+{
+  "mission_id": "norwegian_shadow.norwegian_shadow.bear_gap",
+  "outcome": "success",
+  "time_elapsed_hours": 6.5,
+  "events": [
+    {
+      "event_type": "weapon_expended",
+      "unit_id": "uss_north_dakota",
+      "weapon_key": "mk48_mod7",
+      "amount": 2,
+      "metadata": {
+        "reason": "engagement"
+      }
+    },
+    {
+      "event_type": "unit_damaged",
+      "unit_id": "uss_north_dakota",
+      "amount": 0.15,
+      "metadata": {
+        "source": "counter-detection"
+      }
+    }
+  ],
+  "metadata": {
+    "source": "manual_example"
+  }
+}
