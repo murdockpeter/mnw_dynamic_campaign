@@ -8,7 +8,7 @@ _version = "0.0.0"
 _msv = "0.113.1"
 _author = "Codex"
 _operation_type = OperationType.ASW
-_date_time = "2028/03/15 14:10:00"
+_date_time = "2028/03/16 04:20:00"
 _weather = EnvTools.GetRandomWeatherParameters()
 
 # Civilians faction code
@@ -26,8 +26,6 @@ virginia_id = 1015
 arleigh_id = 294
 # P-8 Poseidon DB ID
 p8_id = 2705
-# Yasen-class DB ID
-yasen_id = 667
 # Akula / escort DB ID
 suka_b_id = 34
 # Type 054A Frigate DB ID
@@ -51,21 +49,18 @@ def _get_random_cargo():
     return cargo_ids[random.randrange(0, len(cargo_ids))]
 
 # Scenario reference points
-player_spawn_pos = GC(16.430000, 118.760000)
-datum_pos = GC(16.620000, 119.180000)
-yasen_spawn_pos = GC(16.760000, 119.280000)
-escort_spawn_pos = GC(16.930000, 119.060000)
-support_group_pos = GC(17.020000, 118.360000)
-support_group_dest = GC(16.520000, 117.960000)
-ddg_spawn_pos = GC(16.140000, 117.900000)
-ddg_screen_pos = GC(16.480000, 118.120000)
-p8_spawn_pos = GC(16.820000, 118.920000)
-battle_area_center = GC(16.620000, 118.650000)
-egress_pos = GC(16.550000, 117.350000)
-barrier_a = GC(17.200000, 117.450000)
-barrier_b = GC(15.900000, 117.150000)
+player_spawn_pos = GC(16.930000, 118.220000)
+withdrawal_zone_pos = GC(16.140000, 117.340000)
+withdrawal_lane_pos = GC(16.420000, 117.620000)
+datum_pos = GC(16.620000, 117.940000)
+akula_spawn_pos = GC(16.610000, 117.760000)
+surface_group_pos = GC(17.050000, 117.180000)
+surface_group_dest = GC(16.480000, 117.940000)
+friendly_ddg_pos = GC(15.980000, 117.040000)
+friendly_ddg_dest = GC(16.220000, 117.260000)
+p8_spawn_pos = GC(16.260000, 117.760000)
+battle_area_center = GC(16.560000, 117.760000)
 coastal_emitter_pos = GC(16.834519, 112.340301)
-withdrawal_zone_pos = player_spawn_pos
 
 ##
 # Diplomacy
@@ -84,9 +79,9 @@ objectives = [
 ##
 # Player
 ##
-player_spawn_zone = _Z.Circular("Player Spawn Zone", player_spawn_pos, 1000)
+player_spawn_zone = _Z.Circular("Player Spawn Zone", player_spawn_pos, 1200)
 player_props = Element.Props.FromElementID(us_fact, "(Player) Virginia B3", ElementCategory.Submarine, virginia_id, player_spawn_zone.RandomPosition())
-player_element = Element(player_props).SetElevation(-120).SetHeading(25).SetPlayable().SetScope(Global.Scope.Player)
+player_element = Element(player_props).SetElevation(-140).SetHeading(215).SetPlayable().SetScope(Global.Scope.Player)
 player_spawn_process = _P.Element.Spawn(_mission_started, player_element, player_element.Position)
 
 player_mk48_arsenal_process = _P.Element.Arsenal(player_spawn_process, player_element, BaseCategory.Subsurface, ElementCategory.Torpedo, 1712, 12)
@@ -95,11 +90,11 @@ player_mk4_arsenal_process = _P.Element.Arsenal(player_mk3_arsenal_process, play
 
 preloads = []
 
-for i in range(4):
+for i in range(3):
     preloads.append(ArsenalPacket(BaseCategory.Subsurface, ElementCategory.Torpedo, 1712))
 
-for j in range(14):
-    if j <= 7:
+for j in range(12):
+    if j <= 5:
         preloads.append(ArsenalPacket(BaseCategory.Subsurface, ElementCategory.Expendable, 126))
     else:
         preloads.append(ArsenalPacket(BaseCategory.Subsurface, ElementCategory.Expendable, 2458))
@@ -119,12 +114,11 @@ messageModel = MessageModel(
     "TASKING ORDER",
     _messages["mission_objectives"]
 )
-datum_poi = PointOfInterest("Broken Datum", Waypoint(datum_pos))
-ddg_poi = PointOfInterest("DDG Screen Station", Waypoint(ddg_screen_pos))
-barrier_poi = PointOfInterest("Containment Barrier", Waypoint(GC(16.550000, 117.300000)))
-emitter_poi = PointOfInterest("Coastal Emitter", Waypoint(coastal_emitter_pos))
+datum_poi = PointOfInterest("Last Fight Datum", Waypoint(datum_pos))
+lane_poi = PointOfInterest("Withdrawal Lane", Waypoint(withdrawal_lane_pos))
 withdrawal_poi = PointOfInterest("Withdrawal Box", Waypoint(withdrawal_zone_pos))
-messageModel.AttachPOIs([datum_poi, ddg_poi, barrier_poi, emitter_poi, withdrawal_poi])
+emitter_poi = PointOfInterest("Coastal Emitter", Waypoint(coastal_emitter_pos))
+messageModel.AttachPOIs([datum_poi, lane_poi, withdrawal_poi, emitter_poi])
 message_process = _P.Message(player_spawn_process, messageModel)
 
 ##
@@ -141,99 +135,87 @@ transmission_process = _P.Element.Radio(sat_spawn_process, sat_element, transmis
 ##
 # Friendly forces
 ##
-ddg_props = Element.Props.FromDatabaseID(us_fact, "USS Spruance", ElementCategory.Ship, arleigh_id, ddg_spawn_pos)
+ddg_props = Element.Props.FromDatabaseID(us_fact, "USS Spruance", ElementCategory.Ship, arleigh_id, friendly_ddg_pos)
 ddg_element = Element(ddg_props).SetElevation(0).SetHeading(45).SetHVU(True)
 ddg_spawn = _P.Element.Spawn(player_spawn_process, ddg_element, ddg_element.Position)
 
 ddg_formation_props = ASWFormation.ASWFormationProps()
 ddg_formation_props.SetCourse(45.0)
-ddg_squad = Squadron(us_fact, "Surface Screen", [ddg_element], ddg_spawn_pos, ddg_formation_props)
-ddg_plot = _P.Squadron.Plot(ddg_spawn, ddg_squad, Waypoint(ddg_screen_pos))
+ddg_squad = Squadron(us_fact, "Withdrawal Screen", [ddg_element], friendly_ddg_pos, ddg_formation_props)
+ddg_plot = _P.Squadron.Plot(ddg_spawn, ddg_squad, Waypoint(friendly_ddg_dest))
 
 p8_props = Element.Props.FromDatabaseID(us_fact, "P-8A Poseidon", ElementCategory.Aircraft, p8_id, p8_spawn_pos)
-p8_element = Element(p8_props).SetElevation(5000).SetHeading(220)
+p8_element = Element(p8_props).SetElevation(5000).SetHeading(230)
 p8_spawn = _P.Element.Spawn(ddg_plot, p8_element, p8_element.Position)
 
 ##
 # Ambient biologics
 ##
-bios_zone = _Z.Circular("Biologics Zone", battle_area_center, 80000)
+bios_zone = _Z.Circular("Biologics Zone", battle_area_center, 70000)
 
 bio_0_props = Element.Props.FromDatabaseID(civ_fact, "Biologic 0", ElementCategory.Biologic, 1, bios_zone.RandomPosition())
-bio_0_element = Element(bio_0_props).SetElevation(-60).SetHeading(random.randrange(0, 359))
+bio_0_element = Element(bio_0_props).SetElevation(-70).SetHeading(random.randrange(0, 359))
 bio_0_spawn = _P.Element.Spawn(p8_spawn, bio_0_element, bio_0_element.Position)
 
 bio_1_props = Element.Props.FromDatabaseID(civ_fact, "Biologic 1", ElementCategory.Biologic, 1, bios_zone.RandomPosition())
-bio_1_element = Element(bio_1_props).SetElevation(-90).SetHeading(random.randrange(0, 359))
+bio_1_element = Element(bio_1_props).SetElevation(-110).SetHeading(random.randrange(0, 359))
 bio_1_spawn = _P.Element.Spawn(p8_spawn, bio_1_element, bio_1_element.Position)
 
 bio_2_props = Element.Props.FromDatabaseID(civ_fact, "Biologic 2", ElementCategory.Biologic, 1, bios_zone.RandomPosition())
-bio_2_element = Element(bio_2_props).SetElevation(-120).SetHeading(random.randrange(0, 359))
+bio_2_element = Element(bio_2_props).SetElevation(-180).SetHeading(random.randrange(0, 359))
 bio_2_spawn = _P.Element.Spawn(p8_spawn, bio_2_element, bio_2_element.Position)
-
-bio_3_props = Element.Props.FromDatabaseID(civ_fact, "Biologic 3", ElementCategory.Biologic, 1, bios_zone.RandomPosition())
-bio_3_element = Element(bio_3_props).SetElevation(-180).SetHeading(random.randrange(0, 359))
-bio_3_spawn = _P.Element.Spawn(p8_spawn, bio_3_element, bio_3_element.Position)
 
 ##
 # Civilian traffic
 ##
-civ_zone = _Z.Circular("Civilian Traffic Zone", battle_area_center, 120000)
+civ_zone = _Z.Circular("Civilian Traffic Zone", battle_area_center, 100000)
 
 cargo_0_props = Element.Props.FromDatabaseID(civ_fact, "Merchant 1", ElementCategory.Ship, _get_random_cargo(), civ_zone.RandomPosition())
-cargo_0_element = Element(cargo_0_props).SetHeading(random.randrange(200, 280))
+cargo_0_element = Element(cargo_0_props).SetHeading(random.randrange(205, 275))
 cargo_0_spawn = _P.Element.Spawn(p8_spawn, cargo_0_element, cargo_0_element.Position)
 
 cargo_1_props = Element.Props.FromDatabaseID(civ_fact, "Merchant 2", ElementCategory.Ship, _get_random_cargo(), civ_zone.RandomPosition())
-cargo_1_element = Element(cargo_1_props).SetHeading(random.randrange(200, 280))
+cargo_1_element = Element(cargo_1_props).SetHeading(random.randrange(205, 275))
 cargo_1_spawn = _P.Element.Spawn(p8_spawn, cargo_1_element, cargo_1_element.Position)
 
 cargo_2_props = Element.Props.FromDatabaseID(civ_fact, "Merchant 3", ElementCategory.Ship, _get_random_cargo(), civ_zone.RandomPosition())
-cargo_2_element = Element(cargo_2_props).SetHeading(random.randrange(200, 280))
+cargo_2_element = Element(cargo_2_props).SetHeading(random.randrange(205, 275))
 cargo_2_spawn = _P.Element.Spawn(p8_spawn, cargo_2_element, cargo_2_element.Position)
 
-cargo_3_props = Element.Props.FromDatabaseID(civ_fact, "Merchant 4", ElementCategory.Ship, _get_random_cargo(), civ_zone.RandomPosition())
-cargo_3_element = Element(cargo_3_props).SetHeading(random.randrange(200, 280))
-cargo_3_spawn = _P.Element.Spawn(p8_spawn, cargo_3_element, cargo_3_element.Position)
+##
+# Hostile submarine
+##
+akula_spawn_zone = _Z.Circular("Akula Spawn Zone", akula_spawn_pos, 9000)
+akula_props = Element.Props.FromDatabaseID(rus_fact, "Akula Hunter", ElementCategory.Submarine, suka_b_id, akula_spawn_zone.RandomPosition())
+akula_element = Element(akula_props).SetElevation(-170).SetHeading(70).SetHVU(True)
+akula_spawn = _P.Element.Spawn(cargo_2_spawn, akula_element, akula_element.Position)
+
+akula_formation_props = ASWFormation.ASWFormationProps()
+akula_formation_props.SetCourse(70.0)
+akula_squad = Squadron(rus_fact, "Search Screen", [akula_element], akula_spawn_pos, akula_formation_props)
+akula_plot = _P.Squadron.Plot(akula_spawn, akula_squad, Waypoint(player_spawn_pos))
 
 ##
-# Hostile submarines
+# Hostile surface group
 ##
-yasen_spawn_zone = _Z.Circular("Yasen Spawn Zone", yasen_spawn_pos, 12000)
-yasen_props = Element.Props.FromDatabaseID(rus_fact, "Yasen Severodvinsk", ElementCategory.Submarine, yasen_id, yasen_spawn_zone.RandomPosition())
-yasen_element = Element(yasen_props).SetElevation(-140).SetHeading(245)
-yasen_spawn = _P.Element.Spawn(cargo_3_spawn, yasen_element, yasen_element.Position)
+surface_zone = _Z.Circular("Surface Group Zone", surface_group_pos, 9000)
 
-escort_spawn_zone = _Z.Circular("Escort Spawn Zone", escort_spawn_pos, 10000)
-escort_props = Element.Props.FromDatabaseID(rus_fact, "Akula Screen", ElementCategory.Submarine, suka_b_id, escort_spawn_zone.RandomPosition())
-escort_element = Element(escort_props).SetElevation(-160).SetHeading(245).SetHVU(True)
-escort_spawn = _P.Element.Spawn(yasen_spawn, escort_element, escort_element.Position)
+t055_props = Element.Props.FromDatabaseID(ch_fact, "Regional DDG", ElementCategory.Ship, t055_id, surface_zone.RandomPosition())
+t055_element = Element(t055_props).SetElevation(0).SetHeading(125)
+t055_spawn = _P.Element.Spawn(akula_plot, t055_element, t055_element.Position)
 
-asw_formation_subs = ASWFormation.ASWFormationProps()
-asw_formation_subs.SetCourse(245.0)
-russian_squad = Squadron(rus_fact, "Russian Breakout Group", [yasen_element, escort_element], yasen_spawn_pos, asw_formation_subs)
-russian_plot = _P.Squadron.Plot(escort_spawn, russian_squad, Waypoint(egress_pos))
-
-##
-# Hostile support group
-##
-support_zone = _Z.Circular("Support Group Zone", support_group_pos, 10000)
-
-t055_props = Element.Props.FromDatabaseID(ch_fact, "Support DDG", ElementCategory.Ship, t055_id, support_zone.RandomPosition())
-t055_element = Element(t055_props).SetElevation(0).SetHeading(225)
-t055_spawn = _P.Element.Spawn(russian_plot, t055_element, t055_element.Position)
-
-t054a_props = Element.Props.FromDatabaseID(ch_fact, "Support Frigate", ElementCategory.Ship, t054a_id, support_zone.RandomPosition())
-t054a_element = Element(t054a_props).SetElevation(0).SetHeading(225)
+t054a_props = Element.Props.FromDatabaseID(ch_fact, "Regional Frigate", ElementCategory.Ship, t054a_id, surface_zone.RandomPosition())
+t054a_element = Element(t054a_props).SetElevation(0).SetHeading(125)
 t054a_spawn = _P.Element.Spawn(t055_spawn, t054a_element, t054a_element.Position)
 
-harbin_props = Element.Props.FromDatabaseID(ch_fact, "Support Helo", ElementCategory.Aircraft, harbin_id, support_zone.RandomPosition())
-harbin_element = Element(harbin_props).SetElevation(0).SetHeading(225)
+harbin_props = Element.Props.FromDatabaseID(ch_fact, "Regional Helo", ElementCategory.Aircraft, harbin_id, surface_zone.RandomPosition())
+harbin_element = Element(harbin_props).SetElevation(0).SetHeading(125)
 harbin_spawn = _P.Element.Spawn(t054a_spawn, harbin_element, harbin_element.Position)
 
-t055_plot = _P.Element.Plot(harbin_spawn, t055_element, Waypoint(support_group_dest))
-t054a_plot = _P.Element.Plot(t055_plot, t054a_element, Waypoint(GC(16.500000, 117.930000)))
-harbin_plot = _P.Element.Plot(t054a_plot, harbin_element, Waypoint(GC(16.570000, 118.010000)))
+surface_formation_props = ASWFormation.ASWFormationProps()
+surface_formation_props.SetCourse(125.0)
+surface_squad = Squadron(ch_fact, "Closing Net Group", [t055_element, t054a_element, harbin_element], surface_group_pos, surface_formation_props)
+surface_plot = _P.Squadron.Plot(harbin_spawn, surface_squad, Waypoint(surface_group_dest))
 
 ##
 # Objective changes
@@ -245,12 +227,6 @@ withdrawal_antenna_trigger = _T.AntennasRaised(True)
 player_element.NotifyOnAntennaRaised(withdrawal_antenna_trigger)
 withdrawal_complete = _P.Objective.Status(withdrawal_antenna_trigger, objectives[0], ObjectiveStatus.Completed)
 
-ddg_death_trigger = _T.Manual()
-ddg_nop_trigger = _T.NonOperational()
-ddg_element.NotifyUponDeath(ddg_death_trigger)
-ddg_element.NotifyNonOperational(ddg_nop_trigger)
-ddg_lost = _T.Or([ddg_death_trigger, ddg_nop_trigger])
-
 player_death_trigger = _T.Manual()
 player_nop_trigger = _T.NonOperational()
 player_element.NotifyUponDeath(player_death_trigger)
@@ -261,8 +237,8 @@ player_fail = _P.Objective.Status(player_lost, objectives[0], ObjectiveStatus.Fa
 ##
 # Dynamic cueing messages
 ##
-yasen_classified_trigger = _T.ElementClassification(None, CategoryID.Submarine, StandardIdentity.Hostile)
-player_element.NotifyOnClassification(yasen_classified_trigger)
+akula_classified_trigger = _T.ElementClassification(None, CategoryID.Submarine, StandardIdentity.Hostile)
+player_element.NotifyOnClassification(akula_classified_trigger)
 
 cue_message_model = MessageModel(
     EMFTools.Protocol.Link_16,
@@ -274,7 +250,19 @@ cue_message_model = MessageModel(
     "P-8 CUEING UPDATE",
     _messages["cueing_update"]
 )
-cue_message = _P.Message(yasen_classified_trigger, cue_message_model)
+cue_message = _P.Message(akula_classified_trigger, cue_message_model)
+
+surface_group_report_model = MessageModel(
+    EMFTools.Protocol.Link_16,
+    EMFTools.MicroWaveBands.UHF,
+    _date_time,
+    MessagePriority.High,
+    _messages["mission_from"],
+    _messages["mission_to"],
+    "SURFACE THREAT UPDATE",
+    _messages["support_group_report"]
+)
+surface_group_report = _P.Message(surface_plot, surface_group_report_model)
 
 ##
 # Outcomes

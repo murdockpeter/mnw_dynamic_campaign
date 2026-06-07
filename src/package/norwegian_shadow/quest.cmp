@@ -9,4 +9,5 @@ _difficulty_level = 1
 
 ## Missions
 _start = Mis("norwegian_shadow.norwegian_shadow.bear_gap")
-_start.PipeMission("norwegian_shadow.norwegian_shadow.broken_datum")
+_mid = _start.PipeMission("norwegian_shadow.norwegian_shadow.broken_datum")
+_mid.PipeMission("norwegian_shadow.norwegian_shadow.closing_net")

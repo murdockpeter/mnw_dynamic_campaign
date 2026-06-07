@@ -169,26 +169,156 @@ function renderContracts() {
 function normalizePlatformName(value) {
   return (value || "")
     .toLowerCase()
-    .replace(/[(),]/g, " ")
-    .replace(/\bssn\b/g, " ")
+    .replace(/[(),:/-]/g, " ")
+    .replace(/\b(ssn|uss|hms|rfs|sns|ship|vessel|ownship)\b/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
 
-function resolveUnitIdFromPlatformName(platformName, data) {
-  const normalized = normalizePlatformName(platformName);
+function tokenizePlatformName(value) {
+  return new Set(
+    normalizePlatformName(value)
+      .split(" ")
+      .filter((token) => token && !/^\d+$/.test(token))
+  );
+}
+
+function resolveUnitIdFromStatus(statusItem, data) {
   const units = Object.values(data.state.order_of_battle || {});
+
+  if (statusItem.entry_type === "ownship") {
+    const playerUnits = units.filter((unit) => (unit.tags || []).includes("player"));
+    if (playerUnits.length === 1) {
+      return playerUnits[0].unit_id;
+    }
+  }
+
+  const targetTokens = tokenizePlatformName(statusItem.platform_name);
+  if (!targetTokens.size) {
+    return null;
+  }
+
+  let bestUnitId = null;
+  let bestScore = 0;
+
   for (const unit of units) {
     const candidates = [
       unit.name,
       unit.unit_id,
-      ...(unit.notes?.aliases || [])
+      ...((unit.notes && unit.notes.aliases) || [])
     ];
-    if (candidates.some((candidate) => normalizePlatformName(candidate).includes(normalized) || normalized.includes(normalizePlatformName(candidate)))) {
-      return unit.unit_id;
+    const unitTokens = new Set();
+    candidates.forEach((candidate) => {
+      tokenizePlatformName(candidate).forEach((token) => unitTokens.add(token));
+    });
+
+    const overlap = [...targetTokens].filter((token) => unitTokens.has(token)).length;
+    if (!overlap) {
+      continue;
+    }
+
+    const union = new Set([...targetTokens, ...unitTokens]);
+    let score = overlap / Math.max(union.size, 1);
+    if ((unit.faction || "").toUpperCase() === (statusItem.country || "").toUpperCase()) {
+      score += 0.25;
+    }
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestUnitId = unit.unit_id;
     }
   }
-  return null;
+
+  return bestScore >= 0.34 ? bestUnitId : null;
+}
+
+function extractElapsedHours(rawText) {
+  const numericPatterns = [
+    /Elapsed(?:\s+Hours)?\s*:\s*([0-9]+(?:\.[0-9]+)?)/i,
+    /Mission Duration\s*:\s*([0-9]+(?:\.[0-9]+)?)\s*hours?/i,
+    /Time Elapsed\s*:\s*([0-9]+(?:\.[0-9]+)?)\s*hours?/i
+  ];
+  for (const pattern of numericPatterns) {
+    const match = rawText.match(pattern);
+    if (match) {
+      return Number(match[1]);
+    }
+  }
+
+  const clockPatterns = [
+    /Elapsed(?:\s+Time)?\s*:\s*(\d{1,2}):(\d{2})(?::(\d{2}))?/i,
+    /Mission Duration\s*:\s*(\d{1,2}):(\d{2})(?::(\d{2}))?/i
+  ];
+  for (const pattern of clockPatterns) {
+    const match = rawText.match(pattern);
+    if (match) {
+      const hours = Number(match[1]);
+      const minutes = Number(match[2]);
+      const seconds = Number(match[3] || 0);
+      return hours + (minutes / 60) + (seconds / 3600);
+    }
+  }
+
+  return 0;
+}
+
+function classifyStatus(status) {
+  const value = (status || "").toUpperCase();
+  if (value.includes("DESTROY") || value.includes("SUNK") || value.includes("KILLED")) {
+    return { event_type: "unit_destroyed", amount: 1 };
+  }
+  if (value.includes("NON-OP") || value.includes("NON OP")) {
+    return { event_type: "unit_damaged", amount: 1 };
+  }
+  if (value.includes("HEAVY DAMAGE")) {
+    return { event_type: "unit_damaged", amount: 0.75 };
+  }
+  if (value.includes("MODERATE DAMAGE")) {
+    return { event_type: "unit_damaged", amount: 0.5 };
+  }
+  if (value.includes("LIGHT DAMAGE")) {
+    return { event_type: "unit_damaged", amount: 0.25 };
+  }
+  return { event_type: null, amount: null };
+}
+
+function resolveUnitIdFromPlatformName(platformName, data) {
+  return resolveUnitIdFromStatus({ entry_type: "vessel", platform_name: platformName, country: "" }, data);
+}
+
+function pickPreferredUnitId(events) {
+  const resolved = events.find((event) => event.unit_id);
+  return resolved ? resolved.unit_id : null;
+}
+
+function collectStatusItems(rawText, currentData) {
+  const items = [];
+  const statusRegex = /(-\s*)?(Ownship:|Vessel:)\s*(.+?)\s*-\s*Country:\s*(.+?)\s*[\r\n]+\s*-\s*Status:\s*(.+)/gi;
+  let match;
+  while ((match = statusRegex.exec(rawText)) !== null) {
+    const entryType = match[2].trim().toLowerCase().replace(":", "");
+    const platformName = match[3].trim();
+    const country = match[4].trim();
+    const status = match[5].trim();
+    const resolvedUnitId = resolveUnitIdFromStatus(
+      {
+        entry_type: entryType,
+        platform_name: platformName,
+        country
+      },
+      currentData
+    );
+
+    items.push({
+      entry_type: entryType,
+      platform_name: platformName,
+      normalized_platform_name: normalizePlatformName(platformName),
+      country,
+      status,
+      resolved_unit_id: resolvedUnitId
+    });
+  }
+  return items;
 }
 
 function parseDebriefText(rawText, currentData) {
@@ -206,56 +336,45 @@ function parseDebriefText(rawText, currentData) {
       : "unknown";
 
   const events = [];
-  const parsedPlatforms = [];
-  const statusRegex = /(?:Ownship:|Vessel:)\s*(.+?)\s*-\s*Country:\s*(.+?)\s*[\r\n]+\s*-\s*Status:\s*(.+)/gi;
-  let match;
-  while ((match = statusRegex.exec(rawText)) !== null) {
-    const platformName = match[1].trim();
-    const country = match[2].trim();
-    const status = match[3].trim();
-    const statusUpper = status.toUpperCase();
-    const unitId = resolveUnitIdFromPlatformName(platformName, currentData);
-
-    parsedPlatforms.push({
-      platform_name: platformName,
-      normalized_platform_name: normalizePlatformName(platformName),
-      country,
-      status,
-      resolved_unit_id: unitId
-    });
-
-    if (statusUpper.includes("DESTROY")) {
+  const parsedPlatforms = collectStatusItems(rawText, currentData);
+  parsedPlatforms.forEach((item) => {
+    const classification = classifyStatus(item.status);
+    if (classification.event_type === "unit_destroyed") {
       events.push({
-        event_type: "unit_destroyed",
-        unit_id: unitId,
-        amount: 1,
+        event_type: classification.event_type,
+        unit_id: item.resolved_unit_id,
+        amount: classification.amount,
         weapon_key: null,
         metadata: {
-          platform_name: platformName,
-          country,
+          entry_type: item.entry_type,
+          platform_name: item.platform_name,
+          normalized_platform_name: item.normalized_platform_name,
+          country: item.country,
           source: "ui_debrief_text_parser"
         }
       });
-    } else if (statusUpper.includes("NON-OP") || statusUpper.includes("NON OP")) {
+    } else if (classification.event_type === "unit_damaged") {
       events.push({
-        event_type: "unit_damaged",
-        unit_id: unitId,
-        amount: 1,
+        event_type: classification.event_type,
+        unit_id: item.resolved_unit_id,
+        amount: classification.amount,
         weapon_key: null,
         metadata: {
-          platform_name: platformName,
-          country,
+          entry_type: item.entry_type,
+          platform_name: item.platform_name,
+          normalized_platform_name: item.normalized_platform_name,
+          country: item.country,
           source: "ui_debrief_text_parser",
-          interpreted_status: status
+          interpreted_status: item.status
         }
       });
     }
-  }
+  });
 
   return {
     mission_id: missionMap[missionName] || currentData.plan.mission_id || currentData.state.current_mission_id || "",
     outcome,
-    time_elapsed_hours: 0,
+    time_elapsed_hours: extractElapsedHours(rawText),
     events,
     metadata: {
       source: "ui_debrief_text_parser",
@@ -330,8 +449,9 @@ function populateManualBuilderFromPayload(payload, data) {
   const damageEvent = payload.events.find((event) => event.event_type === "unit_damaged");
   const destroyedEvent = payload.events.find((event) => event.event_type === "unit_destroyed");
 
-  if (weaponEvent?.unit_id) {
-    document.getElementById("builder-unit").value = weaponEvent.unit_id;
+  const preferredUnitId = pickPreferredUnitId(payload.events);
+  if (preferredUnitId) {
+    document.getElementById("builder-unit").value = preferredUnitId;
   }
   document.getElementById("builder-weapon-key").value = weaponEvent?.weapon_key || "";
   document.getElementById("builder-weapon-amount").value = weaponEvent?.amount ?? 0;

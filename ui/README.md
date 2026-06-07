@@ -65,6 +65,13 @@ Current flow:
 
 This parser should be treated as an operator assist, not a final authority.
 
+It now attempts to:
+
+- infer elapsed mission time from debrief text
+- resolve ownship to the player unit when possible
+- map known enemy platform names onto persistent unit IDs
+- translate common status phrases into draft damage or destruction events
+
 Helper scripts:
 
 - `tools/run-dev.ps1`

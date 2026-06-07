@@ -319,8 +319,18 @@ Current entry points:
 Example:
 
 ```powershell
-python .\parsers\mnw_debrief_parser.py --input .\parsers\sample_debrief_bear_gap.txt
+python .\parsers\mnw_debrief_parser.py --input .\parsers\sample_debrief_bear_gap.txt --runtime-json .\ui\data\sample-runtime.json
 ```
+
+If you provide `--runtime-json`, the parser will try to resolve parsed platform names onto persistent unit IDs from the current campaign state or exported UI runtime snapshot.
+
+The parser currently knows how to:
+
+- infer mission outcome
+- extract elapsed time from simple hour or `HH:MM:SS` patterns
+- parse ownship and vessel status blocks
+- classify `Destroyed`, `Non-Op`, `Light Damage`, `Moderate Damage`, and `Heavy Damage`
+- map parsed platforms onto known persistent units when runtime state is available
 
 Important constraint:
 
@@ -372,3 +382,22 @@ That file captures the important reverse-engineering work behind this repo:
 Do not separate UI and backend planning by months.
 
 If the UI is intended to drive campaign-state workflows, module selection, result ingestion, and generation review, it should evolve alongside the persistence runtime. That is why this repo now contains both the modular backend scaffold and a matching UI scaffold at the same time.
+
+## Hard-Won MNW Rules
+
+These rules were validated through live in-game testing, failed experiments, `Player.log` review, and repeated rebuild/deploy cycles.
+
+- Treat `src/package/` as the only source of truth for packaged MNW content.
+- Always rebuild the `.kyt` after any mission or campaign edit. Do not copy loose `.mis` or `.cmp` assumptions into deployment logic.
+- Always redeploy after rebuild, then verify the deployed package hash matches `dist/norwegian_shadow.kyt`.
+- Fully exit and relaunch MNW after deployment when validating campaign progression or save behavior.
+- Custom campaign mission IDs must use the package namespace actually present in the archive, for example `norwegian_shadow.norwegian_shadow.bear_gap`.
+- Do not swap to official-style IDs like `campaigns.norwegian_shadow.*` unless the package truly uses that namespace. That specific mistake caused mission lookup failures.
+- Reintroduce new campaign graph links one step at a time. First prove Mission 1 -> Mission 2 works, then add Mission 3.
+- If a campaign disappears from the menu or hangs on `Loading Missions...`, first suspect a bad mission reference or a manifest/package mismatch before suspecting the game install.
+- If post-mission debrief hangs on `Saving...`, inspect `Player.log` for snapshot/model exceptions before changing campaign progression logic.
+- In `Broken Datum`, a save hang was caused by `ASWFormation.ConstructModel()` during snapshot save. Replacing the problematic mixed formation with individual element plots fixed it.
+- Avoid introducing complex mixed formations casually, especially when save/snapshot behavior has not been validated.
+- When debugging MNW content, restore the last known-good campaign graph first, then add only one new variable at a time.
+
+For the full technical record, including the exact failure modes and the fixes that worked, see `RESEARCH.md`.

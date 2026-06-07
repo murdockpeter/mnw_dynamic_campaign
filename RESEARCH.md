@@ -203,6 +203,131 @@ These are engineering questions, not blockers:
 3. Whether campaign graphs support conditional branching beyond simple `PipeMission(...)`.
 4. Whether packaging requires recomputing only ZIP contents and manifests, or also some registry/cache step.
 
+## Proven authoring rules from live testing
+
+The first working custom three-mission campaign in this repo exposed several rules that should be treated as hard constraints until disproven.
+
+### 1. Mission IDs must match the package namespace, not a guessed official namespace
+
+Working mission IDs in this repo:
+
+- `norwegian_shadow.norwegian_shadow.bear_gap`
+- `norwegian_shadow.norwegian_shadow.broken_datum`
+- `norwegian_shadow.norwegian_shadow.closing_net`
+
+Non-working experiment:
+
+- `campaigns.norwegian_shadow.*`
+
+That official-style guess caused mission lookup failures and `KeyNotFoundException` behavior in `Player.log`.
+
+Practical rule:
+
+- derive mission IDs from the actual archive/package path, not from assumptions based on shipped campaigns
+
+### 2. Campaign graph changes must be introduced incrementally
+
+The stable progression path was recovered only after rolling the campaign back to a verified two-mission graph, proving:
+
+- Mission 1 loaded
+- Mission 1 debrief saved
+- Mission 2 unlocked
+- Mission 2 loaded
+- Mission 2 debrief saved
+
+Only after that baseline was confirmed was Mission 3 reintroduced.
+
+Practical rule:
+
+- when adding a mission, change only the graph first
+- validate progression
+- only then expand scenario complexity
+
+### 3. Manifest/package drift causes misleading failures
+
+At one point the package contained new scenario files that were not correctly represented in `manifest.json`. This produced missing-checksum behavior and campaign loading trouble.
+
+Practical rule:
+
+- never hand-wave manifest maintenance
+- the package manifest must reflect the real packaged files
+- build tooling should regenerate the manifest from `src/package/`, not trust stale manual edits
+
+### 4. Save hangs can come from scenario model construction, not campaign logic
+
+`Broken Datum` produced a debrief screen stuck on `Saving...`.
+
+`Player.log` traced the fault to:
+
+- `mnw.Scenarios.Missions.ASWFormation.ConstructModel()`
+- then snapshot/save code
+
+This was not a campaign graph problem. It was a mission-content problem.
+
+Practical rule:
+
+- when `Saving...` hangs, inspect mission formations and snapshot-time objects first
+- do not assume progression logic is at fault
+
+### 5. Mixed formations are a high-risk area
+
+The problematic `Broken Datum` support group used an `ASWFormation` squadron with multiple different elements. Replacing that grouping with individual element plots removed the save-hang behavior.
+
+Practical rule:
+
+- be cautious with `ASWFormation`
+- especially avoid casually mixing heterogeneous elements in formations until save/snapshot behavior is validated
+- if a mission blue-screens or save-hangs, simplify formations before changing unrelated systems
+
+### 6. Deployment must be verified, not assumed
+
+The working fix path depended on confirming that:
+
+- `dist/norwegian_shadow.kyt`
+- the install-tree deployed package
+- the LocalLow deployed package
+
+all had the same MD5 hash after deployment.
+
+Practical rule:
+
+- always hash-check rebuilt and deployed packages
+- do not assume the game is reading the file you think you installed
+
+### 7. Full MNW restart matters during validation
+
+Campaign progression and package recognition were more reliable when testing from a fully exited and relaunched game instance.
+
+Practical rule:
+
+- after rebuild/deploy, fully exit MNW before progression validation
+
+### 8. Known-good restoration is the fastest debugging tool
+
+The eventual success path was:
+
+1. restore the known-good two-mission chain
+2. prove it still worked in a fresh player profile
+3. fix the `Broken Datum` save issue
+4. reintroduce Mission 3 with the smallest possible graph change
+5. validate progression again
+
+Practical rule:
+
+- keep a known-good minimal campaign chain available
+- when uncertain, reduce complexity first instead of stacking more guesses
+
+### 9. Useful local evidence paths
+
+Two local evidence sources mattered repeatedly:
+
+- `Player.log` for load/save exceptions and mission lookup errors
+- `C:\Users\<user>\AppData\Roaming\.MaslasBros\MNW\Profiles\...` for profile/campaign save manifests
+
+Practical rule:
+
+- inspect logs and save manifests before attempting speculative code changes
+
 ## Practical next steps
 
 1. Build a read-only extractor that:

@@ -14,12 +14,26 @@ New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
 $manifestPath = Join-Path $resolvedSource "manifest.json"
 $manifest = Get-Content $manifestPath -Raw | ConvertFrom-Json
 
-foreach ($entry in $manifest.content) {
-    $contentPath = Join-Path $resolvedSource ($entry.path -replace "/", "\\")
-    $entry.hash = (Get-FileHash $contentPath -Algorithm MD5).Hash.ToLower()
+$contentEntries = Get-ChildItem -Path $resolvedSource -Recurse -File |
+    Where-Object { $_.FullName -ne $manifestPath } |
+    Sort-Object FullName |
+    ForEach-Object {
+        $relative = $_.FullName.Substring($resolvedSource.Length + 1).Replace("\", "/")
+        [pscustomobject]@{
+            path = $relative
+            hash = (Get-FileHash $_.FullName -Algorithm MD5).Hash.ToLower()
+        }
+    }
+
+$updatedManifest = [ordered]@{
+    version = $manifest.version
+    build = $manifest.build
+    dv = $manifest.dv
+    author = $manifest.author
+    content = @($contentEntries)
 }
 
-$manifest | ConvertTo-Json -Depth 6 | Set-Content $manifestPath -Encoding UTF8
+$updatedManifest | ConvertTo-Json -Depth 6 | Set-Content $manifestPath -Encoding UTF8
 
 Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.IO.Compression.FileSystem
