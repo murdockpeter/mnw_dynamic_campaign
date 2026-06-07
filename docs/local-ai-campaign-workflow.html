@@ -276,6 +276,7 @@
       <ol>
         <li><a href="#what-you-need">What You Need</a></li>
         <li><a href="#repo-mental-model">Repo Mental Model</a></li>
+        <li><a href="#validated-guardrails">Validated Guardrails</a></li>
         <li><a href="#pick-an-agent">Pick an AI Tool</a></li>
         <li><a href="#simple-three-scenario-campaign">Simple Three-Scenario Campaign Plan</a></li>
         <li><a href="#full-local-workflow">Full Local Workflow</a></li>
@@ -335,6 +336,50 @@ python -m unittest tests.test_persistence_smoke</code></pre>
       </div>
     </section>
 
+    <section id="validated-guardrails">
+      <h2>Validated Guardrails</h2>
+      <div class="callout">
+        <span class="pill risk">Important</span>
+        <p>
+          These are not style preferences. These are rules that were validated by real failures, real rebuilds, real
+          <code>Player.log</code> inspection, and real in-game success. A new operator or AI tool should follow them exactly.
+        </p>
+      </div>
+
+      <div class="grid two">
+        <div class="card">
+          <h3>What To Do</h3>
+          <ul>
+            <li>Treat <code>src/package/</code> as the only editable source of MNW package content.</li>
+            <li>Use the mission namespace that actually exists in the package, such as <code>norwegian_shadow.norwegian_shadow.bear_gap</code>.</li>
+            <li>Add campaign progression one link at a time: prove Mission 1 -&gt; Mission 2, then add Mission 3.</li>
+            <li>Rebuild after every mission or campaign edit.</li>
+            <li>Redeploy after every rebuild and verify the deployed hashes match the file in <code>dist/</code>.</li>
+            <li>Fully exit and relaunch MNW when validating progression or save behavior.</li>
+            <li>Keep a known-good minimal campaign graph available and restore it when debugging.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>What Not To Do</h3>
+          <ul>
+            <li>Do not guess official-style mission IDs such as <code>campaigns.norwegian_shadow.*</code> unless the package truly uses them.</li>
+            <li>Do not assume a campaign bug is a graph problem if the debrief is hanging on <code>Saving...</code>.</li>
+            <li>Do not trust deployment without hash verification.</li>
+            <li>Do not add several new missions and graph links at once if you have not yet proven the prior progression step.</li>
+            <li>Do not casually use complex mixed formations until save/snapshot behavior has been tested.</li>
+          </ul>
+        </div>
+      </div>
+
+      <pre><code>Working progression pattern recovered in live testing
+
+1. Restore known-good Mission 1 -> Mission 2 baseline.
+2. Prove Mission 1 saves and unlocks Mission 2.
+3. Fix any Mission 2 save/snapshot problems.
+4. Reintroduce Mission 3 with the smallest graph-only change.
+5. Rebuild, redeploy, hash-check, restart the game, and test again.</code></pre>
+    </section>
+
     <section id="pick-an-agent">
       <h2>Pick an AI Tool</h2>
       <div class="grid three">
@@ -344,7 +389,10 @@ python -m unittest tests.test_persistence_smoke</code></pre>
           <pre><code>Tell it:
 - read README.md and RESEARCH.md first
 - preserve src/package/ packaging rules
+- preserve the actual package namespace in mission IDs
+- add campaign graph links incrementally
 - use tools/build.ps1 after mission edits
+- verify deployed hashes after tools/deploy.ps1
 - keep persistence modular
 - update docs when contracts change</code></pre>
         </div>
@@ -355,7 +403,8 @@ python -m unittest tests.test_persistence_smoke</code></pre>
 - inspect current mission and campaign examples
 - propose a three-mission escalation arc
 - implement the files, not just describe them
-- validate with the repo tooling</code></pre>
+- validate with the repo tooling
+- use Player.log evidence if save or loading behavior breaks</code></pre>
         </div>
         <div class="tool-card">
           <h3>GitHub Copilot CLI</h3>
@@ -414,7 +463,8 @@ python -m unittest tests.test_persistence_smoke</code></pre>
 
 "Read README.md and RESEARCH.md first. Then inspect src/package/, campaigns/, engine/, modules/, tools/, and ui/.
 I want a simple three-scenario dynamic campaign for Modern Naval Warfare. Use the existing repo patterns, keep persistence
-modular, and validate any changes with the local build and test scripts."</code></pre>
+modular, preserve the package namespace used by the sample campaign, add campaign links one step at a time, and validate
+any changes with the local build, deploy, hash-check, and test scripts."</code></pre>
         </div>
       </article>
 
@@ -432,6 +482,7 @@ modular, and validate any changes with the local build and test scripts."</code>
             <li>Rename the campaign ID, mission IDs, sidecars, and visible strings.</li>
             <li>Create or update the matching persistence bootstrap under <code>campaigns/&lt;campaign-id&gt;/</code>.</li>
             <li>Keep the first implementation simple and known-good.</li>
+            <li>Do not invent a new mission ID prefix unless the package structure actually supports it.</li>
           </ul>
         </div>
       </article>
@@ -450,6 +501,7 @@ modular, and validate any changes with the local build and test scripts."</code>
             <li>Mission 2 should depend on Mission 1 state, even if only through ammo and damage carryover.</li>
             <li>Mission 3 should be the payoff mission with a cleaner end-state.</li>
             <li>Ask the AI to keep the map bounds, starting positions, and end conditions conservative at first.</li>
+            <li>Avoid unnecessary complex formations until the campaign saves cleanly after debrief.</li>
           </ul>
         </div>
       </article>
@@ -465,7 +517,13 @@ modular, and validate any changes with the local build and test scripts."</code>
         <div class="step-body">
           <pre><code>powershell -ExecutionPolicy Bypass -File .\tools\build.ps1
 powershell -ExecutionPolicy Bypass -File .\tools\deploy.ps1</code></pre>
-          <p>Then launch MNW and verify that the campaign appears and that each mission can at least load.</p>
+          <pre><code>Optional but strongly recommended verification
+
+Get-FileHash .\dist\norwegian_shadow.kyt -Algorithm MD5</code></pre>
+          <p>
+            Then confirm the deployed package copies match the same hash, fully restart MNW, and verify that the campaign appears
+            and that each mission can at least load.
+          </p>
         </div>
       </article>
 
@@ -516,6 +574,10 @@ powershell -ExecutionPolicy Bypass -File .\tools\deploy.ps1</code></pre>
               </p>
             </div>
           </div>
+          <p class="muted">
+            If the debrief screen hangs on <code>Saving...</code>, stop treating it as a persistence-UI problem. Check
+            <code>Player.log</code> first and inspect mission formations or other snapshot-time objects.
+          </p>
         </div>
       </article>
 
@@ -530,6 +592,10 @@ powershell -ExecutionPolicy Bypass -File .\tools\deploy.ps1</code></pre>
         <div class="step-body">
           <pre><code>powershell -ExecutionPolicy Bypass -File .\tools\ingest-and-refresh.ps1 -ResultPath "C:\Path\To\mission1_result.json"</code></pre>
           <p>Reload the UI and verify that order of battle, mission history, and generation directives updated.</p>
+          <p class="muted">
+            This external persistence loop is currently authoritative for this repo. It complements MNW's own debrief screens,
+            but it does not depend on any in-game automation bridge.
+          </p>
         </div>
       </article>
 
@@ -546,7 +612,8 @@ powershell -ExecutionPolicy Bypass -File .\tools\deploy.ps1</code></pre>
 
 "Read the updated state and UI snapshot. Generate Mission 2 so it reflects the current campaign condition.
 Carry over player damage, readiness, and ammo. If the enemy was destroyed, replace the central threat with an
-escalation response. If the enemy escaped, thicken the battlespace and continue the hunt."</code></pre>
+escalation response. If the enemy escaped, thicken the battlespace and continue the hunt. Keep the campaign graph stable
+until this mission saves and unlocks correctly in MNW."</code></pre>
         </div>
       </article>
 
@@ -567,6 +634,10 @@ escalation response. If the enemy escaped, thicken the battlespace and continue 
             <li>an order of battle that reflects cumulative results</li>
             <li>a documented workflow an AI can repeat for future campaigns</li>
           </ul>
+          <p class="muted">
+            Recommended validation order: first prove Mission 1 unlocks Mission 2, then prove Mission 2 saves cleanly, then
+            add or validate Mission 3 progression. That sequence avoided repeated false leads during live testing.
+          </p>
         </div>
       </article>
     </section>
@@ -614,7 +685,8 @@ escalation response. If the enemy escaped, thicken the battlespace and continue 
           <pre><code>Use this repository as a local working folder. Read README.md and RESEARCH.md first.
 Inspect src/package/, campaigns/, engine/, modules/, tools/, and ui/.
 Create a simple three-scenario submarine campaign for Modern Naval Warfare.
-Keep persistence modular. Build, test, and update docs as you go.
+Keep persistence modular. Preserve the actual package namespace in mission IDs.
+Add campaign progression incrementally, rebuild and redeploy after each graph change, verify hashes, and update docs as you go.
 After each mission result is ingested, read the updated state and generate the next mission from it.</code></pre>
         </div>
         <div class="tool-card">
@@ -622,13 +694,14 @@ After each mission result is ingested, read the updated state and generate the n
           <pre><code>Study the existing campaign and persistence scaffolding in this repo.
 I want a modest three-mission escalation arc that starts with a constrained intercept,
 widens into a regional hunt, and ends with a decisive containment or breakout mission.
-Implement the files directly, validate them with the local scripts, and keep the UI/backend contract aligned.</code></pre>
+Implement the files directly, validate them with the local scripts, keep the UI/backend contract aligned,
+and use Player.log evidence if campaign loading or post-mission saving fails.</code></pre>
         </div>
         <div class="tool-card">
           <h3>Copilot CLI Prompt</h3>
           <pre><code>Inspect this repo and summarize how MNW scenarios, campaign packaging, and persistence state fit together.
 Then modify the sample campaign into a three-scenario version with a state-driven second and third mission.
-After each change, tell me what command to run next to validate the result.</code></pre>
+After each change, tell me what command to run next to validate the result, and keep campaign graph changes incremental.</code></pre>
         </div>
       </div>
     </section>
