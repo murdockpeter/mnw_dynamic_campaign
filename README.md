@@ -2,6 +2,8 @@
 
 This repository is meant to be a reusable authoring kit for `Modern Naval Warfare`, not just a home for one fixed campaign.
 
+Latest General How-To Is Located Here: https://murdockpeter.github.io/mnw_dynamic_campaign/local-ai-campaign-workflow.html
+
 It contains:
 
 - a working custom campaign package
