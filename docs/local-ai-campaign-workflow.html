@@ -277,6 +277,7 @@
         <li><a href="#what-you-need">What You Need</a></li>
         <li><a href="#repo-mental-model">Repo Mental Model</a></li>
         <li><a href="#validated-guardrails">Validated Guardrails</a></li>
+        <li><a href="#package-model">Package Model</a></li>
         <li><a href="#pick-an-agent">Pick an AI Tool</a></li>
         <li><a href="#simple-three-scenario-campaign">Simple Three-Scenario Campaign Plan</a></li>
         <li><a href="#full-local-workflow">Full Local Workflow</a></li>
@@ -316,7 +317,8 @@ python -m unittest tests.test_persistence_smoke</code></pre>
         <div class="card">
           <h3>MNW Content Layer</h3>
           <ul>
-            <li><code>src/package/</code> is the editable package source tree.</li>
+            <li><code>src/package/</code> is the editable source tree for the included sample package.</li>
+            <li><code>src/packages/&lt;campaign-id&gt;/</code> is where separate standalone campaign packages should live.</li>
             <li><code>.mis</code> and <code>.cmp</code> files are the in-game scenario and campaign scripts.</li>
             <li><code>.mis.json</code> and <code>.cmp.json</code> are metadata sidecars.</li>
             <li><code>tools/build.ps1</code> turns source content into a valid <code>.kyt</code> package.</li>
@@ -350,7 +352,8 @@ python -m unittest tests.test_persistence_smoke</code></pre>
         <div class="card">
           <h3>What To Do</h3>
           <ul>
-            <li>Treat <code>src/package/</code> as the only editable source of MNW package content.</li>
+            <li>Treat the selected package source tree as the editable source of MNW package content.</li>
+            <li>Use <code>src/package/</code> for the included sample package and <code>src/packages/&lt;campaign-id&gt;/</code> for standalone distributable campaigns.</li>
             <li>Use the mission namespace that actually exists in the package, such as <code>norwegian_shadow.norwegian_shadow.bear_gap</code>.</li>
             <li>Add campaign progression one link at a time: prove Mission 1 -&gt; Mission 2, then add Mission 3.</li>
             <li>Rebuild after every mission or campaign edit.</li>
@@ -364,6 +367,7 @@ python -m unittest tests.test_persistence_smoke</code></pre>
           <ul>
             <li>Do not guess official-style mission IDs such as <code>campaigns.norwegian_shadow.*</code> unless the package truly uses them.</li>
             <li>Do not assume a campaign bug is a graph problem if the debrief is hanging on <code>Saving...</code>.</li>
+            <li>Do not force unrelated campaigns into one shared package if they are supposed to ship independently.</li>
             <li>Do not trust deployment without hash verification.</li>
             <li>Do not add several new missions and graph links at once if you have not yet proven the prior progression step.</li>
             <li>Do not casually use complex mixed formations until save/snapshot behavior has been tested.</li>
@@ -380,6 +384,36 @@ python -m unittest tests.test_persistence_smoke</code></pre>
 5. Rebuild, redeploy, hash-check, restart the game, and test again.</code></pre>
     </section>
 
+    <section id="package-model">
+      <h2>Package Model</h2>
+      <div class="grid two">
+        <div class="card">
+          <h3>Sample Package</h3>
+          <p>
+            The repo keeps <code>Norwegian Shadow</code> in <code>src/package/</code> as the included known-good sample package.
+            Building that tree produces <code>dist/norwegian_shadow.kyt</code>.
+          </p>
+        </div>
+        <div class="card">
+          <h3>Standalone Campaign Packages</h3>
+          <p>
+            A campaign that is meant to be its own distributable should live in its own tree under
+            <code>src/packages/&lt;campaign-id&gt;/</code> and should build to its own archive such as
+            <code>dist/iron_archipelago.kyt</code>.
+          </p>
+        </div>
+      </div>
+
+      <div class="callout">
+        <span class="pill warn">Important</span>
+        <p>
+          Do not permanently pack unrelated campaigns into one shared <code>.kyt</code> just because it is convenient for a quick test.
+          If the campaign is supposed to be its own thing, give it its own package, its own manifest, its own locale file,
+          and its own mission namespace.
+        </p>
+      </div>
+    </section>
+
     <section id="pick-an-agent">
       <h2>Pick an AI Tool</h2>
       <div class="grid three">
@@ -388,7 +422,8 @@ python -m unittest tests.test_persistence_smoke</code></pre>
           <p>Best when you want the agent to inspect the repo, patch files directly, run tests, and iterate with you.</p>
           <pre><code>Tell it:
 - read README.md and RESEARCH.md first
-- preserve src/package/ packaging rules
+- preserve the selected package tree's packaging rules
+- use src/packages/<campaign-id>/ for standalone campaign packages
 - preserve the actual package namespace in mission IDs
 - add campaign graph links incrementally
 - use tools/build.ps1 after mission edits
@@ -461,10 +496,10 @@ python -m unittest tests.test_persistence_smoke</code></pre>
         <div class="step-body">
           <pre><code>Good first instruction
 
-"Read README.md and RESEARCH.md first. Then inspect src/package/, campaigns/, engine/, modules/, tools/, and ui/.
+"Read README.md and RESEARCH.md first. Then inspect src/package/, src/packages/, campaigns/, engine/, modules/, tools/, and ui/.
 I want a simple three-scenario dynamic campaign for Modern Naval Warfare. Use the existing repo patterns, keep persistence
-modular, preserve the package namespace used by the sample campaign, add campaign links one step at a time, and validate
-any changes with the local build, deploy, hash-check, and test scripts."</code></pre>
+modular, decide whether this belongs in the sample package or as its own standalone package tree, add campaign links one
+step at a time, and validate any changes with the local build, deploy, hash-check, and test scripts."</code></pre>
         </div>
       </article>
 
@@ -478,11 +513,12 @@ any changes with the local build, deploy, hash-check, and test scripts."</code><
         </div>
         <div class="step-body">
           <ul>
-            <li>Duplicate the current sample campaign source files under <code>src/package/</code>.</li>
+            <li>For a variation of the included sample, duplicate files under <code>src/package/</code>.</li>
+            <li>For a fully separate distributable campaign, create a new package tree under <code>src/packages/&lt;campaign-id&gt;/</code>.</li>
             <li>Rename the campaign ID, mission IDs, sidecars, and visible strings.</li>
             <li>Create or update the matching persistence bootstrap under <code>campaigns/&lt;campaign-id&gt;/</code>.</li>
             <li>Keep the first implementation simple and known-good.</li>
-            <li>Do not invent a new mission ID prefix unless the package structure actually supports it.</li>
+            <li>Do not invent a mission ID prefix. Derive it from the actual package filename and internal folder structure.</li>
           </ul>
         </div>
       </article>
@@ -515,14 +551,21 @@ any changes with the local build, deploy, hash-check, and test scripts."</code><
           </div>
         </div>
         <div class="step-body">
-          <pre><code>powershell -ExecutionPolicy Bypass -File .\tools\build.ps1
+          <pre><code>Sample package build and deploy
+
+powershell -ExecutionPolicy Bypass -File .\tools\build.ps1
 powershell -ExecutionPolicy Bypass -File .\tools\deploy.ps1</code></pre>
+          <pre><code>Standalone package build and deploy
+
+powershell -ExecutionPolicy Bypass -File .\tools\build.ps1 -SourceDir .\src\packages\iron_archipelago -OutputPath .\dist\iron_archipelago.kyt
+powershell -ExecutionPolicy Bypass -File .\tools\deploy.ps1 -PackagePath .\dist\iron_archipelago.kyt</code></pre>
           <pre><code>Optional but strongly recommended verification
 
-Get-FileHash .\dist\norwegian_shadow.kyt -Algorithm MD5</code></pre>
+Get-FileHash .\dist\norwegian_shadow.kyt -Algorithm MD5
+Get-FileHash .\dist\iron_archipelago.kyt -Algorithm MD5</code></pre>
           <p>
-            Then confirm the deployed package copies match the same hash, fully restart MNW, and verify that the campaign appears
-            and that each mission can at least load.
+            Then confirm the deployed package copies match the same hash for the package you actually built, fully restart MNW,
+            and verify that the campaign appears and that each mission can at least load.
           </p>
         </div>
       </article>
@@ -683,9 +726,9 @@ until this mission saves and unlocks correctly in MNW."</code></pre>
         <div class="tool-card">
           <h3>ChatGPT / Codex Prompt</h3>
           <pre><code>Use this repository as a local working folder. Read README.md and RESEARCH.md first.
-Inspect src/package/, campaigns/, engine/, modules/, tools/, and ui/.
+Inspect src/package/, src/packages/, campaigns/, engine/, modules/, tools/, and ui/.
 Create a simple three-scenario submarine campaign for Modern Naval Warfare.
-Keep persistence modular. Preserve the actual package namespace in mission IDs.
+Keep persistence modular. If the campaign is meant to stand alone, build it as its own package tree and preserve the actual package namespace in mission IDs.
 Add campaign progression incrementally, rebuild and redeploy after each graph change, verify hashes, and update docs as you go.
 After each mission result is ingested, read the updated state and generate the next mission from it.</code></pre>
         </div>

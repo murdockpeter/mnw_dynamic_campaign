@@ -1,0 +1,76 @@
+{
+  "metadata": {
+    "campaign_id": "iron_archipelago",
+    "title": "Iron Archipelago",
+    "theater": "Luzon Strait",
+    "description": "Baseline modular persistence configuration for a U.S. Navy versus PLAN campaign in the Luzon Strait and Philippine Sea.",
+    "active_persistence_system": "baseline_modular"
+  },
+  "current_mission_id": "iron_archipelago.iron_archipelago.bashi_screen",
+  "campaign_clock": "2028-04-02T04:20:00Z",
+  "order_of_battle": {
+    "uss_north_carolina": {
+      "unit_id": "uss_north_carolina",
+      "name": "USS North Carolina",
+      "faction": "US",
+      "platform_type": "submarine",
+      "dbid": 1015,
+      "readiness": 1.0,
+      "damage": 0.0,
+      "destroyed": false,
+      "ammo": {
+        "mk48_mod7": 12,
+        "decoy_mk3": 12,
+        "decoy_2458": 12
+      },
+      "tags": [
+        "player"
+      ],
+      "notes": {}
+    },
+    "plan_lead_ddg": {
+      "unit_id": "plan_lead_ddg",
+      "name": "PLAN Lead DDG",
+      "faction": "CN",
+      "platform_type": "surface_combatant",
+      "dbid": 3883,
+      "readiness": 1.0,
+      "damage": 0.0,
+      "destroyed": false,
+      "ammo": {},
+      "tags": [
+        "enemy"
+      ],
+      "notes": {}
+    },
+    "plan_escort_ffg": {
+      "unit_id": "plan_escort_ffg",
+      "name": "PLAN Escort FFG",
+      "faction": "CN",
+      "platform_type": "surface_combatant",
+      "dbid": 1965,
+      "readiness": 1.0,
+      "damage": 0.0,
+      "destroyed": false,
+      "ammo": {},
+      "tags": [
+        "enemy"
+      ],
+      "notes": {}
+    }
+  },
+  "mission_history": [],
+  "world_state": {
+    "escalation_level": 1
+  },
+  "module_state": {
+    "damage": {
+      "repair_rate_per_day": 0.08
+    },
+    "ammo": {}
+  },
+  "enabled_modules": [
+    "damage",
+    "ammo"
+  ]
+}

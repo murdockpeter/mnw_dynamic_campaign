@@ -6,7 +6,7 @@ Latest General How-To Is Located Here: https://murdockpeter.github.io/mnw_dynami
 
 It contains:
 
-- a working custom campaign package
+- working custom campaign packages
 - verified package/build rules for MNW `.kyt` content
 - editable mission and campaign source files
 - a local-only database inventory script for MNW platform archives
@@ -30,6 +30,7 @@ This repo is a starter framework for:
 - evolving from hand-authored scenarios into AI-assisted generation
 
 It already includes one working sample campaign package so there is a known-good baseline to copy, rename, and extend.
+It also now supports separate standalone package trees in one repo, so unrelated campaigns can be built and distributed as separate `.kyt` archives.
 
 ## Quickstart Guide
 
@@ -71,6 +72,17 @@ src/
       bear_gap.mis.json
       broken_datum.mis
       broken_datum.mis.json
+  packages/
+    iron_archipelago/
+      manifest.json
+      locale.csv
+      template.cmp.json
+      template.mis.json
+      iron_archipelago/
+        quest.cmp
+        quest.cmp.json
+        bashi_screen.mis
+        bashi_screen.mis.json
 engine/
 modules/
 storage/
@@ -101,6 +113,8 @@ MNW content authoring in this repo is built around a few practical facts:
 - `.mis.json` and `.cmp.json` sidecars hold visible metadata and localization
 - `locale.csv` also contains visible strings
 - archive entry paths matter; MNW expects forward-slash ZIP paths
+- mission IDs are tied to the package identity plus internal folder structure
+- separate distributable campaigns should generally be separate package trees and separate `.kyt` files
 - `Var\DB` archives are locally readable and can be indexed without shipping them in the repo
 - persistence should live outside MNW, not inside mission scripts
 
@@ -181,14 +195,16 @@ Examples:
 1. Give the AI this repository as its working folder.
 2. Tell it your design goal.
 3. Point it at `RESEARCH.md` first so it understands MNW packaging and scenario structure.
-4. Tell it to use `src/package/` as the source of truth for MNW package content.
-5. If it needs platform context, have it run `tools/index-db.ps1` against the user's local MNW install.
-6. If it needs campaign persistence logic, have it work against `engine/`, `modules/`, `storage/`, and `campaigns/`.
-7. If it needs user-facing workflow changes, have it inspect `ui/`.
-8. Have it run `tools/build.ps1`.
-9. Optionally have it run `tools/deploy.ps1`.
-10. Test in game.
-11. Iterate based on in-game behavior and `Player.log`.
+4. Tell it to use the relevant package source tree as the source of truth for MNW package content.
+5. Use `src/package/` for the included `Norwegian Shadow` sample package.
+6. Use `src/packages/<campaign-id>/` for a standalone distributable campaign package.
+7. If it needs platform context, have it run `tools/index-db.ps1` against the user's local MNW install.
+8. If it needs campaign persistence logic, have it work against `engine/`, `modules/`, `storage/`, and `campaigns/`.
+9. If it needs user-facing workflow changes, have it inspect `ui/`.
+10. Have it run `tools/build.ps1`, optionally with `-SourceDir` and `-OutputPath`.
+11. Optionally have it run `tools/deploy.ps1`, optionally with `-PackagePath`.
+12. Test in game.
+13. Iterate based on in-game behavior and `Player.log`.
 
 ### What To Tell The AI Explicitly
 
@@ -197,7 +213,9 @@ Tell it:
 - do not invent new binary formats
 - preserve MNW `.kyt` packaging rules
 - preserve forward-slash ZIP entry names
-- treat `src/package/` as the editable MNW source tree
+- treat the selected package source tree as the editable MNW source tree
+- keep standalone campaigns in separate package trees when they are meant to be distributed independently
+- do not assume two unrelated campaigns should share one `.kyt`
 - update `manifest.json` hashes whenever package files change
 - use `generated/db/` only as a local index derived from the user's own game install
 - keep persistence systems modular and selectable by configuration
@@ -211,10 +229,16 @@ From the repo root:
 powershell -ExecutionPolicy Bypass -File .\tools\build.ps1
 ```
 
-This rebuilds the package from `src/package/` and writes:
+This rebuilds the included `Norwegian Shadow` sample package from `src/package/` and writes:
 
 ```text
 dist/norwegian_shadow.kyt
+```
+
+To build a separate standalone package:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\build.ps1 -SourceDir .\src\packages\iron_archipelago -OutputPath .\dist\iron_archipelago.kyt
 ```
 
 The build script:
@@ -247,6 +271,14 @@ Run:
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\tools\deploy.ps1
 ```
+
+To deploy a specific standalone package:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\deploy.ps1 -PackagePath .\dist\iron_archipelago.kyt
+```
+
+`deploy.ps1` now preserves the actual package filename instead of renaming everything to `norwegian_shadow.kyt`.
 
 ## Testing
 
@@ -345,6 +377,7 @@ Important constraint:
 Commit:
 
 - `src/package/`
+- `src/packages/`
 - `engine/`
 - `modules/`
 - `storage/`
@@ -389,11 +422,13 @@ If the UI is intended to drive campaign-state workflows, module selection, resul
 
 These rules were validated through live in-game testing, failed experiments, `Player.log` review, and repeated rebuild/deploy cycles.
 
-- Treat `src/package/` as the only source of truth for packaged MNW content.
+- Treat the selected package source tree as the source of truth for that package's MNW content.
+- Use `src/package/` for the included sample package and `src/packages/<campaign-id>/` for standalone distributable campaigns.
 - Always rebuild the `.kyt` after any mission or campaign edit. Do not copy loose `.mis` or `.cmp` assumptions into deployment logic.
-- Always redeploy after rebuild, then verify the deployed package hash matches `dist/norwegian_shadow.kyt`.
+- Always redeploy after rebuild, then verify the deployed package hash matches the specific `.kyt` you just built.
 - Fully exit and relaunch MNW after deployment when validating campaign progression or save behavior.
 - Custom campaign mission IDs must use the package namespace actually present in the archive, for example `norwegian_shadow.norwegian_shadow.bear_gap`.
+- If a campaign is meant to be its own thing, give it its own package tree, its own `.kyt`, and its own mission namespace.
 - Do not swap to official-style IDs like `campaigns.norwegian_shadow.*` unless the package truly uses that namespace. That specific mistake caused mission lookup failures.
 - Reintroduce new campaign graph links one step at a time. First prove Mission 1 -> Mission 2 works, then add Mission 3.
 - If a campaign disappears from the menu or hangs on `Loading Missions...`, first suspect a bad mission reference or a manifest/package mismatch before suspecting the game install.

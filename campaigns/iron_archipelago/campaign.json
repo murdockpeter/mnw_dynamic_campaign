@@ -1,0 +1,7 @@
+{
+  "campaign_id": "iron_archipelago",
+  "title": "Iron Archipelago",
+  "theater": "Luzon Strait",
+  "description": "Baseline modular persistence configuration for a U.S. Navy versus PLAN campaign in the Luzon Strait and Philippine Sea.",
+  "active_persistence_system": "baseline_modular"
+}

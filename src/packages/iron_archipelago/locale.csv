@@ -1,0 +1,28 @@
+Path,Field,en,de,zh,fr,es,ru,ro,pl,el
+iron_archipelago/quest.cmp,name,Iron Archipelago,,,,,,,,
+iron_archipelago/quest.cmp,description,"A U.S. submarine campaign in the Luzon Strait and Philippine Sea. Shadow PLAN naval movements, survive the opening counter-detection cycle, and set conditions for a wider maritime fight.",,,,,,,,
+iron_archipelago/bashi_screen.mis,name,Bashi Screen,,,,,,,,
+iron_archipelago/bashi_screen.mis,description,"A Virginia-class submarine is ordered into the Luzon Strait to monitor a PLAN surface push into the Philippine Sea. A Type 055 destroyer, Type 054A frigate, and embarked helicopter are screening the route while U.S. forces stay outside the first detection ring. Build the picture, stay combat effective, and withdraw cleanly to report.",,,,,,,,
+iron_archipelago/bashi_screen.mis,objectives.primary_withdraw_intact,Keep your submarine combat effective and raise antennas to conclude the mission.,,,,,,,,
+iron_archipelago/bashi_screen.mis,messages.mission_from,COMSUBPAC,,,,,,,,
+iron_archipelago/bashi_screen.mis,messages.mission_to,USS NORTH CAROLINA (SSN-777),,,,,,,,
+iron_archipelago/bashi_screen.mis,messages.mission_objectives,"BT
+SUBJ: LUZON STRAIT SURVEILLANCE
+
+1. A PLAN surface action group is pushing east through the Bashi Channel toward the Philippine Sea. Initial reporting indicates one Type 055 destroyer, one Type 054A frigate, and an embarked helicopter detachment operating ahead of follow-on forces.
+
+2. U.S. surface and air forces are holding outside the first detection ring. Your submarine is the forward sensor and must build the initial operational picture without becoming decisively fixed.
+
+3. Primary task:
+   A. Keep your submarine combat effective and raise antennas whenever you are ready to conclude the mission and report.
+
+4. Additional guidance:
+   A. Track the PLAN screen and preserve contact discipline.
+   B. Avoid unnecessary exposure near the strait shoulders and shipping lanes.
+   C. A withdrawal point and reporting box are attached.
+
+5. Higher command expects this patrol to set conditions for follow-on operations.",,,,,,,,
+iron_archipelago/bashi_screen.mis,messages.mission_success,"BT
+SUBJ: MISSION STATUS - SUCCESS
+
+Forward surveillance is complete. COMSUBPAC has the opening picture on the PLAN push through Luzon and will posture follow-on forces using your report.",,,,,,,,

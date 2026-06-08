@@ -214,16 +214,19 @@ Working mission IDs in this repo:
 - `norwegian_shadow.norwegian_shadow.bear_gap`
 - `norwegian_shadow.norwegian_shadow.broken_datum`
 - `norwegian_shadow.norwegian_shadow.closing_net`
+- `iron_archipelago.iron_archipelago.bashi_screen` when `Iron Archipelago` is built as its own standalone `iron_archipelago.kyt`
 
 Non-working experiment:
 
 - `campaigns.norwegian_shadow.*`
+- `iron_archipelago.iron_archipelago.bashi_screen` when the mission was still packed inside `norwegian_shadow.kyt`
 
 That official-style guess caused mission lookup failures and `KeyNotFoundException` behavior in `Player.log`.
 
 Practical rule:
 
 - derive mission IDs from the actual archive/package path, not from assumptions based on shipped campaigns
+- if a campaign is meant to be distributed separately, split it into its own package instead of forcing it to inherit another package's namespace
 
 ### 2. Campaign graph changes must be introduced incrementally
 
@@ -294,7 +297,25 @@ Practical rule:
 - always hash-check rebuilt and deployed packages
 - do not assume the game is reading the file you think you installed
 
-### 7. Full MNW restart matters during validation
+### 7. Separate campaigns should be separate packages when you want true independence
+
+The first implementation of `Iron Archipelago` was temporarily inserted into `norwegian_shadow.kyt` to prove the scenario quickly. That produced a misleading requirement for mission IDs like:
+
+- `norwegian_shadow.iron_archipelago.bashi_screen`
+
+That state was useful only as a short diagnostic step, not as a correct distribution model.
+
+The clean final model was:
+
+- `norwegian_shadow.kyt` containing only `Norwegian Shadow`
+- `iron_archipelago.kyt` containing only `Iron Archipelago`
+
+Practical rule:
+
+- if a campaign is a separate product, give it its own package tree, its own manifest, its own locale file, its own output `.kyt`, and its own mission namespace
+- do not treat one unrelated campaign package as a permanent container for another campaign
+
+### 8. Full MNW restart matters during validation
 
 Campaign progression and package recognition were more reliable when testing from a fully exited and relaunched game instance.
 
@@ -302,7 +323,7 @@ Practical rule:
 
 - after rebuild/deploy, fully exit MNW before progression validation
 
-### 8. Known-good restoration is the fastest debugging tool
+### 9. Known-good restoration is the fastest debugging tool
 
 The eventual success path was:
 
@@ -317,7 +338,7 @@ Practical rule:
 - keep a known-good minimal campaign chain available
 - when uncertain, reduce complexity first instead of stacking more guesses
 
-### 9. Useful local evidence paths
+### 10. Useful local evidence paths
 
 Two local evidence sources mattered repeatedly:
 

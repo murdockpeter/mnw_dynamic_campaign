@@ -7,11 +7,12 @@ param(
 $ErrorActionPreference = "Stop"
 
 $resolvedPackage = (Resolve-Path $PackagePath).Path
+$packageFileName = [System.IO.Path]::GetFileName($resolvedPackage)
 $targets = @($GameCampaignPath, $UserCampaignPath)
 
 foreach ($targetDir in $targets) {
     New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
-    Copy-Item -LiteralPath $resolvedPackage -Destination (Join-Path $targetDir "norwegian_shadow.kyt") -Force
+    Copy-Item -LiteralPath $resolvedPackage -Destination (Join-Path $targetDir $packageFileName) -Force
 }
 
-Get-FileHash $resolvedPackage, (Join-Path $GameCampaignPath "norwegian_shadow.kyt"), (Join-Path $UserCampaignPath "norwegian_shadow.kyt") -Algorithm MD5
+Get-FileHash $resolvedPackage, (Join-Path $GameCampaignPath $packageFileName), (Join-Path $UserCampaignPath $packageFileName) -Algorithm MD5
