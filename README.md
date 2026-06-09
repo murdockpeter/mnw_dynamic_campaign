@@ -3,6 +3,7 @@
 This repository is meant to be a reusable authoring kit for `Modern Naval Warfare`, not just a home for one fixed campaign.
 
 Latest General How-To Is Located Here: https://murdockpeter.github.io/mnw_dynamic_campaign/local-ai-campaign-workflow.html
+Latest Tool Reference Is Located Here: https://murdockpeter.github.io/mnw_dynamic_campaign/tool-reference.html
 
 It contains:
 
@@ -37,6 +38,7 @@ It also now supports separate standalone package trees in one repo, so unrelated
 If you want a more detailed, visual, local-first walkthrough for using this repo with ChatGPT/Codex, Claude, or GitHub Copilot CLI, start here:
 
 - `docs/local-ai-campaign-workflow.html`
+- `docs/tool-reference.html`
 
 ## What This Repo Is Not
 
