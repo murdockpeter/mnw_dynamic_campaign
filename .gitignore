@@ -1,10 +1,8 @@
 tmp/
 output/
 dist/
-generated/*
-!generated/.gitkeep
-state/*
-!state/.gitkeep
+generated/
+state/
 *.log
 Thumbs.db
 .DS_Store
