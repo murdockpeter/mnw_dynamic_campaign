@@ -1,8 +1,6 @@
 tmp/
 output/
-dist/*.kyt
-dist/*.zip
-dist/*.generated.md
+dist/
 generated/*
 !generated/.gitkeep
 state/*
