@@ -326,7 +326,9 @@ function parseDebriefText(rawText, currentData) {
   const missionName = missionMatch ? missionMatch[1].trim() : "";
   const missionMap = {
     "Bear Gap": "norwegian_shadow.norwegian_shadow.bear_gap",
-    "Broken Datum": "norwegian_shadow.norwegian_shadow.broken_datum"
+    "Broken Datum": "norwegian_shadow.norwegian_shadow.broken_datum",
+    "Bashi Screen": "iron_archipelago.iron_archipelago.bashi_screen",
+    "Crosscurrent": "iron_archipelago.iron_archipelago.crosscurrent"
   };
 
   const outcome = /SUCCESS/i.test(rawText)

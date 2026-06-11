@@ -10,6 +10,8 @@ from typing import Any
 MISSION_NAME_MAP = {
     "Bear Gap": "norwegian_shadow.norwegian_shadow.bear_gap",
     "Broken Datum": "norwegian_shadow.norwegian_shadow.broken_datum",
+    "Bashi Screen": "iron_archipelago.iron_archipelago.bashi_screen",
+    "Crosscurrent": "iron_archipelago.iron_archipelago.crosscurrent",
 }
 
 

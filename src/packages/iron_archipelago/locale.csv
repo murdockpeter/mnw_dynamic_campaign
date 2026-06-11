@@ -26,3 +26,30 @@ iron_archipelago/bashi_screen.mis,messages.mission_success,"BT
 SUBJ: MISSION STATUS - SUCCESS
 
 Forward surveillance is complete. COMSUBPAC has the opening picture on the PLAN push through Luzon and will posture follow-on forces using your report.",,,,,,,,
+iron_archipelago/crosscurrent.mis,name,Crosscurrent,,,,,,,,
+iron_archipelago/crosscurrent.mis,description,"After the opening Bashi patrol, U.S. commanders push the Virginia back toward the Balintang approaches to confirm whether the PLAN screen is turning south into the Philippine Sea or setting a broader ASW barrier. Friendly surface and air support are edging forward, but the submarine still has to build the tactical picture from inside the contested water.",,,,,,,,
+iron_archipelago/crosscurrent.mis,objectives.primary_withdraw_intact,Keep your submarine combat effective and raise antennas to conclude the mission.,,,,,,,,
+iron_archipelago/crosscurrent.mis,messages.mission_from,COMSUBPAC,,,,,,,,
+iron_archipelago/crosscurrent.mis,messages.mission_to,USS NORTH CAROLINA (SSN-777),,,,,,,,
+iron_archipelago/crosscurrent.mis,messages.mission_objectives,"BT
+SUBJ: BALINTANG APPROACH RE-INTERCEPT
+
+1. Your first patrol confirmed an organized PLAN movement through the Luzon Strait. Follow-on surveillance indicates the screen may now be bending south toward the Balintang Channel while additional ASW coverage expands into the Philippine Sea.
+
+2. USS Spruance and a P-8 detachment are moving closer, but they still cannot hold contact continuously inside the contested water. Your submarine remains the decisive forward sensor.
+
+3. Primary task:
+   A. Re-establish contact on the lead PLAN ships.
+   B. Stay combat effective.
+   C. Raise antennas when you are ready to conclude the mission and pass the refined picture.
+
+4. Additional guidance:
+   A. Expect a thicker helicopter and surface search pattern than during the first patrol.
+   B. Civilian traffic remains in the approaches and may complicate identification.
+   C. A support station, likely barrier track, and withdrawal box are attached.
+
+5. Higher command will use your report to position the next containment move.",,,,,,,,
+iron_archipelago/crosscurrent.mis,messages.mission_success,"BT
+SUBJ: MISSION STATUS - SUCCESS
+
+Crosscurrent surveillance is complete. COMSUBPAC has the refined picture on the PLAN screen and can posture the next containment move using your report.",,,,,,,,

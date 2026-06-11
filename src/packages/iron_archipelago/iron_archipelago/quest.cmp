@@ -9,3 +9,4 @@ _difficulty_level = 1
 
 ## Missions
 _start = Mis("iron_archipelago.iron_archipelago.bashi_screen")
+_start.PipeMission("iron_archipelago.iron_archipelago.crosscurrent")

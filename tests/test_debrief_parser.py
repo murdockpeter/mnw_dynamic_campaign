@@ -41,6 +41,14 @@ class DebriefParserTests(unittest.TestCase):
         self.assertEqual(payload["metadata"]["parsed_platforms"][0]["resolved_unit_id"], None)
         self.assertEqual(payload["events"][0]["metadata"]["resolved_unit_id"], None)
 
+    def test_parser_maps_iron_archipelago_mission_names(self) -> None:
+        raw_text = "Mission Name: Crosscurrent\nMission Status: SUCCESS"
+
+        payload = parse_debrief_text(raw_text)
+
+        self.assertEqual(payload["mission_id"], "iron_archipelago.iron_archipelago.crosscurrent")
+        self.assertEqual(payload["outcome"], "success")
+
 
 if __name__ == "__main__":
     unittest.main()

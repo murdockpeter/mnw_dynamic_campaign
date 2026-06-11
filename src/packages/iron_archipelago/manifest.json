@@ -13,8 +13,16 @@
                         "hash":  "2e00cd109a16b0a419480ef5258f7e62"
                     },
                     {
+                        "path":  "iron_archipelago/crosscurrent.mis",
+                        "hash":  "265d8858fecf67c1696c38e2aced98d4"
+                    },
+                    {
+                        "path":  "iron_archipelago/crosscurrent.mis.json",
+                        "hash":  "16cb13dc43a02f42bc9714e223d4c170"
+                    },
+                    {
                         "path":  "iron_archipelago/quest.cmp",
-                        "hash":  "fc205ebfa22d2a8d0eeac9dd58df2f47"
+                        "hash":  "994de2e530051d4dd6bfc549287dcbb0"
                     },
                     {
                         "path":  "iron_archipelago/quest.cmp.json",
@@ -22,7 +30,7 @@
                     },
                     {
                         "path":  "locale.csv",
-                        "hash":  "b9d47f7a59348105077f182b01f8e763"
+                        "hash":  "95ad44f110c327a2b4b7e3206970b1e3"
                     },
                     {
                         "path":  "template.cmp.json",

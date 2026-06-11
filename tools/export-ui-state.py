@@ -24,8 +24,12 @@ def read_json(path: Path) -> dict:
 
 def infer_next_mission_id(state: CampaignState) -> str | None:
     current = state.current_mission_id or ""
-    if current.endswith("bear_gap"):
-        return "norwegian_shadow.norwegian_shadow.broken_datum"
+    mission_sequence = {
+        "norwegian_shadow.norwegian_shadow.bear_gap": "norwegian_shadow.norwegian_shadow.broken_datum",
+        "iron_archipelago.iron_archipelago.bashi_screen": "iron_archipelago.iron_archipelago.crosscurrent",
+    }
+    if current in mission_sequence:
+        return mission_sequence[current]
     if current:
         return current
     return None
