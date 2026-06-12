@@ -549,6 +549,26 @@
       return [totals[0] / points.length, totals[1] / points.length];
     }
 
+    function densifyPolygon(points, subdivisions = 100) {
+      if (!Array.isArray(points) || points.length < 2 || subdivisions <= 1) {
+        return points;
+      }
+      const output = [];
+      for (let i = 0; i < points.length; i += 1) {
+        const start = points[i];
+        const end = points[(i + 1) % points.length];
+        output.push(start);
+        for (let step = 1; step < subdivisions; step += 1) {
+          const t = step / subdivisions;
+          output.push([
+            start[0] + ((end[0] - start[0]) * t),
+            start[1] + ((end[1] - start[1]) * t)
+          ]);
+        }
+      }
+      return output;
+    }
+
     function drawGrid() {
       for (let lat = 10; lat <= 17; lat += 0.5) {
         const [, y] = project([lat, geoBounds.minLon]);
@@ -577,7 +597,8 @@
 
     function drawLandmasses() {
       landmasses.forEach((landmass) => {
-        const coords = landmass.points.map(project);
+        const densePoints = densifyPolygon(landmass.points, 100);
+        const coords = densePoints.map(project);
         const pointsAttr = coords.map(([x, y]) => `${x},${y}`).join(" ");
         svg.appendChild(el("polygon", {
           points: pointsAttr,
@@ -587,7 +608,7 @@
           "stroke-linejoin": "round"
         }));
 
-        const [labelLat, labelLon] = polygonCentroid(landmass.points);
+        const [labelLat, labelLon] = polygonCentroid(densePoints);
         const [labelX, labelY] = project([labelLat, labelLon]);
         svg.appendChild(el("text", {
           x: labelX,
