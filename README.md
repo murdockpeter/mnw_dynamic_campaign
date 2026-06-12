@@ -5,6 +5,25 @@ This repository is meant to be a reusable authoring kit for `Modern Naval Warfar
 Latest General How-To Is Located Here: https://murdockpeter.github.io/mnw_dynamic_campaign/local-ai-campaign-workflow.html
 Latest Tool Reference Is Located Here: https://murdockpeter.github.io/mnw_dynamic_campaign/tool-reference.html
 
+## For Players
+
+If you are not planning to edit code, run scripts, or build the desktop app yourself, use the packaged desktop release instead of the repo-native workflow.
+
+Use:
+
+- `dist\MNW Dynamic Campaign Console Setup 0.1.0.exe` on Windows
+- the packaged `.dmg` on macOS once one is built and released
+
+Player flow:
+
+1. install the packaged desktop app
+2. launch it
+3. complete the `Setup` screen once with your MNW paths
+4. use `Authoring` to generate, build, and deploy a campaign package
+5. use `Campaign Tracking` after each mission to review runtime state and ingest results
+
+If you want the end-user version of these instructions, see `DESKTOP_APP_GUIDE.md`.
+
 It contains:
 
 - working custom campaign packages
@@ -13,6 +32,7 @@ It contains:
 - a local-only database inventory script for MNW platform archives
 - a modular external persistence scaffold
 - a UI scaffold that mirrors backend persistence structures from the start
+- a portable Electron/Desktop path that keeps the UI but removes Python/PowerShell as an end-user requirement
 - helper scripts to rebuild and deploy packages
 - research notes on the game's scenario structure
 
@@ -33,12 +53,206 @@ This repo is a starter framework for:
 It already includes one working sample campaign package so there is a known-good baseline to copy, rename, and extend.
 It also now supports separate standalone package trees in one repo, so unrelated campaigns can be built and distributed as separate `.kyt` archives.
 
+## Desktop App Path
+
+The original script-first workflow remains intact.
+
+In parallel, the repo now also contains a portable desktop-app path aimed at end users who should not need to bring their own AI tooling, Python install, or PowerShell scripts.
+
+New pieces:
+
+- `package.json`
+- `electron/`
+- `portable/`
+- `shared/campaign-generator.mjs`
+
+Design intent:
+
+- keep the existing `ui/` as the main frontend
+- wrap it in Electron for Windows and macOS
+- move build, deploy, export, ingest, and simple campaign generation into Node-based portable modules
+- preserve the original `tools/*.ps1` and Python utilities for repo-native/operator workflows
+
+That means there are now two supported paths:
+
+- original repo workflow using `tools/*.ps1` and Python scripts
+- desktop-app workflow using Electron plus the `portable/*.mjs` modules
+
+### Portable Commands
+
+Portable Node equivalents now exist for the main operator actions:
+
+```powershell
+node .\portable\build-package.mjs
+node .\portable\deploy-package.mjs
+node .\portable\export-ui-state.mjs --campaign-id iron_archipelago
+node .\portable\ingest-result.mjs --campaign-id iron_archipelago --result .\parsers\manual_result_example.json
+node .\portable\generate-campaign.mjs --campaign-id demo_surface_chain --title "Demo Surface Chain" --theater luzon_strait --tone surveillance --scenario-count 3
+```
+
+Desktop shell commands:
+
+```powershell
+npm install
+npm run desktop:start
+npm run desktop:dist
+```
+
+The Electron UI now adds a deterministic campaign wizard that can preview believable multi-scenario routing without any AI model. In browser-only mode it works as a preview surface. In the desktop app it can also write campaign files, build packages, deploy them, and export or ingest runtime state.
+
+### Desktop UI Workspaces
+
+The packaged app is now split into three separate workspaces:
+
+- `Setup`
+- `Authoring`
+- `Campaign Tracking`
+
+Practical intent:
+
+- `Setup` is where the user configures install paths and saved defaults
+- `Authoring` is where the user generates a campaign, reviews route geometry, builds packages, and deploys them
+- `Campaign Tracking` is where the user inspects runtime state and ingests mission results
+
+This separation is deliberate. Setup tasks should not be mixed into runtime tracking, and runtime tracking should not be mixed into package authoring.
+
+### Release Artifacts For Players
+
+If you are distributing this to players who should not need Node, Python, or PowerShell, the important release artifacts are:
+
+- Windows installer: `dist\MNW Dynamic Campaign Console Setup 0.1.0.exe`
+- Windows update metadata: `dist\MNW Dynamic Campaign Console Setup 0.1.0.exe.blockmap`
+- Windows release metadata: `dist\latest.yml`
+- macOS installer: `dist\*.dmg` when built on macOS
+
+Recommended distribution model:
+
+- keep the repo as the development and authoring source
+- distribute packaged installers separately for players
+- optionally include one prebuilt campaign package if you want an immediate one-click gameplay starting point
+
+### Campaign ID vs Package ID
+
+These two IDs are related, but they are not the same thing conceptually.
+
+- `Campaign ID` is the runtime/persistence campaign identifier
+- `Package ID` is the authored MNW package identifier and namespace
+
+In normal use, they should usually match.
+
+Example:
+
+- runtime campaign ID: `iron_archipelago`
+- package ID: `iron_archipelago`
+- mission namespace inside the package: `iron_archipelago.iron_archipelago.<mission>`
+
+You only need them to differ if you are intentionally tracking one runtime campaign while building or deploying a different package tree.
+
+## Deterministic Campaign Generation
+
+The desktop path now includes a rule-based generator in `shared/campaign-generator.mjs`.
+
+This generator is intentionally not AI-backed. The goal is to let an end user generate a believable starter campaign without requiring a model provider, API key, prompt workflow, Python environment, or repo knowledge.
+
+### What The Generator Produces
+
+It produces:
+
+- a sanitized campaign ID
+- a campaign title and description
+- a theater and conflict family
+- a player-side force template
+- an enemy-side force template
+- a sequence of mission archetypes
+- deterministic scenario geometry for each scenario
+- a stable package namespace
+
+### How Believable Pathing Works Without AI
+
+The generator does not invent routes from raw prose. It uses curated theater templates plus deterministic variation.
+
+Each theater template defines route corridors such as:
+
+- player corridor
+- enemy corridor
+- support corridor
+- helo corridor or air corridor
+
+For each scenario, the generator:
+
+1. picks a mission archetype sequence from the selected tone
+2. derives a stable seed from campaign ID, theater, tone, year, scenario count, and player name
+3. uses that seed to apply bounded jitter to corridor anchor points
+4. creates derived geometry such as:
+   - player spawn
+   - initial datum
+   - lead enemy contact
+   - escort positions
+   - barrier or egress points
+   - support stations
+   - withdrawal leg
+5. advances scenario start times and contact density from one mission to the next
+
+Because the seed is stable, the same inputs always generate the same campaign. Because the jitter is bounded and theater-specific, the output stays believable instead of becoming arbitrary.
+
+### How Platform Selection Works Per Side
+
+Player-side and enemy-side platform choices are not random.
+
+They come from the selected theater template in `shared/campaign-generator.mjs`.
+
+Each theater currently defines:
+
+- player unit ID
+- player name
+- player faction
+- player platform type
+- player DBID
+- player starting ammo
+- enemy roster entries
+- enemy faction
+- enemy platform type
+- enemy DBIDs
+
+Current examples:
+
+- `luzon_strait`
+  - player: U.S. submarine
+  - enemies: PLAN surface combatants
+  - geometry family: `surface_shadow`
+- `south_china_sea`
+  - player: U.S. submarine
+  - enemies: Russian submarines
+  - geometry family: `sub_hunt`
+
+That means theater selection determines the sides and baseline force composition, while tone selection determines the narrative progression of the mission sequence.
+
+### Tone Selection Does
+
+Tone selection changes:
+
+- the ordered mission archetype sequence
+- the pacing of the campaign feel
+- the names and summaries chosen from the mission library
+
+### Tone Selection Does Not
+
+Tone selection does not change:
+
+- the selected theater
+- the player faction
+- the enemy faction
+- the underlying route family
+
+That separation keeps the generated campaign coherent. The same sides and operating area remain intact while the scenario sequence changes from surveillance, breakout-hunt, or sea-denial framing.
+
 ## Quickstart Guide
 
 If you want a more detailed, visual, local-first walkthrough for using this repo with ChatGPT/Codex, Claude, or GitHub Copilot CLI, start here:
 
 - `docs/local-ai-campaign-workflow.html`
 - `docs/tool-reference.html`
+- `DESKTOP_APP_GUIDE.md` for packaged desktop app use
 
 ## What This Repo Is Not
 

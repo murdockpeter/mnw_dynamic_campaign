@@ -1,9 +1,16 @@
 tmp/
 output/
-dist/
+dist/*
+!dist/*.exe
+!dist/*.dmg
+!dist/*.blockmap
+!dist/latest.yml
 generated/
 state/
 *.log
 Thumbs.db
 .DS_Store
 .vscode/
+node_modules/
+__pycache__/
+*.pyc

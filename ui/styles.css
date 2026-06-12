@@ -80,6 +80,14 @@ body {
   background: linear-gradient(180deg, rgba(17, 39, 55, 0.92), rgba(13, 29, 42, 0.94));
 }
 
+.mode-scope {
+  display: none;
+}
+
+.mode-scope.active {
+  display: block;
+}
+
 .panel h2 {
   margin: 0 0 12px;
   font-size: 14px;
@@ -141,6 +149,36 @@ body {
 
 .main {
   padding: 28px;
+}
+
+.workspace-view {
+  display: none;
+}
+
+.workspace-view.active {
+  display: block;
+}
+
+.mode-switch {
+  display: grid;
+  gap: 10px;
+}
+
+.mode-button {
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(111, 212, 255, 0.14);
+  background: linear-gradient(180deg, rgba(20, 55, 78, 0.78), rgba(16, 38, 55, 0.84));
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.mode-button.active {
+  border-color: rgba(79, 224, 179, 0.36);
+  background: linear-gradient(180deg, rgba(24, 79, 88, 0.96), rgba(16, 57, 63, 0.98));
+  color: var(--accent-2);
 }
 
 .hero {
@@ -290,6 +328,12 @@ td {
   gap: 12px;
 }
 
+.wizard-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.95fr) minmax(0, 1.05fr);
+  gap: 18px;
+}
+
 .builder-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
@@ -297,7 +341,9 @@ td {
 }
 
 .builder-form,
-.builder-preview {
+.builder-preview,
+.wizard-form,
+.wizard-preview {
   padding: 16px;
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.03);
@@ -354,8 +400,47 @@ td {
   min-height: 220px;
 }
 
+.wizard-summary,
+.wizard-scenarios {
+  display: grid;
+  gap: 12px;
+}
+
+.wizard-block {
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(111, 212, 255, 0.08);
+}
+
+#desktop-setup-card {
+  margin-bottom: 20px;
+  border-color: rgba(79, 224, 179, 0.2);
+  background:
+    linear-gradient(180deg, rgba(17, 39, 55, 0.94), rgba(13, 29, 42, 0.96)),
+    radial-gradient(circle at top right, rgba(79, 224, 179, 0.08), transparent 35%);
+}
+
+.wizard-block strong {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.wizard-meta {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.wizard-actions-disabled {
+  opacity: 0.5;
+}
+
 .toggle {
   align-content: start;
+}
+
+.compact-toggle {
+  padding-top: 8px;
 }
 
 .toggle input {
@@ -402,7 +487,8 @@ td {
   margin-bottom: 10px;
 }
 
-.builder-preview pre {
+.builder-preview pre,
+.wizard-preview pre {
   margin: 0;
   white-space: pre-wrap;
   word-break: break-word;
@@ -456,6 +542,7 @@ code {
     flex-direction: column;
   }
 
+  .wizard-grid,
   .builder-grid,
   .field-grid {
     grid-template-columns: 1fr;

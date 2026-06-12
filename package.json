@@ -1,0 +1,66 @@
+{
+  "name": "mnw-dynamic-campaign",
+  "version": "0.1.0",
+  "description": "Modern Naval Warfare dynamic campaign generator with legacy scripts and a portable Electron path.",
+  "main": "electron/main.cjs",
+  "license": "MIT",
+  "scripts": {
+    "desktop:start": "electron .",
+    "desktop:dist": "electron-builder",
+    "portable:build": "node ./portable/build-package.mjs",
+    "portable:deploy": "node ./portable/deploy-package.mjs",
+    "portable:export-ui": "node ./portable/export-ui-state.mjs",
+    "portable:ingest": "node ./portable/ingest-result.mjs",
+    "portable:generate": "node ./portable/generate-campaign.mjs"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.waveops.mnwdynamiccampaign",
+    "productName": "MNW Dynamic Campaign Console",
+    "files": [
+      "electron/**/*",
+      "portable/**/*",
+      "shared/**/*",
+      "ui/**/*",
+      "engine/**/*",
+      "campaigns/**/*",
+      "modules/**/*",
+      "storage/**/*",
+      "src/**/*",
+      "generated/**/*",
+      "state/**/*",
+      "README.md"
+    ],
+    "extraResources": [
+      {
+        "from": "campaigns",
+        "to": "seed/campaigns"
+      },
+      {
+        "from": "src",
+        "to": "seed/src"
+      },
+      {
+        "from": "parsers",
+        "to": "seed/parsers"
+      },
+      {
+        "from": "tests",
+        "to": "seed/tests"
+      }
+    ],
+    "directories": {
+      "buildResources": "electron/resources"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.games"
+    }
+  }
+}

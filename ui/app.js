@@ -1,9 +1,47 @@
-async function loadJson(path) {
-  const response = await fetch(path);
+import {
+  buildCampaignBlueprint,
+  getTheaterTemplates,
+  getToneCatalog
+} from "../shared/campaign-generator.mjs";
+
+const desktopApi = globalThis.mnwDesktop ?? null;
+let currentWizardBlueprint = null;
+let desktopInfo = null;
+let packageIdSyncEnabled = true;
+
+async function loadJson(targetPath) {
+  const response = await fetch(targetPath);
   if (!response.ok) {
-    throw new Error(`Failed to load ${path}`);
+    throw new Error(`Failed to load ${targetPath}`);
   }
   return response.json();
+}
+
+function setWorkspaceMode(mode) {
+  const views = {
+    setup: document.getElementById("setup-view"),
+    authoring: document.getElementById("authoring-view"),
+    tracking: document.getElementById("tracking-view")
+  };
+  const buttons = {
+    setup: document.getElementById("mode-setup"),
+    authoring: document.getElementById("mode-authoring"),
+    tracking: document.getElementById("mode-tracking")
+  };
+
+  Object.entries(views).forEach(([key, node]) => {
+    node?.classList.toggle("active", key === mode);
+  });
+  Object.entries(buttons).forEach(([key, node]) => {
+    node?.classList.toggle("active", key === mode);
+  });
+
+  document.querySelectorAll(".mode-scope").forEach((node) => {
+    const showInSetup = node.classList.contains("mode-setup-only") && mode === "setup";
+    const showInAuthoring = node.classList.contains("mode-authoring-only") && mode === "authoring";
+    const showInTracking = node.classList.contains("mode-tracking-only") && mode === "tracking";
+    node.classList.toggle("active", showInSetup || showInAuthoring || showInTracking);
+  });
 }
 
 function renderCampaignSummary(data) {
@@ -16,7 +54,6 @@ function renderCampaignSummary(data) {
     ["Current Mission", data.state.current_mission_id],
     ["Clock", data.state.campaign_clock]
   ];
-
   root.innerHTML = items.map(([key, value]) => `
     <div class="kv-item">
       <div class="key">${key}</div>
@@ -38,19 +75,43 @@ function renderModuleSummary(data) {
   }).join("");
 }
 
-function renderHeroStats(data) {
-  const unitCount = Object.keys(data.state.order_of_battle).length;
-  const destroyedCount = Object.values(data.state.order_of_battle).filter((u) => u.destroyed).length;
-  const directiveCount = data.plan.directives.length;
-  const moduleCount = data.modules.enabled_modules.length;
+function renderDesktopStatus(info) {
+  const root = document.getElementById("desktop-status");
+  if (!info) {
+    root.innerHTML = `
+      <div class="stack-item">
+        <div class="title">Browser Preview Mode</div>
+        <div class="meta">Campaign previews are available. File generation, build, deploy, and ingest require the Electron desktop app.</div>
+      </div>
+    `;
+    return;
+  }
 
+  root.innerHTML = `
+    <div class="stack-item">
+      <div class="title">Electron Desktop Mode</div>
+      <div class="meta">Platform: ${info.platform}</div>
+    </div>
+    <div class="stack-item">
+      <div class="title">Bundled Content Root</div>
+      <div class="meta">${info.repoRoot}</div>
+    </div>
+    <div class="stack-item">
+      <div class="title">Writable Workspace</div>
+      <div class="meta">${info.workspaceRoot}</div>
+    </div>
+  `;
+}
+
+function renderHeroStats(data) {
   const root = document.getElementById("hero-stats");
-  root.innerHTML = [
-    ["Tracked Units", unitCount],
-    ["Destroyed Units", destroyedCount],
-    ["Active Modules", moduleCount],
-    ["Generation Directives", directiveCount]
-  ].map(([label, value]) => `
+  const stats = [
+    ["Tracked Units", Object.keys(data.state.order_of_battle).length],
+    ["Destroyed Units", Object.values(data.state.order_of_battle).filter((unit) => unit.destroyed).length],
+    ["Active Modules", data.modules.enabled_modules.length],
+    ["Generation Directives", data.plan.directives.length]
+  ];
+  root.innerHTML = stats.map(([label, value]) => `
     <div class="stat">
       <div class="label">${label}</div>
       <div class="value">${value}</div>
@@ -59,8 +120,12 @@ function renderHeroStats(data) {
 }
 
 function readinessPill(unit) {
-  if (unit.destroyed) return '<span class="pill bad">Destroyed</span>';
-  if (unit.damage > 0.2 || unit.readiness < 0.8) return '<span class="pill warn">Degraded</span>';
+  if (unit.destroyed) {
+    return '<span class="pill bad">Destroyed</span>';
+  }
+  if (unit.damage > 0.2 || unit.readiness < 0.8) {
+    return '<span class="pill warn">Degraded</span>';
+  }
   return '<span class="pill ok">Operational</span>';
 }
 
@@ -106,7 +171,7 @@ function renderMissionResult(data) {
         </div>
         <div class="muted">Elapsed: ${data.result.time_elapsed_hours} hours</div>
       </div>
-      ${data.result.events.map((event) => `
+      ${(data.result.events || []).map((event) => `
         <div class="event">
           <div class="head">
             <strong>${event.event_type}</strong>
@@ -129,7 +194,7 @@ function renderGenerationPlan(data) {
       <div class="directive">
         <div class="head">
           <strong>Next Mission</strong>
-          <span class="pill ok">${data.plan.mission_id}</span>
+          <span class="pill ok">${data.plan.mission_id ?? "-"}</span>
         </div>
       </div>
       ${data.plan.directives.map((directive) => `
@@ -151,9 +216,9 @@ function renderContracts() {
     { name: "initialize_state", detail: "Module bootstraps its own state into the shared campaign model." },
     { name: "ingest_result", detail: "Module consumes normalized mission-result events and mutates campaign state." },
     { name: "advance_time", detail: "Module updates state between missions without touching MNW files directly." },
-    { name: "prepare_generation", detail: "Module emits generation directives instead of writing scenarios itself." }
+    { name: "prepare_generation", detail: "Module emits generation directives instead of writing scenarios itself." },
+    { name: "portable backend", detail: "The Electron path mirrors build, deploy, export, ingest, and campaign generation without removing the original scripts." }
   ];
-
   root.innerHTML = `
     <div class="contract-list">
       ${contracts.map((item) => `
@@ -185,14 +250,12 @@ function tokenizePlatformName(value) {
 
 function resolveUnitIdFromStatus(statusItem, data) {
   const units = Object.values(data.state.order_of_battle || {});
-
   if (statusItem.entry_type === "ownship") {
     const playerUnits = units.filter((unit) => (unit.tags || []).includes("player"));
     if (playerUnits.length === 1) {
       return playerUnits[0].unit_id;
     }
   }
-
   const targetTokens = tokenizePlatformName(statusItem.platform_name);
   if (!targetTokens.size) {
     return null;
@@ -200,35 +263,26 @@ function resolveUnitIdFromStatus(statusItem, data) {
 
   let bestUnitId = null;
   let bestScore = 0;
-
   for (const unit of units) {
-    const candidates = [
-      unit.name,
-      unit.unit_id,
-      ...((unit.notes && unit.notes.aliases) || [])
-    ];
+    const candidates = [unit.name, unit.unit_id, ...((unit.notes && unit.notes.aliases) || [])];
     const unitTokens = new Set();
     candidates.forEach((candidate) => {
       tokenizePlatformName(candidate).forEach((token) => unitTokens.add(token));
     });
-
     const overlap = [...targetTokens].filter((token) => unitTokens.has(token)).length;
     if (!overlap) {
       continue;
     }
-
     const union = new Set([...targetTokens, ...unitTokens]);
     let score = overlap / Math.max(union.size, 1);
     if ((unit.faction || "").toUpperCase() === (statusItem.country || "").toUpperCase()) {
       score += 0.25;
     }
-
     if (score > bestScore) {
       bestScore = score;
       bestUnitId = unit.unit_id;
     }
   }
-
   return bestScore >= 0.34 ? bestUnitId : null;
 }
 
@@ -258,7 +312,6 @@ function extractElapsedHours(rawText) {
       return hours + (minutes / 60) + (seconds / 3600);
     }
   }
-
   return 0;
 }
 
@@ -282,16 +335,7 @@ function classifyStatus(status) {
   return { event_type: null, amount: null };
 }
 
-function resolveUnitIdFromPlatformName(platformName, data) {
-  return resolveUnitIdFromStatus({ entry_type: "vessel", platform_name: platformName, country: "" }, data);
-}
-
-function pickPreferredUnitId(events) {
-  const resolved = events.find((event) => event.unit_id);
-  return resolved ? resolved.unit_id : null;
-}
-
-function collectStatusItems(rawText, currentData) {
+function collectStatusItems(rawText, data) {
   const items = [];
   const statusRegex = /(-\s*)?(Ownship:|Vessel:)\s*(.+?)\s*-\s*Country:\s*(.+?)\s*[\r\n]+\s*-\s*Status:\s*(.+)/gi;
   let match;
@@ -300,28 +344,19 @@ function collectStatusItems(rawText, currentData) {
     const platformName = match[3].trim();
     const country = match[4].trim();
     const status = match[5].trim();
-    const resolvedUnitId = resolveUnitIdFromStatus(
-      {
-        entry_type: entryType,
-        platform_name: platformName,
-        country
-      },
-      currentData
-    );
-
     items.push({
       entry_type: entryType,
       platform_name: platformName,
       normalized_platform_name: normalizePlatformName(platformName),
       country,
       status,
-      resolved_unit_id: resolvedUnitId
+      resolved_unit_id: resolveUnitIdFromStatus({ entry_type: entryType, platform_name: platformName, country }, data)
     });
   }
   return items;
 }
 
-function parseDebriefText(rawText, currentData) {
+function parseDebriefText(rawText, data) {
   const missionMatch = rawText.match(/Mission Name:\s*(.+)/i);
   const missionName = missionMatch ? missionMatch[1].trim() : "";
   const missionMap = {
@@ -330,51 +365,31 @@ function parseDebriefText(rawText, currentData) {
     "Bashi Screen": "iron_archipelago.iron_archipelago.bashi_screen",
     "Crosscurrent": "iron_archipelago.iron_archipelago.crosscurrent"
   };
-
-  const outcome = /SUCCESS/i.test(rawText)
-    ? "success"
-    : /FAILED/i.test(rawText)
-      ? "failure"
-      : "unknown";
-
-  const events = [];
-  const parsedPlatforms = collectStatusItems(rawText, currentData);
-  parsedPlatforms.forEach((item) => {
+  const outcome = /SUCCESS/i.test(rawText) ? "success" : /FAILED/i.test(rawText) ? "failure" : "unknown";
+  const parsedPlatforms = collectStatusItems(rawText, data);
+  const events = parsedPlatforms.flatMap((item) => {
     const classification = classifyStatus(item.status);
-    if (classification.event_type === "unit_destroyed") {
-      events.push({
-        event_type: classification.event_type,
-        unit_id: item.resolved_unit_id,
-        amount: classification.amount,
-        weapon_key: null,
-        metadata: {
-          entry_type: item.entry_type,
-          platform_name: item.platform_name,
-          normalized_platform_name: item.normalized_platform_name,
-          country: item.country,
-          source: "ui_debrief_text_parser"
-        }
-      });
-    } else if (classification.event_type === "unit_damaged") {
-      events.push({
-        event_type: classification.event_type,
-        unit_id: item.resolved_unit_id,
-        amount: classification.amount,
-        weapon_key: null,
-        metadata: {
-          entry_type: item.entry_type,
-          platform_name: item.platform_name,
-          normalized_platform_name: item.normalized_platform_name,
-          country: item.country,
-          source: "ui_debrief_text_parser",
-          interpreted_status: item.status
-        }
-      });
+    if (!classification.event_type) {
+      return [];
     }
+    return [{
+      event_type: classification.event_type,
+      unit_id: item.resolved_unit_id,
+      amount: classification.amount,
+      weapon_key: null,
+      metadata: {
+        entry_type: item.entry_type,
+        platform_name: item.platform_name,
+        normalized_platform_name: item.normalized_platform_name,
+        country: item.country,
+        source: "ui_debrief_text_parser",
+        ...(classification.event_type === "unit_damaged" ? { interpreted_status: item.status } : {})
+      }
+    }];
   });
 
   return {
-    mission_id: missionMap[missionName] || currentData.plan.mission_id || currentData.state.current_mission_id || "",
+    mission_id: missionMap[missionName] || data.plan.mission_id || data.state.current_mission_id || "",
     outcome,
     time_elapsed_hours: extractElapsedHours(rawText),
     events,
@@ -387,6 +402,11 @@ function parseDebriefText(rawText, currentData) {
   };
 }
 
+function pickPreferredUnitId(events) {
+  const resolved = events.find((event) => event.unit_id);
+  return resolved ? resolved.unit_id : null;
+}
+
 function buildManualResult(data) {
   const missionId = document.getElementById("builder-mission-id").value.trim();
   const outcome = document.getElementById("builder-outcome").value;
@@ -397,47 +417,22 @@ function buildManualResult(data) {
   const damageAmount = Number(document.getElementById("builder-damage-amount").value || 0);
   const destroyed = document.getElementById("builder-destroyed").checked;
   const source = document.getElementById("builder-source").value.trim() || "ui_manual_builder";
-
   const events = [];
-
   if (unitId && weaponKey && weaponAmount > 0) {
-    events.push({
-      event_type: "weapon_expended",
-      unit_id: unitId,
-      amount: weaponAmount,
-      weapon_key: weaponKey,
-      metadata: {}
-    });
+    events.push({ event_type: "weapon_expended", unit_id: unitId, amount: weaponAmount, weapon_key: weaponKey, metadata: {} });
   }
-
   if (unitId && damageAmount > 0) {
-    events.push({
-      event_type: "unit_damaged",
-      unit_id: unitId,
-      amount: damageAmount,
-      weapon_key: null,
-      metadata: {}
-    });
+    events.push({ event_type: "unit_damaged", unit_id: unitId, amount: damageAmount, weapon_key: null, metadata: {} });
   }
-
   if (unitId && destroyed) {
-    events.push({
-      event_type: "unit_destroyed",
-      unit_id: unitId,
-      amount: 1,
-      weapon_key: null,
-      metadata: {}
-    });
+    events.push({ event_type: "unit_destroyed", unit_id: unitId, amount: 1, weapon_key: null, metadata: {} });
   }
-
   return {
     mission_id: missionId || data.state.current_mission_id || "",
     outcome,
     time_elapsed_hours: hours,
     events,
-    metadata: {
-      source
-    }
+    metadata: { source }
   };
 }
 
@@ -446,11 +441,9 @@ function populateManualBuilderFromPayload(payload, data) {
   document.getElementById("builder-outcome").value = payload.outcome || "success";
   document.getElementById("builder-hours").value = payload.time_elapsed_hours ?? 0;
   document.getElementById("builder-source").value = payload.metadata?.source || "ui_manual_builder";
-
   const weaponEvent = payload.events.find((event) => event.event_type === "weapon_expended");
   const damageEvent = payload.events.find((event) => event.event_type === "unit_damaged");
   const destroyedEvent = payload.events.find((event) => event.event_type === "unit_destroyed");
-
   const preferredUnitId = pickPreferredUnitId(payload.events);
   if (preferredUnitId) {
     document.getElementById("builder-unit").value = preferredUnitId;
@@ -462,18 +455,13 @@ function populateManualBuilderFromPayload(payload, data) {
 }
 
 function renderManualBuilder(data) {
+  const units = Object.values(data.state.order_of_battle);
   const unitSelect = document.getElementById("builder-unit");
   const missionInput = document.getElementById("builder-mission-id");
   const preview = document.getElementById("builder-json");
-  const generateButton = document.getElementById("builder-generate");
-  const downloadButton = document.getElementById("builder-download");
-  const copyButton = document.getElementById("builder-copy");
-
-  const units = Object.values(data.state.order_of_battle);
   unitSelect.innerHTML = units.map((unit) => `
     <option value="${unit.unit_id}">${unit.name} (${unit.unit_id})</option>
   `).join("");
-
   missionInput.value = data.plan.mission_id || data.state.current_mission_id || "";
 
   const refreshPreview = () => {
@@ -482,25 +470,13 @@ function renderManualBuilder(data) {
     return payload;
   };
 
-  [
-    "builder-mission-id",
-    "builder-outcome",
-    "builder-hours",
-    "builder-unit",
-    "builder-weapon-key",
-    "builder-weapon-amount",
-    "builder-damage-amount",
-    "builder-destroyed",
-    "builder-source"
-  ].forEach((id) => {
+  ["builder-mission-id", "builder-outcome", "builder-hours", "builder-unit", "builder-weapon-key", "builder-weapon-amount", "builder-damage-amount", "builder-destroyed", "builder-source"].forEach((id) => {
     const node = document.getElementById(id);
-    node.addEventListener("input", refreshPreview);
-    node.addEventListener("change", refreshPreview);
+    node.oninput = refreshPreview;
+    node.onchange = refreshPreview;
   });
-
-  generateButton.addEventListener("click", refreshPreview);
-
-  downloadButton.addEventListener("click", () => {
+  document.getElementById("builder-generate").onclick = refreshPreview;
+  document.getElementById("builder-download").onclick = () => {
     const payload = refreshPreview();
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -511,51 +487,333 @@ function renderManualBuilder(data) {
     link.click();
     link.remove();
     URL.revokeObjectURL(url);
-  });
-
-  copyButton.addEventListener("click", async () => {
+  };
+  document.getElementById("builder-copy").onclick = async () => {
     const payload = refreshPreview();
     await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
-    copyButton.textContent = "Copied";
-    setTimeout(() => {
-      copyButton.textContent = "Copy JSON";
-    }, 1200);
-  });
-
+  };
   refreshPreview();
 }
 
 function renderDebriefParser(data) {
   const input = document.getElementById("parser-input");
-  const runButton = document.getElementById("parser-run");
-  const applyButton = document.getElementById("parser-apply");
   const preview = document.getElementById("parser-json");
-
-  let currentPayload = {};
-
   const refresh = () => {
-    currentPayload = parseDebriefText(input.value, data);
-    preview.textContent = JSON.stringify(currentPayload, null, 2);
-    return currentPayload;
+    const payload = parseDebriefText(input.value, data);
+    preview.textContent = JSON.stringify(payload, null, 2);
+    return payload;
   };
-
-  runButton.addEventListener("click", refresh);
-  applyButton.addEventListener("click", () => {
+  document.getElementById("parser-run").onclick = refresh;
+  document.getElementById("parser-apply").onclick = () => {
     const payload = refresh();
     populateManualBuilderFromPayload(payload, data);
     document.getElementById("builder-generate").click();
-  });
-
+  };
   refresh();
 }
 
-async function main() {
-  let data;
-  try {
-    data = await loadJson("../generated/ui/runtime.json");
-  } catch (_error) {
-    data = await loadJson("./data/sample-runtime.json");
+function renderSettingsPreview(settings) {
+  document.getElementById("settings-json").textContent = JSON.stringify(settings, null, 2);
+  document.getElementById("settings-game-path").value = settings.gameCampaignPath || "";
+  document.getElementById("settings-user-path").value = settings.userCampaignPath || "";
+  document.getElementById("settings-campaign-id").value = settings.preferredCampaignId || "silent_meridian";
+  document.getElementById("settings-package-id").value = settings.preferredPackageId || settings.preferredCampaignId || "silent_meridian";
+  document.getElementById("settings-source-dir").value = settings.preferredPackageSourceDir || "";
+  document.getElementById("settings-output-path").value = settings.preferredPackageOutputPath || "";
+  packageIdSyncEnabled = (settings.preferredPackageId || settings.preferredCampaignId || "") === (settings.preferredCampaignId || "");
+  document.getElementById("settings-package-sync").checked = packageIdSyncEnabled;
+}
+
+function syncPackageIdFromCampaign() {
+  if (packageIdSyncEnabled) {
+    document.getElementById("settings-package-id").value = document.getElementById("settings-campaign-id").value.trim();
   }
+}
+
+function collectDesktopSettingsForm() {
+  return {
+    gameCampaignPath: document.getElementById("settings-game-path").value.trim(),
+    userCampaignPath: document.getElementById("settings-user-path").value.trim(),
+    preferredCampaignId: document.getElementById("settings-campaign-id").value.trim() || "silent_meridian",
+    preferredPackageId: document.getElementById("settings-package-id").value.trim() || document.getElementById("settings-campaign-id").value.trim() || "silent_meridian",
+    preferredPackageSourceDir: document.getElementById("settings-source-dir").value.trim(),
+    preferredPackageOutputPath: document.getElementById("settings-output-path").value.trim(),
+    firstLaunchComplete: true
+  };
+}
+
+function setSettingsStatus(message) {
+  document.getElementById("settings-status").textContent = message;
+}
+
+function renderWizardPreview(blueprint) {
+  currentWizardBlueprint = blueprint;
+  const enemySummary = blueprint.enemies
+    .map((enemy) => `${enemy.name} | ${enemy.faction} ${enemy.platformType}`)
+    .join("<br>");
+  document.getElementById("wizard-summary").innerHTML = `
+    <div class="wizard-block">
+      <strong>${blueprint.title}</strong>
+      <div class="wizard-meta">${blueprint.theaterName} | ${blueprint.toneLabel} | Seed ${blueprint.seed}</div>
+      <div class="muted">${blueprint.description}</div>
+    </div>
+    <div class="wizard-block">
+      <strong>Player</strong>
+      <div class="wizard-meta">${blueprint.player.name} | ${blueprint.player.faction} ${blueprint.player.platformType}</div>
+      <div class="muted">DBID ${blueprint.player.dbid} | Package namespace: ${blueprint.packageNamespace}</div>
+    </div>
+    <div class="wizard-block">
+      <strong>Opposing Force</strong>
+      <div class="wizard-meta">${blueprint.enemies.length} tracked opposing units</div>
+      <div class="muted">${enemySummary}</div>
+    </div>
+    <div class="wizard-block">
+      <strong>Route Logic</strong>
+      <div class="wizard-meta">${blueprint.family} geometry</div>
+      <div class="muted">Player and opposition pathing are seeded from theater corridors, then jittered deterministically from the campaign seed.</div>
+    </div>
+  `;
+  document.getElementById("wizard-scenarios").innerHTML = blueprint.scenarios.map((scenario, index) => `
+    <div class="wizard-block">
+      <strong>Scenario ${index + 1}: ${scenario.name}</strong>
+      <div class="wizard-meta">${scenario.missionId}</div>
+      <div class="muted">${scenario.summary}</div>
+      <div class="muted"><code>${scenario.geometry.routeSummary}</code></div>
+      <div class="muted">Enemy Transit: ${scenario.geometry.enemyTransitSummary}</div>
+    </div>
+  `).join("");
+}
+
+function collectWizardSpec() {
+  return {
+    title: document.getElementById("wizard-title").value.trim(),
+    campaignId: document.getElementById("wizard-campaign-id").value.trim(),
+    theater: document.getElementById("wizard-theater").value,
+    tone: document.getElementById("wizard-tone").value,
+    year: Number(document.getElementById("wizard-year").value || 2028),
+    scenarioCount: Number(document.getElementById("wizard-scenario-count").value || 3),
+    playerName: document.getElementById("wizard-player-name").value.trim()
+  };
+}
+
+function setWizardStatus(message) {
+  document.getElementById("wizard-status").textContent = message;
+}
+
+function setDesktopOpsStatus(message) {
+  document.getElementById("desktop-ops-status").textContent = message;
+}
+
+function setDesktopOutput(value) {
+  document.getElementById("desktop-output").textContent = JSON.stringify(value, null, 2);
+}
+
+function populateWizardSelectors() {
+  const theaterSelect = document.getElementById("wizard-theater");
+  const toneSelect = document.getElementById("wizard-tone");
+  if (!theaterSelect || !toneSelect) {
+    return;
+  }
+  theaterSelect.innerHTML = Object.values(getTheaterTemplates()).map((theater) => `
+    <option value="${theater.id}">${theater.label}</option>
+  `).join("");
+  toneSelect.innerHTML = Object.entries(getToneCatalog()).map(([key, tone]) => `
+    <option value="${key}">${tone.label}</option>
+  `).join("");
+  theaterSelect.value = "luzon_strait";
+  toneSelect.value = "surveillance";
+}
+
+function syncWizardDefaultsWithTheater() {
+  const theaterSelect = document.getElementById("wizard-theater");
+  if (!theaterSelect) {
+    return;
+  }
+  const theater = getTheaterTemplates()[theaterSelect.value];
+  if (!theater) {
+    return;
+  }
+  document.getElementById("wizard-year").value = theater.defaultYear;
+  document.getElementById("wizard-player-name").value = theater.player.name;
+}
+
+function toggleDesktopOnlyButtons(enabled) {
+  ["wizard-generate", "wizard-build", "wizard-deploy", "desktop-export-runtime", "desktop-ingest-result"].forEach((id) => {
+    const button = document.getElementById(id);
+    if (button) {
+      button.disabled = !enabled;
+    }
+  });
+}
+
+async function initializeWizard() {
+  if (!document.getElementById("wizard-theater")) {
+    return;
+  }
+  populateWizardSelectors();
+  syncWizardDefaultsWithTheater();
+  renderWizardPreview(buildCampaignBlueprint(collectWizardSpec()));
+  document.getElementById("wizard-theater").onchange = () => {
+    syncWizardDefaultsWithTheater();
+    renderWizardPreview(buildCampaignBlueprint(collectWizardSpec()));
+  };
+  ["wizard-title", "wizard-campaign-id", "wizard-tone", "wizard-year", "wizard-scenario-count", "wizard-player-name"].forEach((id) => {
+    document.getElementById(id).oninput = () => renderWizardPreview(buildCampaignBlueprint(collectWizardSpec()));
+  });
+  document.getElementById("wizard-preview").onclick = () => {
+    renderWizardPreview(buildCampaignBlueprint(collectWizardSpec()));
+    setWizardStatus("Preview updated using the deterministic rule-based generator.");
+  };
+  document.getElementById("wizard-generate").onclick = async () => {
+    if (!desktopApi) {
+      setWizardStatus("Desktop app required to write campaign files.");
+      return;
+    }
+    const result = await desktopApi.generateCampaign({ spec: collectWizardSpec(), dryRun: false });
+    document.getElementById("desktop-package-id").value = result.blueprint.campaignId;
+    document.getElementById("desktop-campaign-id").value = result.blueprint.campaignId;
+    document.getElementById("settings-campaign-id").value = result.blueprint.campaignId;
+    document.getElementById("settings-package-id").value = result.blueprint.campaignId;
+    document.getElementById("settings-source-dir").value = `${desktopInfo.workspaceRoot}/src/packages/${result.blueprint.campaignId}`;
+    document.getElementById("settings-output-path").value = `${desktopInfo.workspaceRoot}/dist/${result.blueprint.campaignId}.kyt`;
+    setDesktopOutput(result);
+    setWizardStatus(`Campaign files written for ${result.blueprint.campaignId}.`);
+  };
+  document.getElementById("wizard-build").onclick = async () => {
+    if (!desktopApi) {
+      setWizardStatus("Desktop app required to build packages.");
+      return;
+    }
+    const blueprint = currentWizardBlueprint || buildCampaignBlueprint(collectWizardSpec());
+    const result = await desktopApi.buildPackage({
+      sourceDir: `${desktopInfo.workspaceRoot}/src/packages/${blueprint.campaignId}`,
+      outputPath: `${desktopInfo.workspaceRoot}/dist/${blueprint.campaignId}.kyt`
+    });
+    setDesktopOutput(result);
+    setWizardStatus(`Built ${blueprint.campaignId}.kyt with MD5 ${result.hash}.`);
+  };
+  document.getElementById("wizard-deploy").onclick = async () => {
+    if (!desktopApi) {
+      setWizardStatus("Desktop app required to deploy packages.");
+      return;
+    }
+    const blueprint = currentWizardBlueprint || buildCampaignBlueprint(collectWizardSpec());
+    const result = await desktopApi.deployPackage({
+      packagePath: `${desktopInfo.workspaceRoot}/dist/${blueprint.campaignId}.kyt`
+    });
+    setDesktopOutput(result);
+    setWizardStatus(`Deployed ${blueprint.campaignId}.kyt to the configured campaign targets.`);
+  };
+}
+
+async function initializeDesktopOps() {
+  const exportButton = document.getElementById("desktop-export-runtime");
+  const ingestButton = document.getElementById("desktop-ingest-result");
+  if (!exportButton || !ingestButton) {
+    return;
+  }
+  exportButton.onclick = async () => {
+    if (!desktopApi) {
+      setDesktopOpsStatus("Desktop app required to export runtime snapshots.");
+      return;
+    }
+    const campaignId = document.getElementById("desktop-campaign-id").value.trim() || "silent_meridian";
+    const result = await desktopApi.exportRuntime({ campaignId });
+    setDesktopOutput(result);
+    setDesktopOpsStatus(`Runtime snapshot exported for ${campaignId}.`);
+    if (result.payload) {
+      hydrateRuntime(result.payload);
+      setWorkspaceMode("tracking");
+    }
+  };
+  ingestButton.onclick = async () => {
+    if (!desktopApi) {
+      setDesktopOpsStatus("Desktop app required to ingest results.");
+      return;
+    }
+    const campaignId = document.getElementById("desktop-campaign-id").value.trim() || "silent_meridian";
+    const resultPath = document.getElementById("desktop-result-path").value.trim();
+    if (!resultPath) {
+      setDesktopOpsStatus("Provide a result JSON path first.");
+      return;
+    }
+    const result = await desktopApi.ingestResult({ campaignId, resultPath, advanceHours: 24.0 });
+    setDesktopOutput(result);
+    setDesktopOpsStatus(`Result ingested for ${campaignId}.`);
+    if (result.runtime?.payload) {
+      hydrateRuntime(result.runtime.payload);
+      setWorkspaceMode("tracking");
+    }
+  };
+}
+
+async function initializeDesktopSettings() {
+  const fallbackSettings = {
+    ...(desktopInfo?.defaults || {}),
+    preferredCampaignId: "silent_meridian",
+    preferredPackageId: "silent_meridian",
+    preferredPackageSourceDir: desktopInfo ? `${desktopInfo.workspaceRoot}/src/packages/iron_archipelago` : "",
+    preferredPackageOutputPath: desktopInfo ? `${desktopInfo.workspaceRoot}/dist/iron_archipelago.kyt` : "",
+    firstLaunchComplete: false
+  };
+  const settings = desktopApi ? await desktopApi.loadSettings() : fallbackSettings;
+  renderSettingsPreview(settings);
+  syncPackageIdFromCampaign();
+  document.getElementById("mode-setup")?.addEventListener("click", () => setWorkspaceMode("setup"));
+  document.getElementById("mode-authoring")?.addEventListener("click", () => setWorkspaceMode("authoring"));
+  document.getElementById("mode-tracking")?.addEventListener("click", () => setWorkspaceMode("tracking"));
+
+  document.getElementById("settings-package-sync")?.addEventListener("change", (event) => {
+    packageIdSyncEnabled = event.target.checked;
+    if (packageIdSyncEnabled) {
+      syncPackageIdFromCampaign();
+    }
+  });
+
+  document.getElementById("settings-campaign-id")?.addEventListener("input", syncPackageIdFromCampaign);
+
+  document.getElementById("settings-save")?.addEventListener("click", async () => {
+    if (!desktopApi) {
+      setSettingsStatus("Desktop app required to persist settings.");
+      return;
+    }
+    const saved = await desktopApi.saveSettings(collectDesktopSettingsForm());
+    renderSettingsPreview(saved);
+    setSettingsStatus("Desktop settings saved.");
+  });
+
+  document.getElementById("settings-use-generated")?.addEventListener("click", () => {
+    const campaignId = document.getElementById("wizard-campaign-id")?.value.trim() || "generated_campaign";
+    const baseRoot = desktopInfo?.workspaceRoot || "";
+    const settingsCampaignId = document.getElementById("settings-campaign-id");
+    const settingsPackageId = document.getElementById("settings-package-id");
+    const settingsSourceDir = document.getElementById("settings-source-dir");
+    const settingsOutputPath = document.getElementById("settings-output-path");
+    if (settingsCampaignId) {
+      settingsCampaignId.value = campaignId;
+    }
+    if (packageIdSyncEnabled && settingsPackageId) {
+      settingsPackageId.value = campaignId;
+    }
+    if (settingsSourceDir) {
+      settingsSourceDir.value = baseRoot ? `${baseRoot}/src/packages/${campaignId}` : "";
+    }
+    if (settingsOutputPath) {
+      settingsOutputPath.value = baseRoot ? `${baseRoot}/dist/${campaignId}.kyt` : "";
+    }
+    setSettingsStatus(`Prepared settings defaults for ${campaignId}. Save them to persist.`);
+  });
+
+  if (!settings.firstLaunchComplete) {
+    setWorkspaceMode("setup");
+    setSettingsStatus("First launch detected. Confirm the MNW paths and preferred IDs, then save settings once.");
+  } else {
+    setWorkspaceMode("authoring");
+    setSettingsStatus("Desktop settings loaded.");
+  }
+}
+
+function hydrateRuntime(data) {
   renderCampaignSummary(data);
   renderModuleSummary(data);
   renderHeroStats(data);
@@ -565,6 +823,31 @@ async function main() {
   renderContracts();
   renderManualBuilder(data);
   renderDebriefParser(data);
+}
+
+async function loadInitialRuntime() {
+  if (desktopApi) {
+    desktopInfo = await desktopApi.getDesktopInfo();
+    renderDesktopStatus(desktopInfo);
+    toggleDesktopOnlyButtons(true);
+    const result = await desktopApi.exportRuntime({ campaignId: desktopInfo.settings?.preferredCampaignId || "silent_meridian" });
+    return result.payload;
+  }
+  renderDesktopStatus(null);
+  toggleDesktopOnlyButtons(false);
+  try {
+    return await loadJson("../generated/ui/runtime.json");
+  } catch {
+    return loadJson("./data/sample-runtime.json");
+  }
+}
+
+async function main() {
+  const runtime = await loadInitialRuntime();
+  hydrateRuntime(runtime);
+  await initializeDesktopSettings();
+  await initializeWizard();
+  await initializeDesktopOps();
 }
 
 main().catch((error) => {
