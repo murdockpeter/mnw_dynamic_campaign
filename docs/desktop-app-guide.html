@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Desktop App Guide | MNW Campaign Console</title>
+  <style>
+    :root {
+      --bg: #06111a;
+      --bg-2: #0a1a26;
+      --panel: rgba(12, 30, 43, 0.9);
+      --panel-strong: rgba(16, 40, 57, 0.96);
+      --line: rgba(118, 202, 237, 0.16);
+      --text: #ecf7fb;
+      --muted: #9ebccc;
+      --accent: #74d8ff;
+      --accent-2: #57e0b7;
+      --accent-3: #ffc46b;
+      --shadow: 0 28px 72px rgba(0, 0, 0, 0.36);
+      --radius-xl: 28px;
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --content-width: 1160px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(87, 224, 183, 0.14), transparent 22%),
+        radial-gradient(circle at top right, rgba(116, 216, 255, 0.16), transparent 24%),
+        linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 48%, var(--bg) 100%);
+      font: 16px/1.65 "Segoe UI", "Aptos", system-ui, sans-serif;
+    }
+
+    a {
+      color: var(--accent);
+    }
+
+    code,
+    pre {
+      font-family: "Cascadia Code", Consolas, monospace;
+    }
+
+    .page {
+      width: min(calc(100% - 32px), var(--content-width));
+      margin: 0 auto;
+      padding: 24px 0 56px;
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      padding: 32px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      background:
+        linear-gradient(135deg, rgba(14, 32, 45, 0.96), rgba(8, 20, 30, 0.98)),
+        radial-gradient(circle at 100% 0%, rgba(116, 216, 255, 0.1), transparent 28%);
+      box-shadow: var(--shadow);
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: auto -120px -120px auto;
+      width: 260px;
+      height: 260px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(87, 224, 183, 0.16), transparent 68%);
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      color: var(--accent);
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      font-size: 12px;
+      margin-bottom: 10px;
+    }
+
+    h1,
+    h2,
+    h3 {
+      margin: 0;
+      line-height: 1.1;
+    }
+
+    h1 {
+      font-size: clamp(2.3rem, 5vw, 4.1rem);
+      max-width: 12ch;
+    }
+
+    .hero-copy {
+      max-width: 760px;
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 1.05rem;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
+      gap: 22px;
+      align-items: end;
+      margin-top: 28px;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .stat,
+    .card,
+    .toc,
+    .callout,
+    .step,
+    .mini-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .stat {
+      padding: 16px;
+      background: linear-gradient(180deg, rgba(17, 39, 55, 0.86), rgba(12, 28, 40, 0.96));
+    }
+
+    .stat-label {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .stat-value {
+      margin-top: 8px;
+      color: var(--accent-2);
+      font-size: 1.45rem;
+      font-weight: 700;
+    }
+
+    .section-grid {
+      display: grid;
+      grid-template-columns: minmax(260px, 300px) minmax(0, 1fr);
+      gap: 22px;
+      margin-top: 22px;
+      align-items: start;
+    }
+
+    .toc,
+    .card {
+      padding: 24px;
+    }
+
+    .toc {
+      position: sticky;
+      top: 20px;
+      background: linear-gradient(180deg, rgba(15, 35, 49, 0.94), rgba(10, 24, 35, 0.98));
+    }
+
+    .toc h2,
+    .card h2 {
+      font-size: 1rem;
+      color: var(--accent);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    .toc ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      gap: 10px;
+    }
+
+    .toc a {
+      display: block;
+      text-decoration: none;
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid transparent;
+    }
+
+    .toc a:hover,
+    .toc a:focus-visible {
+      border-color: rgba(87, 224, 183, 0.24);
+      color: var(--accent-2);
+      outline: none;
+    }
+
+    .content {
+      display: grid;
+      gap: 22px;
+    }
+
+    .card h3 {
+      font-size: 1.55rem;
+      margin-bottom: 14px;
+    }
+
+    .lead {
+      color: var(--muted);
+      margin-top: 0;
+    }
+
+    .feature-grid,
+    .mini-grid,
+    .steps {
+      display: grid;
+      gap: 14px;
+    }
+
+    .feature-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      margin-top: 18px;
+    }
+
+    .mini-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      margin-top: 18px;
+    }
+
+    .mini-card,
+    .step {
+      padding: 18px;
+      background: linear-gradient(180deg, rgba(18, 42, 60, 0.82), rgba(12, 29, 41, 0.92));
+    }
+
+    .mini-card strong,
+    .step strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 1rem;
+    }
+
+    .bullet-list,
+    .number-list {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    .bullet-list li,
+    .number-list li {
+      margin: 8px 0;
+    }
+
+    .callout {
+      margin-top: 18px;
+      padding: 18px 20px;
+      background:
+        linear-gradient(180deg, rgba(17, 39, 55, 0.9), rgba(13, 30, 43, 0.98)),
+        radial-gradient(circle at top right, rgba(255, 196, 107, 0.08), transparent 34%);
+    }
+
+    .callout strong {
+      color: var(--accent-3);
+    }
+
+    .path-block {
+      margin-top: 14px;
+      padding: 14px 16px;
+      border-radius: var(--radius-md);
+      background: rgba(4, 12, 19, 0.56);
+      border: 1px solid rgba(116, 216, 255, 0.12);
+      overflow-x: auto;
+    }
+
+    .path-block code {
+      color: var(--accent);
+      font-size: 0.94rem;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .steps {
+      margin-top: 18px;
+    }
+
+    .step-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      margin-bottom: 12px;
+      border-radius: 999px;
+      background: rgba(87, 224, 183, 0.14);
+      color: var(--accent-2);
+      font-weight: 700;
+    }
+
+    .footer {
+      margin-top: 22px;
+      padding: 18px 22px;
+      color: var(--muted);
+      text-align: center;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--line);
+      background: rgba(10, 24, 35, 0.78);
+    }
+
+    @media (max-width: 980px) {
+      .hero-grid,
+      .section-grid,
+      .feature-grid,
+      .mini-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .toc {
+        position: static;
+      }
+    }
+
+    @media (max-width: 640px) {
+      body {
+        font-size: 15px;
+      }
+
+      .page {
+        width: min(calc(100% - 20px), var(--content-width));
+        padding-top: 10px;
+        padding-bottom: 28px;
+      }
+
+      .hero,
+      .toc,
+      .card {
+        padding: 20px;
+      }
+
+      .stat-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">Modern Naval Warfare</div>
+      <h1>Desktop App Guide</h1>
+      <p class="hero-copy">
+        A player-first guide for using the packaged <code>MNW Campaign Console</code> desktop app without installing Python,
+        Node.js, PowerShell tooling, or any AI stack.
+      </p>
+      <div class="hero-grid">
+        <div class="callout">
+          <strong>Who this is for</strong>
+          <p>
+            Players and operators who want the packaged app workflow: configure paths, generate a campaign, build and deploy the
+            package, inspect runtime state, and ingest mission results.
+          </p>
+        </div>
+        <div class="stat-grid">
+          <div class="stat">
+            <div class="stat-label">Install Type</div>
+            <div class="stat-value">Packaged App</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">AI Required</div>
+            <div class="stat-value">No</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Workflow</div>
+            <div class="stat-value">Generate + Track</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Primary Platform</div>
+            <div class="stat-value">Windows</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="section-grid">
+      <nav class="toc" aria-label="Table of contents">
+        <h2>Guide Sections</h2>
+        <ul>
+          <li><a href="#what-it-is-for">What This App Is For</a></li>
+          <li><a href="#what-to-install">What To Install</a></li>
+          <li><a href="#first-launch">First Launch</a></li>
+          <li><a href="#workspaces">Understanding The Three Workspaces</a></li>
+          <li><a href="#campaign-vs-package">Campaign ID vs Package ID</a></li>
+          <li><a href="#generator">How The Generator Works Without AI</a></li>
+          <li><a href="#use-flow">Typical Use Flow</a></li>
+          <li><a href="#troubleshooting">If Something Looks Wrong</a></li>
+          <li><a href="#advanced-users">Advanced Users</a></li>
+        </ul>
+      </nav>
+
+      <main class="content">
+        <section id="what-it-is-for" class="card">
+          <h2>Overview</h2>
+          <h3>What This App Is For</h3>
+          <p class="lead">
+            The desktop app is a packaged frontend and workflow wrapper for the dynamic campaign tooling in this repo.
+          </p>
+          <div class="feature-grid">
+            <div class="mini-card">
+              <strong>It lets you</strong>
+              <ul class="bullet-list">
+                <li>Configure where Modern Naval Warfare stores campaign packages.</li>
+                <li>Generate a simple multi-scenario campaign without bringing your own AI.</li>
+                <li>Build and deploy the generated campaign package.</li>
+                <li>Inspect campaign runtime state.</li>
+                <li>Ingest mission-result JSON after missions.</li>
+              </ul>
+            </div>
+            <div class="mini-card">
+              <strong>You do not need</strong>
+              <ul class="bullet-list">
+                <li>Python</li>
+                <li>PowerShell</li>
+                <li>Node.js</li>
+                <li>npm</li>
+                <li>AI tooling</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section id="what-to-install" class="card">
+          <h2>Install</h2>
+          <h3>What To Install</h3>
+          <div class="mini-grid">
+            <div class="mini-card">
+              <strong>Windows</strong>
+              <p>Use <code>MNW Dynamic Campaign Console Setup 0.1.0.exe</code>.</p>
+            </div>
+            <div class="mini-card">
+              <strong>macOS</strong>
+              <p>Use the packaged <code>.dmg</code> release once one is provided.</p>
+            </div>
+          </div>
+          <div class="callout">
+            <strong>Important</strong>
+            <p>
+              If someone gives you the source repo instead of the packaged installer, that is the developer version, not the player-first install path.
+            </p>
+          </div>
+        </section>
+
+        <section id="first-launch" class="card">
+          <h2>Setup</h2>
+          <h3>First Launch</h3>
+          <p class="lead">When the app starts for the first time, go to <code>Setup</code>.</p>
+          <div class="mini-grid">
+            <div class="mini-card">
+              <strong>You will be asked for</strong>
+              <ul class="bullet-list">
+                <li><code>Game Campaign Path</code></li>
+                <li><code>User Campaign Path</code></li>
+                <li><code>Preferred Runtime Campaign ID</code></li>
+                <li><code>Preferred Package ID</code></li>
+                <li>Optional package source and output paths</li>
+              </ul>
+            </div>
+            <div class="mini-card">
+              <strong>Tip</strong>
+              <p>Save these once and the app will reuse them on later launches.</p>
+            </div>
+          </div>
+          <div class="callout">
+            <strong>Typical Windows Paths</strong>
+            <div class="path-block">
+              <code>C:\Program Files (x86)\Steam\steamapps\common\Modern Naval Warfare\Var\Scenarios\Packages\Campaigns</code>
+            </div>
+            <div class="path-block">
+              <code>C:\Users\&lt;YourUser&gt;\AppData\LocalLow\WaveOps\ModernNavalWarfare\Scenarios\Packages\Campaigns</code>
+            </div>
+          </div>
+        </section>
+
+        <section id="workspaces" class="card">
+          <h2>App Layout</h2>
+          <h3>Understanding The Three Workspaces</h3>
+          <div class="steps">
+            <article class="step">
+              <div class="step-num">1</div>
+              <strong>Setup</strong>
+              <p>Use this once to configure paths and defaults.</p>
+              <ul class="bullet-list">
+                <li>Installed game campaign package path</li>
+                <li>User profile campaign package path</li>
+                <li>Default runtime campaign ID</li>
+                <li>Default package ID</li>
+              </ul>
+            </article>
+            <article class="step">
+              <div class="step-num">2</div>
+              <strong>Authoring</strong>
+              <p>Use this to create and package campaigns.</p>
+              <ul class="bullet-list">
+                <li>Choose campaign title, ID, theater, tone, and scenario count.</li>
+                <li>Preview the generated campaign blueprint.</li>
+                <li>Write campaign files, build the package, and deploy it.</li>
+                <li>Review the pathing model and platform-selection model.</li>
+              </ul>
+            </article>
+            <article class="step">
+              <div class="step-num">3</div>
+              <strong>Campaign Tracking</strong>
+              <p>Use this after missions.</p>
+              <ul class="bullet-list">
+                <li>Inspect the campaign summary.</li>
+                <li>Inspect tracked units and persistence modules.</li>
+                <li>Review recent result data and next-mission directives.</li>
+                <li>Build manual result JSON or parse debrief text into a draft result.</li>
+              </ul>
+            </article>
+          </div>
+          <div class="callout">
+            <strong>Important</strong>
+            <p>
+              <code>Campaign Tracking</code> uses real exported runtime data only. If no runtime snapshot exists yet, the app shows instructions instead of fake sample state.
+            </p>
+          </div>
+        </section>
+
+        <section id="campaign-vs-package" class="card">
+          <h2>Identifiers</h2>
+          <h3>Campaign ID vs Package ID</h3>
+          <p class="lead">These usually match.</p>
+          <div class="mini-grid">
+            <div class="mini-card">
+              <strong>Campaign ID</strong>
+              <p>The runtime campaign identifier used by the tracker and persistence flow.</p>
+            </div>
+            <div class="mini-card">
+              <strong>Package ID</strong>
+              <p>The MNW package identifier used for build and deploy.</p>
+            </div>
+          </div>
+          <div class="callout">
+            <strong>Typical simple usage</strong>
+            <p><code>campaign ID: iron_archipelago</code></p>
+            <p><code>package ID: iron_archipelago</code></p>
+            <div class="path-block">
+              <code>iron_archipelago.iron_archipelago.bashi_screen</code>
+            </div>
+          </div>
+          <p>
+            Only split these IDs if you intentionally know you are tracking one campaign state while building another package tree.
+          </p>
+        </section>
+
+        <section id="generator" class="card">
+          <h2>Generator</h2>
+          <h3>How The Generator Works Without AI</h3>
+          <p class="lead">The generator is deterministic and rule-based. It does not call an AI model.</p>
+          <div class="feature-grid">
+            <div class="mini-card">
+              <strong>It uses</strong>
+              <ul class="bullet-list">
+                <li>Theater templates</li>
+                <li>Side templates</li>
+                <li>Mission archetype sequences</li>
+                <li>Seeded variation</li>
+              </ul>
+            </div>
+            <div class="mini-card">
+              <strong>Result</strong>
+              <p>The same inputs always produce the same campaign.</p>
+            </div>
+          </div>
+          <div class="mini-grid">
+            <div class="mini-card">
+              <strong>Pathing</strong>
+              <ol class="number-list">
+                <li>Choose a mission sequence based on the selected tone.</li>
+                <li>Create a stable seed from your campaign settings.</li>
+                <li>Jitter corridor anchor points within bounded limits.</li>
+                <li>Derive spawn points, contact datums, escorts, barrier or egress points, and withdrawal legs.</li>
+                <li>Advance timing and contact density across later scenarios.</li>
+              </ol>
+            </div>
+            <div class="mini-card">
+              <strong>Platform Selection</strong>
+              <p>Theater choice drives side selection and baseline units.</p>
+              <ul class="bullet-list">
+                <li><code>Luzon Strait</code>: U.S. submarine vs PLAN surface combatants</li>
+                <li><code>South China Sea</code>: U.S. submarine vs Russian submarines</li>
+              </ul>
+              <p>Tone changes scenario sequence and pacing. It does not swap the sides or the theater family.</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="use-flow" class="card">
+          <h2>Workflow</h2>
+          <h3>Typical Use Flow</h3>
+          <div class="steps">
+            <article class="step">
+              <div class="step-num">1</div>
+              <strong>Initial setup</strong>
+              <p>Install the desktop app, open <code>Setup</code>, set the MNW paths, and save settings.</p>
+            </article>
+            <article class="step">
+              <div class="step-num">2</div>
+              <strong>Authoring pass</strong>
+              <p>Open <code>Authoring</code>, preview a campaign, write campaign files, build the package, and deploy the package.</p>
+            </article>
+            <article class="step">
+              <div class="step-num">3</div>
+              <strong>Play in MNW</strong>
+              <p>Launch MNW and play the generated campaign.</p>
+            </article>
+            <article class="step">
+              <div class="step-num">4</div>
+              <strong>Export runtime state</strong>
+              <p>Return to <code>Authoring</code> and use <code>Export Runtime Snapshot</code> once the campaign exists in MNW.</p>
+            </article>
+            <article class="step">
+              <div class="step-num">5</div>
+              <strong>Track and ingest</strong>
+              <p>Open <code>Campaign Tracking</code> to inspect real state, then ingest result JSON after each mission.</p>
+            </article>
+          </div>
+        </section>
+
+        <section id="troubleshooting" class="card">
+          <h2>Troubleshooting</h2>
+          <h3>If Something Looks Wrong</h3>
+          <ul class="bullet-list">
+            <li>Check that the game path is correct.</li>
+            <li>Check that the user campaign path is correct.</li>
+            <li>Check that the runtime campaign ID and package ID are what you intend.</li>
+            <li>Check that the package was built before deployment.</li>
+            <li>Check that the package was deployed after the latest build.</li>
+          </ul>
+          <div class="callout">
+            <strong>Most common cause</strong>
+            <p>If the app launches but cannot find campaign files, the usual issue is a path or ID mismatch.</p>
+          </div>
+        </section>
+
+        <section id="advanced-users" class="card">
+          <h2>Advanced</h2>
+          <h3>Advanced Users</h3>
+          <p>
+            The original PowerShell and Python workflows still exist in the repo for advanced users and developers, but they are not required for normal desktop-app use.
+          </p>
+        </section>
+      </main>
+    </div>
+
+    <footer class="footer">
+      Built from <code>DESKTOP_APP_GUIDE.md</code> as a standalone static page for GitHub Pages publishing.
+    </footer>
+  </div>
+</body>
+</html>
