@@ -128,6 +128,16 @@ ipcMain.handle("mnw:generateCampaign", async (_event, payload) => {
   });
 });
 
+ipcMain.handle("mnw:continueCampaign", async (_event, payload) => {
+  const { continueCampaignForDesktop } = await loadPortableModule("portable/lib/desktop-api.mjs");
+  return continueCampaignForDesktop({
+    ...(payload || {}),
+    settingsPath: getSettingsPath(),
+    contentRoot: getContentRoot(),
+    workspaceRoot: getWorkspaceRoot()
+  });
+});
+
 app.whenReady().then(async () => {
   await createWindow();
 

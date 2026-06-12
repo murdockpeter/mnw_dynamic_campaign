@@ -78,6 +78,84 @@ const MISSION_LIBRARY = {
   }
 };
 
+const CONTINUATION_OBJECTIVES = {
+  pursue_contact: {
+    label: "Pursue Contact",
+    baseName: "Pursuit Vector",
+    slugPrefix: "pursuit_vector",
+    summaries: {
+      surface_shadow: "Maintain pressure on the enemy route and keep contact alive as the formation reacts to your last report.",
+      sub_hunt: "Drive back onto the breakout trail before the opposition can widen the gap and reset the contact picture."
+    }
+  },
+  shadow_safely: {
+    label: "Shadow Safely",
+    baseName: "Shadow Lattice",
+    slugPrefix: "shadow_lattice",
+    summaries: {
+      surface_shadow: "Preserve stealth while rebuilding the tactical picture from offset positions and indirect cues.",
+      sub_hunt: "Stay on the edge of the contact envelope and carry the trail without forcing a close prosecution."
+    }
+  },
+  break_contact: {
+    label: "Break Contact",
+    baseName: "Silent Reset",
+    slugPrefix: "silent_reset",
+    summaries: {
+      surface_shadow: "Disengage cleanly, preserve the boat, and create space for a later re-entry under better conditions.",
+      sub_hunt: "Withdraw from the hottest search arcs, survive the pressure, and regain initiative on your terms."
+    }
+  },
+  defend_chokepoint: {
+    label: "Defend Chokepoint",
+    baseName: "Barrier Station",
+    slugPrefix: "barrier_station",
+    summaries: {
+      surface_shadow: "Hold the likely turn point and force the enemy route to resolve against your prepared geometry.",
+      sub_hunt: "Set up across the likely egress seam and turn the next phase into a containment problem."
+    }
+  },
+  intercept_route: {
+    label: "Intercept Route",
+    baseName: "Interception Gate",
+    slugPrefix: "interception_gate",
+    summaries: {
+      surface_shadow: "Commit to the most likely route axis and cut ahead of the next movement window.",
+      sub_hunt: "Use the latest cues to get ahead of the breakout and challenge the route before it opens up."
+    }
+  }
+};
+
+const RISK_POSTURES = {
+  cautious: {
+    label: "Cautious",
+    cue: "Command emphasizes survivability, signal discipline, and low exposure while the battlespace resets."
+  },
+  balanced: {
+    label: "Balanced",
+    cue: "Command wants steady pressure without gambling the campaign on a single noisy attack opportunity."
+  },
+  aggressive: {
+    label: "Aggressive",
+    cue: "Command is willing to trade exposure for sharper contact quality and a faster operational decision."
+  }
+};
+
+const OPERATIONAL_TEMPOS = {
+  immediate: {
+    label: "Immediate",
+    advanceHours: 10
+  },
+  deliberate: {
+    label: "Deliberate",
+    advanceHours: 24
+  },
+  recovery: {
+    label: "Recovery",
+    advanceHours: 48
+  }
+};
+
 const THEATER_TEMPLATES = {
   luzon_strait: {
     id: "luzon_strait",
@@ -194,6 +272,17 @@ function pickArchetypes(tone, count) {
     slug: key,
     ...MISSION_LIBRARY[key]
   }));
+}
+
+function formatMnwFromIso(iso) {
+  const date = new Date(iso);
+  const yyyy = date.getUTCFullYear();
+  const mm = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(date.getUTCDate()).padStart(2, "0");
+  const hh = String(date.getUTCHours()).padStart(2, "0");
+  const mi = String(date.getUTCMinutes()).padStart(2, "0");
+  const ss = String(date.getUTCSeconds()).padStart(2, "0");
+  return `${yyyy}/${mm}/${dd} ${hh}:${mi}:${ss}`;
 }
 
 function toFixedCoord(value) {
@@ -322,6 +411,95 @@ export function getTheaterTemplates() {
 
 export function getToneCatalog() {
   return TONE_CATALOG;
+}
+
+export function findTheaterTemplateByName(name) {
+  return Object.values(THEATER_TEMPLATES).find((template) => template.theaterName === name || template.label === name) || null;
+}
+
+export function getContinuationChoiceCatalog() {
+  return {
+    objectives: CONTINUATION_OBJECTIVES,
+    riskPostures: RISK_POSTURES,
+    operationalTempos: OPERATIONAL_TEMPOS
+  };
+}
+
+export function buildContinuationScenario({
+  campaignId,
+  theaterId,
+  year,
+  playerName,
+  missionIndex = 0,
+  referenceIso,
+  objective = "pursue_contact",
+  riskPosture = "balanced",
+  operationalTempo = "deliberate",
+  priorMissionCount = 0,
+  lastOutcome = "success"
+} = {}) {
+  const theater = THEATER_TEMPLATES[theaterId] || THEATER_TEMPLATES.luzon_strait;
+  const family = theater.family;
+  const objectiveDef = CONTINUATION_OBJECTIVES[objective] || CONTINUATION_OBJECTIVES.pursue_contact;
+  const riskDef = RISK_POSTURES[riskPosture] || RISK_POSTURES.balanced;
+  const tempoDef = OPERATIONAL_TEMPOS[operationalTempo] || OPERATIONAL_TEMPOS.deliberate;
+  const ordinal = missionIndex + 1;
+  const slug = `${objectiveDef.slugPrefix}_${String(ordinal).padStart(2, "0")}`;
+  const startIso = plusHours(referenceIso || `${year}-01-01T00:00:00Z`, tempoDef.advanceHours).iso;
+  const rng = mulberry32(hashSeed([
+    campaignId,
+    theater.id,
+    objective,
+    riskPosture,
+    operationalTempo,
+    startIso,
+    playerName,
+    priorMissionCount,
+    lastOutcome
+  ].join(":")));
+  const densityCount = Math.max(4, priorMissionCount + 2);
+  const geometry = family === "surface_shadow"
+    ? buildSurfaceShadowGeometry(theater, missionIndex, densityCount, rng)
+    : buildSubHuntGeometry(theater, missionIndex, densityCount, rng);
+  const outcomeLine = lastOutcome === "failure"
+    ? "The previous mission ended badly, so the next operation is framed around regaining control without losing the boat."
+    : lastOutcome === "partial_success"
+      ? "The previous mission produced useful contact data, but the enemy still has room to maneuver."
+      : "The previous mission produced enough tactical clarity to drive a purposeful follow-on operation.";
+  const name = `${objectiveDef.baseName} ${ordinal}`;
+  const summary = objectiveDef.summaries[family] || objectiveDef.summaries.surface_shadow;
+  const cue = `${riskDef.cue} ${outcomeLine}`;
+  const description = `${summary} ${cue}`;
+  const missionId = `${campaignId}.${campaignId}.${slug}`;
+  const objectiveText = family === "surface_shadow"
+    ? "Keep your submarine combat effective, preserve the track picture, and raise antennas when you are ready to conclude the mission."
+    : "Keep your submarine combat effective, contain the breakout geometry, and raise antennas when you are ready to conclude the mission.";
+  const successText = `${name} is complete. Higher command can roll your updated track, damage, and readiness picture into the next decision cycle.`;
+
+  return {
+    slug,
+    missionId,
+    name,
+    summary,
+    cue,
+    index: missionIndex,
+    family,
+    startIso,
+    startMnw: formatMnwFromIso(startIso),
+    geometry,
+    description,
+    objectiveText,
+    successText,
+    continuation: {
+      objective,
+      objectiveLabel: objectiveDef.label,
+      riskPosture,
+      riskLabel: riskDef.label,
+      operationalTempo,
+      tempoLabel: tempoDef.label,
+      advanceHours: tempoDef.advanceHours
+    }
+  };
 }
 
 export function buildCampaignBlueprint(spec = {}) {

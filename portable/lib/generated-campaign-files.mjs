@@ -411,7 +411,7 @@ function localeValue(value) {
   return String(value || "").replaceAll("\"", "\"\"");
 }
 
-function buildLocaleCsv(blueprint, scenarioRows) {
+export function buildLocaleCsv(blueprint, scenarioRows) {
   const lines = [
     "Path,Field,en,de,zh,fr,es,ru,ro,pl,el",
     `${blueprint.campaignId}/quest.cmp,name,${localeValue(blueprint.title)},,,,,,,,`,
@@ -425,6 +425,52 @@ function buildLocaleCsv(blueprint, scenarioRows) {
   return `${lines.join("\n")}\n`;
 }
 
+export function buildQuestScript(campaignMissionIds) {
+  let questScript = `##\n# Globals\n##\n_debug_mode = False\n_version = "0.0.0"\n_msv = "0.113.1"\n_author = "MNW Desktop Wizard"\n_difficulty_level = 1\n\n## Missions\n_start = Mis("${campaignMissionIds[0]}")\n`;
+  let previousVariable = "_start";
+  campaignMissionIds.slice(1).forEach((missionId, index) => {
+    const nextVariable = `_m${index + 1}`;
+    questScript += `${nextVariable} = ${previousVariable}.PipeMission("${missionId}")\n`;
+    previousVariable = nextVariable;
+  });
+  return questScript;
+}
+
+export function buildScenarioPackageArtifacts({ blueprint, scenario }) {
+  const messages = {
+    mission_from: blueprint.theaterId === "luzon_strait" ? "COMSUBPAC" : "COMSUBLANT",
+    mission_to: blueprint.player.name.toUpperCase(),
+    mission_objectives: `BT\nSUBJ: ${scenario.name.toUpperCase()}\n\n1. ${scenario.summary}\n\n2. ${scenario.cue}\n\n3. Route Summary:\n   ${scenario.geometry.routeSummary}\n\n4. Enemy Transit:\n   ${scenario.geometry.enemyTransitSummary}\n\n5. Keep your submarine combat effective and raise antennas when you are ready to conclude the mission.`,
+    mission_success: `BT\nSUBJ: MISSION STATUS - SUCCESS\n\n${scenario.successText}`
+  };
+  const metadata = missionMetadataRecord(
+    scenario.name,
+    scenario.description,
+    scenario.objectiveText,
+    messages
+  );
+  const missionPath = path.join(blueprint.campaignId, `${scenario.slug}.mis`);
+  const files = {
+    [missionPath]: blueprint.family === "surface_shadow"
+      ? buildSurfaceMissionScript(blueprint, scenario)
+      : buildSubHuntMissionScript(blueprint, scenario),
+    [`${missionPath}.json`]: `${JSON.stringify(metadata, null, 2)}\n`
+  };
+  const localeRows = [
+    `${missionPath},name,${localeValue(scenario.name)},,,,,,,,`,
+    `${missionPath},description,"${localeValue(scenario.description)}",,,,,,,,`,
+    `${missionPath},objectives.primary_withdraw_intact,${localeValue(scenario.objectiveText)},,,,,,,,`,
+    `${missionPath},messages.mission_from,${localeValue(messages.mission_from)},,,,,,,,`,
+    `${missionPath},messages.mission_to,${localeValue(messages.mission_to)},,,,,,,,`,
+    `${missionPath},messages.mission_objectives,"${localeValue(messages.mission_objectives)}",,,,,,,,`,
+    `${missionPath},messages.mission_success,"${localeValue(messages.mission_success)}",,,,,,,,`
+  ];
+  return {
+    files,
+    localeRows
+  };
+}
+
 export async function buildGeneratedCampaignFiles({ templateRoot, spec }) {
   const blueprint = buildCampaignBlueprint(spec);
   const templateMisPath = path.join(templateRoot, "src", "package", "template.mis.json");
@@ -433,45 +479,15 @@ export async function buildGeneratedCampaignFiles({ templateRoot, spec }) {
   const templateCmp = await fs.readFile(templateCmpPath, "utf8");
 
   const campaignMissionIds = blueprint.scenarios.map((scenario) => scenario.missionId);
-  let questScript = `##\n# Globals\n##\n_debug_mode = False\n_version = "0.0.0"\n_msv = "0.113.1"\n_author = "MNW Desktop Wizard"\n_difficulty_level = 1\n\n## Missions\n_start = Mis("${campaignMissionIds[0]}")\n`;
-  let previousVariable = "_start";
-  campaignMissionIds.slice(1).forEach((missionId, index) => {
-    const nextVariable = `_m${index + 1}`;
-    questScript += `${nextVariable} = ${previousVariable}.PipeMission("${missionId}")\n`;
-    previousVariable = nextVariable;
-  });
+  const questScript = buildQuestScript(campaignMissionIds);
 
   const scenarioRows = [];
   const files = {};
 
   for (const scenario of blueprint.scenarios) {
-    const messages = {
-      mission_from: blueprint.theaterId === "luzon_strait" ? "COMSUBPAC" : "COMSUBLANT",
-      mission_to: blueprint.player.name.toUpperCase(),
-      mission_objectives: `BT\nSUBJ: ${scenario.name.toUpperCase()}\n\n1. ${scenario.summary}\n\n2. ${scenario.cue}\n\n3. Route Summary:\n   ${scenario.geometry.routeSummary}\n\n4. Enemy Transit:\n   ${scenario.geometry.enemyTransitSummary}\n\n5. Keep your submarine combat effective and raise antennas when you are ready to conclude the mission.`,
-      mission_success: `BT\nSUBJ: MISSION STATUS - SUCCESS\n\n${scenario.successText}`
-    };
-    const metadata = missionMetadataRecord(
-      scenario.name,
-      scenario.description,
-      scenario.objectiveText,
-      messages
-    );
-    const missionPath = path.join(blueprint.campaignId, `${scenario.slug}.mis`);
-    files[missionPath] = blueprint.family === "surface_shadow"
-      ? buildSurfaceMissionScript(blueprint, scenario)
-      : buildSubHuntMissionScript(blueprint, scenario);
-    files[`${missionPath}.json`] = `${JSON.stringify(metadata, null, 2)}\n`;
-
-    scenarioRows.push(
-      `${missionPath},name,${localeValue(scenario.name)},,,,,,,,`,
-      `${missionPath},description,"${localeValue(scenario.description)}",,,,,,,,`,
-      `${missionPath},objectives.primary_withdraw_intact,${localeValue(scenario.objectiveText)},,,,,,,,`,
-      `${missionPath},messages.mission_from,${localeValue(messages.mission_from)},,,,,,,,`,
-      `${missionPath},messages.mission_to,${localeValue(messages.mission_to)},,,,,,,,`,
-      `${missionPath},messages.mission_objectives,"${localeValue(messages.mission_objectives)}",,,,,,,,`,
-      `${missionPath},messages.mission_success,"${localeValue(messages.mission_success)}",,,,,,,,`
-    );
+    const artifacts = buildScenarioPackageArtifacts({ blueprint, scenario });
+    Object.assign(files, artifacts.files);
+    scenarioRows.push(...artifacts.localeRows);
   }
 
   files[path.join(blueprint.campaignId, "quest.cmp")] = questScript;

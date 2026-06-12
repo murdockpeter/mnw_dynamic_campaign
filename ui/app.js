@@ -1,5 +1,6 @@
 import {
   buildCampaignBlueprint,
+  getContinuationChoiceCatalog,
   getTheaterTemplates,
   getToneCatalog
 } from "../shared/campaign-generator.mjs";
@@ -128,7 +129,7 @@ function renderRuntimeUnavailable(reason) {
     campaignSummary.innerHTML = `
       <div class="stack-item">
         <div class="title">No Runtime Loaded</div>
-        <div class="meta">Export a runtime snapshot from Authoring after the campaign exists in MNW.</div>
+        <div class="meta">Export a runtime snapshot from Campaign Tracking after the campaign exists in MNW.</div>
       </div>
     `;
   }
@@ -568,20 +569,41 @@ function renderDebriefParser(data) {
 }
 
 function renderSettingsPreview(settings) {
+  const preferredCampaignId = settings.preferredCampaignId || "silent_meridian";
+  const preferredPackageId = settings.preferredPackageId || preferredCampaignId || "silent_meridian";
   document.getElementById("settings-json").textContent = JSON.stringify(settings, null, 2);
   document.getElementById("settings-game-path").value = settings.gameCampaignPath || "";
   document.getElementById("settings-user-path").value = settings.userCampaignPath || "";
-  document.getElementById("settings-campaign-id").value = settings.preferredCampaignId || "silent_meridian";
-  document.getElementById("settings-package-id").value = settings.preferredPackageId || settings.preferredCampaignId || "silent_meridian";
+  document.getElementById("settings-campaign-id").value = preferredCampaignId;
+  document.getElementById("settings-package-id").value = preferredPackageId;
   document.getElementById("settings-source-dir").value = settings.preferredPackageSourceDir || "";
   document.getElementById("settings-output-path").value = settings.preferredPackageOutputPath || "";
-  packageIdSyncEnabled = (settings.preferredPackageId || settings.preferredCampaignId || "") === (settings.preferredCampaignId || "");
+  packageIdSyncEnabled = preferredPackageId === preferredCampaignId;
   document.getElementById("settings-package-sync").checked = packageIdSyncEnabled;
+  syncDesktopOpsDefaults({
+    preferredCampaignId,
+    preferredPackageId
+  });
 }
 
 function syncPackageIdFromCampaign() {
   if (packageIdSyncEnabled) {
     document.getElementById("settings-package-id").value = document.getElementById("settings-campaign-id").value.trim();
+  }
+  syncDesktopOpsDefaults({
+    preferredCampaignId: document.getElementById("settings-campaign-id").value.trim(),
+    preferredPackageId: document.getElementById("settings-package-id").value.trim()
+  });
+}
+
+function syncDesktopOpsDefaults({ preferredCampaignId, preferredPackageId }) {
+  const desktopCampaignId = document.getElementById("desktop-campaign-id");
+  const desktopPackageId = document.getElementById("desktop-package-id");
+  if (desktopCampaignId) {
+    desktopCampaignId.value = preferredCampaignId || "silent_meridian";
+  }
+  if (desktopPackageId) {
+    desktopPackageId.value = preferredPackageId || preferredCampaignId || "silent_meridian";
   }
 }
 
@@ -663,6 +685,77 @@ function setDesktopOutput(value) {
   document.getElementById("desktop-output").textContent = JSON.stringify(value, null, 2);
 }
 
+function setContinuationStatus(message) {
+  const node = document.getElementById("continuation-status");
+  if (node) {
+    node.textContent = message;
+  }
+}
+
+function renderContinuationPlanner(data) {
+  const objectiveSelect = document.getElementById("continuation-objective");
+  const riskSelect = document.getElementById("continuation-risk");
+  const tempoSelect = document.getElementById("continuation-tempo");
+  const preview = document.getElementById("continuation-preview");
+  const actionButton = document.getElementById("continuation-generate");
+  if (!objectiveSelect || !riskSelect || !tempoSelect || !preview || !actionButton) {
+    return;
+  }
+
+  const catalog = getContinuationChoiceCatalog();
+  const currentMissionId = data.state.current_mission_id || "-";
+  const missionCount = Array.isArray(data.state.mission_history) ? data.state.mission_history.length : 0;
+
+  const refreshPreview = () => {
+    const objective = catalog.objectives[objectiveSelect.value] || catalog.objectives.pursue_contact;
+    const risk = catalog.riskPostures[riskSelect.value] || catalog.riskPostures.balanced;
+    const tempo = catalog.operationalTempos[tempoSelect.value] || catalog.operationalTempos.deliberate;
+    preview.innerHTML = `
+      <div class="wizard-block">
+        <strong>${objective.label}</strong>
+        <div class="wizard-meta">${risk.label} posture | ${tempo.label} tempo</div>
+        <div class="muted">${objective.summaries[data.state.world_state?.route_family] || objective.summaries.surface_shadow}</div>
+      </div>
+      <div class="wizard-block">
+        <strong>Campaign State</strong>
+        <div class="wizard-meta">Current mission: ${currentMissionId}</div>
+        <div class="muted">${missionCount} mission result${missionCount === 1 ? "" : "s"} recorded. The new scenario will be appended to the existing campaign chain and staged for immediate play.</div>
+      </div>
+      <div class="wizard-block">
+        <strong>Command Intent</strong>
+        <div class="muted">${risk.cue}</div>
+      </div>
+    `;
+  };
+
+  objectiveSelect.onchange = refreshPreview;
+  riskSelect.onchange = refreshPreview;
+  tempoSelect.onchange = refreshPreview;
+  refreshPreview();
+
+  actionButton.onclick = async () => {
+    if (!desktopApi?.continueCampaign) {
+      setContinuationStatus("Desktop app required to append and deploy continuation scenarios.");
+      return;
+    }
+    const campaignId = document.getElementById("desktop-campaign-id").value.trim() || data.state.metadata.campaign_id || "silent_meridian";
+    setContinuationStatus("Appending the next scenario, rebuilding the package, and refreshing runtime state...");
+    const result = await desktopApi.continueCampaign({
+      campaignId,
+      objective: objectiveSelect.value,
+      riskPosture: riskSelect.value,
+      operationalTempo: tempoSelect.value
+    });
+    setDesktopOutput(result);
+    setContinuationStatus(`Appended ${result.continuation.mission_name} and refreshed Campaign Tracking.`);
+    if (result.runtime?.payload) {
+      hydrateRuntime(result.runtime.payload);
+    } else if (result.continuation?.runtime) {
+      hydrateRuntime(result.continuation.runtime);
+    }
+  };
+}
+
 function populateWizardSelectors() {
   const theaterSelect = document.getElementById("wizard-theater");
   const toneSelect = document.getElementById("wizard-tone");
@@ -693,7 +786,7 @@ function syncWizardDefaultsWithTheater() {
 }
 
 function toggleDesktopOnlyButtons(enabled) {
-  ["wizard-generate", "wizard-build", "wizard-deploy", "desktop-export-runtime", "desktop-ingest-result"].forEach((id) => {
+  ["wizard-generate", "wizard-build", "wizard-deploy", "desktop-export-runtime", "desktop-ingest-result", "continuation-generate"].forEach((id) => {
     const button = document.getElementById(id);
     if (button) {
       button.disabled = !enabled;
@@ -840,6 +933,12 @@ async function initializeDesktopSettings() {
   });
 
   document.getElementById("settings-campaign-id")?.addEventListener("input", syncPackageIdFromCampaign);
+  document.getElementById("settings-package-id")?.addEventListener("input", () => {
+    syncDesktopOpsDefaults({
+      preferredCampaignId: document.getElementById("settings-campaign-id").value.trim(),
+      preferredPackageId: document.getElementById("settings-package-id").value.trim()
+    });
+  });
 
   document.getElementById("settings-save")?.addEventListener("click", async () => {
     if (!desktopApi) {
@@ -870,6 +969,10 @@ async function initializeDesktopSettings() {
     if (settingsOutputPath) {
       settingsOutputPath.value = baseRoot ? `${baseRoot}/dist/${campaignId}.kyt` : "";
     }
+    syncDesktopOpsDefaults({
+      preferredCampaignId: campaignId,
+      preferredPackageId: settingsPackageId?.value.trim() || campaignId
+    });
     setSettingsStatus(`Prepared settings defaults for ${campaignId}. Save them to persist.`);
   });
 
@@ -887,6 +990,7 @@ function hydrateRuntime(data) {
   renderCampaignSummary(data);
   renderModuleSummary(data);
   renderHeroStats(data);
+  renderContinuationPlanner(data);
   renderOob(data);
   renderMissionResult(data);
   renderGenerationPlan(data);
@@ -917,7 +1021,7 @@ async function main() {
   if (runtime) {
     hydrateRuntime(runtime);
   } else {
-    renderRuntimeUnavailable("No exported runtime snapshot exists yet. Generate and deploy a campaign first, then export runtime data from Authoring or ingest a post-mission result.");
+    renderRuntimeUnavailable("No exported runtime snapshot exists yet. Generate and deploy a campaign first, then export runtime data from Campaign Tracking or ingest a post-mission result.");
   }
   initializeGuideLink();
   await initializeDesktopSettings();

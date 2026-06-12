@@ -10,5 +10,6 @@ contextBridge.exposeInMainWorld("mnwDesktop", {
   buildPackage: (payload) => ipcRenderer.invoke("mnw:buildPackage", payload),
   deployPackage: (payload) => ipcRenderer.invoke("mnw:deployPackage", payload),
   ingestResult: (payload) => ipcRenderer.invoke("mnw:ingestResult", payload),
-  generateCampaign: (payload) => ipcRenderer.invoke("mnw:generateCampaign", payload)
+  generateCampaign: (payload) => ipcRenderer.invoke("mnw:generateCampaign", payload),
+  continueCampaign: (payload) => ipcRenderer.invoke("mnw:continueCampaign", payload)
 });

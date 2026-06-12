@@ -238,6 +238,44 @@
           </article>
         </section>
 
+      </div>
+
+      <div id="tracking-view" class="workspace-view">
+        <section class="hero">
+          <div>
+            <div class="eyebrow">Campaign Tracking</div>
+            <h2>Live Runtime And Result Workflow</h2>
+            <p>
+              Review the active state, inspect generation directives, build normalized results, and ingest mission outcomes
+              without mixing that work into system setup and campaign authoring.
+            </p>
+          </div>
+          <div class="hero-stats" id="hero-stats"></div>
+        </section>
+
+        <section id="tracking-empty-state" class="card">
+          <div class="card-head">
+            <h3>No Runtime Snapshot Loaded Yet</h3>
+            <span class="badge alt">Real Data Only</span>
+          </div>
+          <div class="notes">
+            <p id="tracking-empty-copy">
+              Campaign Tracking now shows exported runtime data only. No sample campaign state is loaded into this workspace anymore.
+            </p>
+            <p>
+              First-use path:
+            </p>
+            <p>
+              1. Generate, build, and deploy a campaign from <strong>Authoring</strong>.
+              2. After starting or advancing that campaign, use <strong>Export Runtime Snapshot</strong> here in <strong>Campaign Tracking</strong>.
+              3. After each mission, ingest a normalized result JSON to refresh campaign state for the tracker.
+            </p>
+            <p>
+              See <button id="tracking-open-guide" class="inline-link-button" type="button">DESKTOP_APP_GUIDE.md</button> for the full player workflow.
+            </p>
+          </div>
+        </section>
+
         <section class="grid two-up">
           <article class="card">
             <div class="card-head">
@@ -280,45 +318,61 @@
             </div>
           </article>
         </section>
-      </div>
-
-      <div id="tracking-view" class="workspace-view">
-        <section class="hero">
-          <div>
-            <div class="eyebrow">Campaign Tracking</div>
-            <h2>Live Runtime And Result Workflow</h2>
-            <p>
-              Review the active state, inspect generation directives, build normalized results, and ingest mission outcomes
-              without mixing that work into system setup and campaign authoring.
-            </p>
-          </div>
-          <div class="hero-stats" id="hero-stats"></div>
-        </section>
-
-        <section id="tracking-empty-state" class="card">
-          <div class="card-head">
-            <h3>No Runtime Snapshot Loaded Yet</h3>
-            <span class="badge alt">Real Data Only</span>
-          </div>
-          <div class="notes">
-            <p id="tracking-empty-copy">
-              Campaign Tracking now shows exported runtime data only. No sample campaign state is loaded into this workspace anymore.
-            </p>
-            <p>
-              First-use path:
-            </p>
-            <p>
-              1. Generate, build, and deploy a campaign from <strong>Authoring</strong>.
-              2. After starting or advancing that campaign, use <strong>Export Runtime Snapshot</strong>.
-              3. After each mission, ingest a normalized result JSON to refresh campaign state for the tracker.
-            </p>
-            <p>
-              See <button id="tracking-open-guide" class="inline-link-button" type="button">DESKTOP_APP_GUIDE.md</button> for the full player workflow.
-            </p>
-          </div>
-        </section>
 
         <div id="tracking-runtime-content">
+          <section class="card">
+            <div class="card-head">
+              <h3>Continue Campaign</h3>
+              <span class="badge alt">Post-Mission Decision</span>
+            </div>
+            <div class="builder-grid">
+              <div class="builder-form">
+                <div class="field-grid">
+                  <label>
+                    <span>Next Objective</span>
+                    <select id="continuation-objective">
+                      <option value="pursue_contact">Pursue Contact</option>
+                      <option value="shadow_safely">Shadow Safely</option>
+                      <option value="break_contact">Break Contact</option>
+                      <option value="defend_chokepoint">Defend Chokepoint</option>
+                      <option value="intercept_route">Intercept Route</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>Risk Posture</span>
+                    <select id="continuation-risk">
+                      <option value="balanced">Balanced</option>
+                      <option value="cautious">Cautious</option>
+                      <option value="aggressive">Aggressive</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>Operational Tempo</span>
+                    <select id="continuation-tempo">
+                      <option value="deliberate">Deliberate</option>
+                      <option value="immediate">Immediate</option>
+                      <option value="recovery">Recovery</option>
+                    </select>
+                  </label>
+                  <div class="wizard-block">
+                    <strong>What happens</strong>
+                    <div class="wizard-meta">Append one new scenario, rebuild the package, redeploy if paths are configured, and refresh Campaign Tracking.</div>
+                  </div>
+                </div>
+                <div class="builder-actions">
+                  <button id="continuation-generate" type="button">Continue Campaign</button>
+                </div>
+                <p id="continuation-status" class="muted builder-help">
+                  Choose the next operational intent after ingesting a mission result.
+                </p>
+              </div>
+              <div class="builder-preview">
+                <div class="preview-head">Continuation Preview</div>
+                <div id="continuation-preview" class="wizard-summary"></div>
+              </div>
+            </div>
+          </section>
+
           <section class="grid two-up">
             <article class="card">
               <div class="card-head">

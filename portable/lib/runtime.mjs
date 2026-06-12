@@ -86,7 +86,7 @@ function advanceTime(state, hours, modulesConfig) {
   return state;
 }
 
-async function readMissionChain(campaignId, packageDir) {
+export async function readMissionChain(campaignId, packageDir) {
   const questPath = path.join(packageDir, campaignId, "quest.cmp");
   try {
     const raw = await fs.readFile(questPath, "utf8");

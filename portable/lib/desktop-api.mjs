@@ -1,6 +1,7 @@
 import path from "node:path";
 
 import { buildPackage } from "./build-package.mjs";
+import { appendContinuationScenario } from "./continue-campaign.mjs";
 import { defaultGamePaths, ensureDir, readJson, repoRoot, writeJson } from "./fs-helpers.mjs";
 import { deployPackage } from "./deploy-package.mjs";
 import { generateCampaign } from "./generate-campaign.mjs";
@@ -123,4 +124,51 @@ export async function generateCampaignForDesktop({ spec, dryRun = false, setting
     });
   }
   return result;
+}
+
+export async function continueCampaignForDesktop({
+  campaignId,
+  objective,
+  riskPosture,
+  operationalTempo,
+  stateDir,
+  settingsPath,
+  contentRoot,
+  workspaceRoot
+} = {}) {
+  const settings = await readDesktopSettings(settingsPath);
+  const roots = await resolveRoots({ contentRoot, workspaceRoot });
+  const effectiveCampaignId = campaignId || settings.preferredCampaignId || "silent_meridian";
+  const continuation = await appendContinuationScenario({
+    repoRoot: roots.workspaceRoot,
+    campaignId: effectiveCampaignId,
+    objective,
+    riskPosture,
+    operationalTempo,
+    stateDir
+  });
+  const sourceDir = continuation.continuation_source_dir || path.join(roots.workspaceRoot, "src", "packages", effectiveCampaignId);
+  const outputPath = resolveOutputPath(settings) || path.join(roots.workspaceRoot, "dist", `${effectiveCampaignId}.kyt`);
+  const build = await buildPackage({ sourceDir, outputPath });
+  let deploy = null;
+  if (settings.gameCampaignPath || settings.userCampaignPath) {
+    deploy = await deployPackage({
+      packagePath: outputPath,
+      gameCampaignPath: settings.gameCampaignPath,
+      userCampaignPath: settings.userCampaignPath
+    });
+  }
+  const runtime = await exportRuntimeSnapshot({
+    campaignId: effectiveCampaignId,
+    stateDir,
+    settingsPath,
+    contentRoot: roots.contentRoot,
+    workspaceRoot: roots.workspaceRoot
+  });
+  return {
+    continuation,
+    build,
+    deploy,
+    runtime
+  };
 }
