@@ -654,6 +654,7 @@ function renderWizardPreview(blueprint) {
     <div class="wizard-block">
       <strong>Scenario ${index + 1}: ${scenario.name}</strong>
       <div class="wizard-meta">${scenario.missionId}</div>
+      ${scenario.geometry.routeVariantLabel ? `<div class="wizard-meta">Route Variant: ${scenario.geometry.routeVariantLabel}</div>` : ""}
       <div class="muted">${scenario.summary}</div>
       <div class="muted"><code>${scenario.geometry.routeSummary}</code></div>
       <div class="muted">Enemy Transit: ${scenario.geometry.enemyTransitSummary}</div>

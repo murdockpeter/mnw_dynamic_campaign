@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>South China Sea Route Map | MNW Campaign Console</title>
+  <title>South China Sea SLOC Map | MNW Campaign Console</title>
   <style>
     :root {
       --bg: #051019;
@@ -16,10 +16,11 @@
       --enemy: #ff8d72;
       --support: #59e2b5;
       --air: #ffd06e;
-      --grid: rgba(255, 255, 255, 0.08);
+      --land-fill: rgba(95, 165, 92, 0.24);
+      --land-stroke: rgba(136, 214, 122, 0.82);
       --shadow: 0 28px 72px rgba(0, 0, 0, 0.34);
       --radius: 24px;
-      --content-width: 1220px;
+      --content-width: 1320px;
     }
 
     * { box-sizing: border-box; }
@@ -34,9 +35,7 @@
       font: 16px/1.6 "Segoe UI", "Aptos", system-ui, sans-serif;
     }
 
-    code, pre {
-      font-family: "Cascadia Code", Consolas, monospace;
-    }
+    code { font-family: "Cascadia Code", Consolas, monospace; }
 
     .page {
       width: min(calc(100% - 28px), var(--content-width));
@@ -74,9 +73,7 @@
       text-transform: uppercase;
     }
 
-    h1, h2, h3, p {
-      margin: 0;
-    }
+    h1, h2, h3, p { margin: 0; }
 
     h1 {
       margin-top: 10px;
@@ -87,7 +84,7 @@
 
     .hero p {
       margin-top: 14px;
-      max-width: 860px;
+      max-width: 940px;
       color: var(--muted);
     }
 
@@ -129,7 +126,7 @@
     }
 
     .content-grid {
-      grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+      grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
       margin-top: 20px;
       align-items: start;
     }
@@ -141,9 +138,7 @@
         linear-gradient(180deg, rgba(10, 27, 40, 0.96), rgba(7, 20, 31, 0.98));
     }
 
-    .map-shell {
-      padding: 18px;
-    }
+    .map-shell { padding: 18px; }
 
     svg {
       width: 100%;
@@ -151,13 +146,11 @@
       display: block;
       border-radius: 18px;
       background:
-        radial-gradient(circle at 28% 30%, rgba(116, 216, 255, 0.08), transparent 18%),
+        radial-gradient(circle at 48% 40%, rgba(116, 216, 255, 0.08), transparent 22%),
         linear-gradient(180deg, #0b2232 0%, #0a1f2d 100%);
     }
 
-    .legend {
-      margin-top: 16px;
-    }
+    .legend { margin-top: 16px; }
 
     .legend-item {
       padding: 14px 16px;
@@ -174,9 +167,7 @@
       margin-right: 10px;
     }
 
-    .legend-title {
-      font-weight: 700;
-    }
+    .legend-title { font-weight: 700; }
 
     .legend-copy {
       margin-top: 6px;
@@ -197,9 +188,7 @@
       font-size: 1.5rem;
     }
 
-    .panel p + p {
-      margin-top: 10px;
-    }
+    .panel p + p { margin-top: 10px; }
 
     .table-wrap {
       margin-top: 20px;
@@ -225,13 +214,8 @@
       text-transform: uppercase;
     }
 
-    td {
-      color: var(--text);
-    }
-
-    .muted {
-      color: var(--muted);
-    }
+    td { color: var(--text); }
+    .muted { color: var(--muted); }
 
     .swatch {
       display: inline-block;
@@ -265,22 +249,21 @@
   <div class="page">
     <header class="hero">
       <div class="eyebrow">Modern Naval Warfare</div>
-      <h1>South China Sea Route Map</h1>
+      <h1>South China Sea SLOC Map</h1>
       <p>
-        This map visualizes the current South China Sea route corridors defined in
-        <code>shared/campaign-generator.mjs</code>. It is a code-derived operational geometry view, not a real chart
-        or satellite basemap.
+        This page visualizes the current South China Sea route variants from
+        <code>shared/campaign-generator.mjs</code> in a tighter synthetic viewport centered on the main SLOC cluster.
       </p>
       <div class="hero-grid">
         <div class="panel">
           <h2>What You Are Seeing</h2>
-          <h3>Current Route Families In Code</h3>
+          <h3>Twelve Generator SLOC Variants</h3>
           <p>
-            The generator currently defines four South China Sea corridor sets for the <code>south_china_sea</code>
-            theater: player movement, enemy movement, support movement, and air search movement.
+            The South China Sea theater now carries twelve distinct route variants spanning the Reed Bank,
+            west-Palawan, central basin, Spratly, and western Luzon operational lanes.
           </p>
           <p>
-            These corridors drive the sub-hunt campaign geometry used by the generator when it builds scenarios in this theater.
+            This view is intentionally zoomed in so the SLOC patterns are easier to compare without wasting space on empty water.
           </p>
         </div>
         <div class="facts">
@@ -289,16 +272,16 @@
             <div class="fact-value">south_china_sea</div>
           </div>
           <div class="fact">
-            <div class="fact-label">Route Sets</div>
-            <div class="fact-value">4</div>
+            <div class="fact-label">Route Variants</div>
+            <div class="fact-value">12</div>
           </div>
           <div class="fact">
-            <div class="fact-label">Player Side</div>
-            <div class="fact-value">U.S. Submarine</div>
+            <div class="fact-label">Presentation</div>
+            <div class="fact-value">SVG Only</div>
           </div>
           <div class="fact">
-            <div class="fact-label">Opposition</div>
-            <div class="fact-value">Russian Subs</div>
+            <div class="fact-label">Corridor Sets</div>
+            <div class="fact-value">48 Total</div>
           </div>
         </div>
       </div>
@@ -307,7 +290,7 @@
     <div class="content-grid">
       <section class="map-frame">
         <div class="map-shell">
-          <svg id="route-map" viewBox="0 0 980 760" role="img" aria-label="South China Sea route corridor map"></svg>
+          <svg id="route-map" viewBox="0 0 1566 775" role="img" aria-label="South China Sea route corridor overlay"></svg>
           <div class="legend">
             <div class="legend-item">
               <div class="legend-title"><span class="legend-line" style="color: var(--player);"></span>Player Corridor</div>
@@ -319,11 +302,15 @@
             </div>
             <div class="legend-item">
               <div class="legend-title"><span class="legend-line" style="color: var(--support);"></span>Support Corridor</div>
-              <div class="legend-copy">Support group geometry used for surface support and reinforcement movement.</div>
+              <div class="legend-copy">Support group geometry used for support or reinforcement movement.</div>
             </div>
             <div class="legend-item">
               <div class="legend-title"><span class="legend-line" style="color: var(--air);"></span>Air Corridor</div>
               <div class="legend-copy">Air or search route family used to seed P-8 and related search geometry.</div>
+            </div>
+            <div class="legend-item">
+              <div class="legend-title"><span class="legend-line" style="color: var(--land-stroke);"></span>Main Landmasses</div>
+              <div class="legend-copy">Simplified Palawan, Luzon, Mindoro, Visayas edge, Vietnam shelf, and NW Borneo context for orientation only.</div>
             </div>
           </div>
         </div>
@@ -331,16 +318,15 @@
 
       <aside class="panel">
         <h2>Notes</h2>
-        <h3>Operational Interpretation</h3>
+        <h3>Zoomed Window</h3>
         <p>
-          These are not shipping lanes in a legal or hydrographic sense. They are the route corridors the current generator uses as
-          SLOC-like movement scaffolds in the South China Sea theater.
+          The viewport is now focused on the operational cluster itself rather than the full broader South China Sea frame.
         </p>
         <p>
-          If the code changes, this map should be regenerated so it stays aligned with the active corridor definitions.
+          Because twelve variants would become unreadable with point labels, this version keeps the overlay cleaner and pushes exact coordinates into the table below.
         </p>
         <p class="muted">
-          Coordinate bounds shown here are auto-fitted from the current corridor points with padding added for readability.
+          Variant selection in the generator remains deterministic per campaign seed, but the theater now has much more route diversity available.
         </p>
       </aside>
     </div>
@@ -349,6 +335,7 @@
       <table>
         <thead>
           <tr>
+            <th>Variant</th>
             <th>Route Set</th>
             <th>Point</th>
             <th>Latitude</th>
@@ -360,55 +347,191 @@
     </section>
 
     <footer class="footer">
-      Source: current South China Sea route arrays in <code>shared/campaign-generator.mjs</code>.
+      Overlay routes: current South China Sea route variants in <code>shared/campaign-generator.mjs</code>.
     </footer>
   </div>
 
   <script>
-    const routes = [
+    const variants = [
       {
-        key: "player",
-        label: "Player Corridor",
-        color: "#74d8ff",
-        points: [[16.4, 118.78], [16.56, 118.56], [16.68, 118.92], [16.78, 119.12]]
+        id: "reed_bank_gate",
+        label: "Reed Bank Gate",
+        dash: "",
+        routes: [
+          { key: "player", label: "Player Corridor", color: "#74d8ff", points: [[16.4, 118.78], [16.56, 118.56], [16.68, 118.92], [16.78, 119.12]] },
+          { key: "enemy", label: "Enemy Corridor", color: "#ff8d72", points: [[16.84, 119.32], [16.7, 119.16], [16.52, 118.88], [16.28, 118.2]] },
+          { key: "support", label: "Support Corridor", color: "#59e2b5", points: [[17.04, 118.42], [16.84, 118.14], [16.54, 117.96]] },
+          { key: "air", label: "Air Corridor", color: "#ffd06e", points: [[16.9, 118.94], [16.76, 118.72], [16.62, 118.44]] }
+        ]
       },
       {
-        key: "enemy",
-        label: "Enemy Corridor",
-        color: "#ff8d72",
-        points: [[16.84, 119.32], [16.7, 119.16], [16.52, 118.88], [16.28, 118.2]]
+        id: "palawan_seam",
+        label: "Palawan Seam",
+        dash: "18 10",
+        routes: [
+          { key: "player", label: "Player Corridor", color: "#74d8ff", points: [[14.92, 117.94], [15.14, 117.62], [15.36, 117.28], [15.58, 116.98]] },
+          { key: "enemy", label: "Enemy Corridor", color: "#ff8d72", points: [[15.86, 116.74], [15.62, 116.98], [15.34, 117.26], [15.04, 117.58]] },
+          { key: "support", label: "Support Corridor", color: "#59e2b5", points: [[16.18, 117.16], [15.94, 116.86], [15.58, 116.52]] },
+          { key: "air", label: "Air Corridor", color: "#ffd06e", points: [[15.74, 117.46], [15.52, 117.14], [15.3, 116.84]] }
+        ]
       },
       {
-        key: "support",
-        label: "Support Corridor",
-        color: "#59e2b5",
-        points: [[17.04, 118.42], [16.84, 118.14], [16.54, 117.96]]
+        id: "spratly_arc",
+        label: "Spratly Arc",
+        dash: "6 10",
+        routes: [
+          { key: "player", label: "Player Corridor", color: "#74d8ff", points: [[12.72, 114.9], [12.96, 115.26], [13.2, 115.68], [13.44, 116.02]] },
+          { key: "enemy", label: "Enemy Corridor", color: "#ff8d72", points: [[13.86, 116.28], [13.58, 115.98], [13.26, 115.64], [12.94, 115.22]] },
+          { key: "support", label: "Support Corridor", color: "#59e2b5", points: [[14.08, 115.4], [13.82, 115.02], [13.46, 114.72]] },
+          { key: "air", label: "Air Corridor", color: "#ffd06e", points: [[13.76, 116.02], [13.48, 115.66], [13.18, 115.3]] }
+        ]
       },
       {
-        key: "air",
-        label: "Air Corridor",
-        color: "#ffd06e",
-        points: [[16.9, 118.94], [16.76, 118.72], [16.62, 118.44]]
+        id: "luzon_western_approach",
+        label: "Luzon Western Approach",
+        dash: "18 10 5 10",
+        routes: [
+          { key: "player", label: "Player Corridor", color: "#74d8ff", points: [[18.02, 119.22], [17.82, 118.96], [17.58, 118.64], [17.28, 118.34]] },
+          { key: "enemy", label: "Enemy Corridor", color: "#ff8d72", points: [[17.06, 118.18], [17.28, 118.46], [17.54, 118.82], [17.84, 119.08]] },
+          { key: "support", label: "Support Corridor", color: "#59e2b5", points: [[16.72, 117.84], [17.02, 118.08], [17.36, 118.32]] },
+          { key: "air", label: "Air Corridor", color: "#ffd06e", points: [[17.56, 119.04], [17.34, 118.74], [17.1, 118.42]] }
+        ]
+      },
+      {
+        id: "scarborough_sweep",
+        label: "Scarborough Sweep",
+        dash: "30 10",
+        routes: [
+          { key: "player", label: "Player Corridor", color: "#74d8ff", points: [[15.98, 118.86], [16.22, 119.08], [16.48, 119.34], [16.72, 119.58]] },
+          { key: "enemy", label: "Enemy Corridor", color: "#ff8d72", points: [[17.04, 120.08], [16.82, 119.82], [16.56, 119.48], [16.26, 119.16]] },
+          { key: "support", label: "Support Corridor", color: "#59e2b5", points: [[16.94, 119.22], [16.72, 118.96], [16.42, 118.74]] },
+          { key: "air", label: "Air Corridor", color: "#ffd06e", points: [[16.88, 119.72], [16.62, 119.42], [16.36, 119.16]] }
+        ]
+      },
+      {
+        id: "thitu_pivot",
+        label: "Thitu Pivot",
+        dash: "10 10 2 10",
+        routes: [
+          { key: "player", label: "Player Corridor", color: "#74d8ff", points: [[11.64, 114.88], [11.92, 115.14], [12.18, 115.44], [12.42, 115.78]] },
+          { key: "enemy", label: "Enemy Corridor", color: "#ff8d72", points: [[12.88, 116.02], [12.62, 115.72], [12.34, 115.42], [12.04, 115.14]] },
+          { key: "support", label: "Support Corridor", color: "#59e2b5", points: [[13.08, 115.32], [12.82, 115.04], [12.52, 114.78]] },
+          { key: "air", label: "Air Corridor", color: "#ffd06e", points: [[12.76, 115.82], [12.48, 115.52], [12.18, 115.22]] }
+        ]
+      },
+      {
+        id: "namyet_chain",
+        label: "Namyet Chain",
+        dash: "3 9",
+        routes: [
+          { key: "player", label: "Player Corridor", color: "#74d8ff", points: [[10.86, 115.42], [11.12, 115.74], [11.38, 116.06], [11.66, 116.34]] },
+          { key: "enemy", label: "Enemy Corridor", color: "#ff8d72", points: [[12.14, 116.72], [11.88, 116.46], [11.6, 116.16], [11.3, 115.88]] },
+          { key: "support", label: "Support Corridor", color: "#59e2b5", points: [[12.28, 116.1], [12.02, 115.82], [11.72, 115.54]] },
+          { key: "air", label: "Air Corridor", color: "#ffd06e", points: [[11.96, 116.46], [11.68, 116.18], [11.4, 115.9]] }
+        ]
+      },
+      {
+        id: "central_basin_run",
+        label: "Central Basin Run",
+        dash: "24 8 6 8",
+        routes: [
+          { key: "player", label: "Player Corridor", color: "#74d8ff", points: [[13.92, 116.66], [14.18, 116.98], [14.44, 117.28], [14.7, 117.56]] },
+          { key: "enemy", label: "Enemy Corridor", color: "#ff8d72", points: [[15.18, 117.84], [14.92, 117.54], [14.64, 117.24], [14.34, 116.92]] },
+          { key: "support", label: "Support Corridor", color: "#59e2b5", points: [[15.36, 117.2], [15.06, 116.92], [14.78, 116.62]] },
+          { key: "air", label: "Air Corridor", color: "#ffd06e", points: [[15.02, 117.62], [14.74, 117.32], [14.46, 117.02]] }
+        ]
+      },
+      {
+        id: "west_palawan_gate",
+        label: "West Palawan Gate",
+        dash: "14 6",
+        routes: [
+          { key: "player", label: "Player Corridor", color: "#74d8ff", points: [[11.78, 116.62], [12.02, 116.34], [12.28, 116.04], [12.54, 115.74]] },
+          { key: "enemy", label: "Enemy Corridor", color: "#ff8d72", points: [[13.08, 115.52], [12.84, 115.78], [12.56, 116.06], [12.26, 116.34]] },
+          { key: "support", label: "Support Corridor", color: "#59e2b5", points: [[13.28, 116.0], [12.98, 115.72], [12.68, 115.42]] },
+          { key: "air", label: "Air Corridor", color: "#ffd06e", points: [[12.96, 115.54], [12.68, 115.84], [12.38, 116.12]] }
+        ]
+      },
+      {
+        id: "balabac_extension",
+        label: "Balabac Extension",
+        dash: "20 8 2 8 2 8",
+        routes: [
+          { key: "player", label: "Player Corridor", color: "#74d8ff", points: [[9.84, 116.82], [10.12, 116.54], [10.38, 116.26], [10.66, 115.98]] },
+          { key: "enemy", label: "Enemy Corridor", color: "#ff8d72", points: [[11.08, 115.76], [10.84, 116.02], [10.58, 116.28], [10.3, 116.56]] },
+          { key: "support", label: "Support Corridor", color: "#59e2b5", points: [[11.32, 116.24], [11.04, 115.96], [10.76, 115.68]] },
+          { key: "air", label: "Air Corridor", color: "#ffd06e", points: [[11.02, 115.82], [10.74, 116.12], [10.46, 116.38]] }
+        ]
+      },
+      {
+        id: "calamian_ladder",
+        label: "Calamian Ladder",
+        dash: "8 6 8 14",
+        routes: [
+          { key: "player", label: "Player Corridor", color: "#74d8ff", points: [[11.86, 118.22], [12.12, 117.94], [12.4, 117.64], [12.68, 117.36]] },
+          { key: "enemy", label: "Enemy Corridor", color: "#ff8d72", points: [[13.18, 117.12], [12.92, 117.4], [12.64, 117.7], [12.34, 117.98]] },
+          { key: "support", label: "Support Corridor", color: "#59e2b5", points: [[13.4, 117.56], [13.08, 117.28], [12.8, 117.02]] },
+          { key: "air", label: "Air Corridor", color: "#ffd06e", points: [[13.02, 117.16], [12.76, 117.46], [12.48, 117.74]] }
+        ]
+      },
+      {
+        id: "commodore_trough",
+        label: "Commodore Trough",
+        dash: "26 6",
+        routes: [
+          { key: "player", label: "Player Corridor", color: "#74d8ff", points: [[14.84, 118.92], [15.1, 118.6], [15.34, 118.28], [15.58, 117.98]] },
+          { key: "enemy", label: "Enemy Corridor", color: "#ff8d72", points: [[16.02, 117.76], [15.8, 118.04], [15.56, 118.34], [15.3, 118.66]] },
+          { key: "support", label: "Support Corridor", color: "#59e2b5", points: [[16.22, 118.18], [15.94, 117.9], [15.66, 117.62]] },
+          { key: "air", label: "Air Corridor", color: "#ffd06e", points: [[15.86, 117.84], [15.6, 118.14], [15.34, 118.44]] }
+        ]
+      }
+    ];
+
+    const landmasses = [
+      {
+        label: "Vietnam",
+        points: [[11.2, 113.6], [11.8, 113.9], [12.4, 114.3], [13.2, 114.8], [14.0, 115.2], [14.9, 115.6], [15.8, 115.9], [16.6, 116.1], [17.2, 116.1], [16.6, 115.7], [15.6, 115.2], [14.6, 114.6], [13.6, 114.1], [12.6, 113.7], [11.8, 113.5]]
+      },
+      {
+        label: "Palawan",
+        points: [[9.6, 117.6], [10.0, 117.8], [10.5, 117.95], [11.0, 117.95], [11.5, 117.82], [12.0, 117.62], [12.4, 117.42], [12.75, 117.18], [12.95, 116.96], [12.68, 117.04], [12.2, 117.26], [11.7, 117.48], [11.15, 117.66], [10.6, 117.72], [10.05, 117.64], [9.72, 117.52]]
+      },
+      {
+        label: "Luzon",
+        points: [[17.25, 119.98], [17.0, 119.78], [16.72, 119.56], [16.48, 119.36], [16.36, 119.28], [16.44, 119.44], [16.72, 119.7], [17.08, 119.94], [17.34, 120.02]]
+      },
+      {
+        label: "Mindoro",
+        points: [[13.66, 120.0], [13.48, 120.08], [13.32, 120.2], [13.26, 120.36], [13.4, 120.38], [13.56, 120.28], [13.7, 120.12]]
+      },
+      {
+        label: "Panay-Negros",
+        points: [[10.36, 119.98], [10.66, 120.14], [10.94, 120.3], [11.18, 120.48], [11.06, 120.68], [10.78, 120.66], [10.5, 120.5], [10.32, 120.22]]
+      },
+      {
+        label: "Cebu-Leyte",
+        points: [[10.0, 120.86], [10.24, 121.02], [10.52, 121.18], [10.78, 121.34], [10.96, 121.46], [10.74, 121.48], [10.44, 121.34], [10.16, 121.14]]
+      },
+      {
+        label: "NW Borneo",
+        points: [[9.5, 114.1], [9.9, 114.42], [10.36, 114.78], [10.78, 115.1], [11.1, 115.34], [10.84, 115.14], [10.42, 114.8], [9.98, 114.46], [9.62, 114.18]]
       }
     ];
 
     const svg = document.getElementById("route-map");
     const table = document.getElementById("route-table");
-    const width = 980;
-    const height = 760;
-    const margin = { top: 60, right: 90, bottom: 70, left: 90 };
-
-    const allPoints = routes.flatMap((route) => route.points);
-    const lats = allPoints.map((point) => point[0]);
-    const lons = allPoints.map((point) => point[1]);
-    const minLat = Math.min(...lats) - 0.12;
-    const maxLat = Math.max(...lats) + 0.12;
-    const minLon = Math.min(...lons) - 0.14;
-    const maxLon = Math.max(...lons) + 0.14;
+    const width = 1566;
+    const height = 775;
+    const geoBounds = {
+      minLat: 9.35,
+      maxLat: 17.55,
+      minLon: 113.55,
+      maxLon: 120.45
+    };
 
     function project([lat, lon]) {
-      const x = margin.left + ((lon - minLon) / (maxLon - minLon)) * (width - margin.left - margin.right);
-      const y = height - margin.bottom - ((lat - minLat) / (maxLat - minLat)) * (height - margin.top - margin.bottom);
+      const x = ((lon - geoBounds.minLon) / (geoBounds.maxLon - geoBounds.minLon)) * width;
+      const y = height - ((lat - geoBounds.minLat) / (geoBounds.maxLat - geoBounds.minLat)) * height;
       return [x, y];
     }
 
@@ -421,118 +544,114 @@
       return node;
     }
 
-    function drawGrid() {
-      const latStart = Math.floor(minLat * 10) / 10;
-      const latEnd = Math.ceil(maxLat * 10) / 10;
-      const lonStart = Math.floor(minLon * 10) / 10;
-      const lonEnd = Math.ceil(maxLon * 10) / 10;
+    function polygonCentroid(points) {
+      const totals = points.reduce((acc, [lat, lon]) => [acc[0] + lat, acc[1] + lon], [0, 0]);
+      return [totals[0] / points.length, totals[1] / points.length];
+    }
 
-      for (let lat = latStart; lat <= latEnd + 0.0001; lat += 0.2) {
-        const [, y] = project([lat, minLon]);
+    function drawGrid() {
+      for (let lat = 10; lat <= 17; lat += 0.5) {
+        const [, y] = project([lat, geoBounds.minLon]);
         svg.appendChild(el("line", {
-          x1: margin.left,
+          x1: 0,
           y1: y,
-          x2: width - margin.right,
+          x2: width,
           y2: y,
-          stroke: "rgba(255,255,255,0.08)",
+          stroke: "rgba(255,255,255,0.06)",
           "stroke-width": 1
         }));
-        svg.appendChild(el("text", {
-          x: 18,
-          y: y + 5,
-          fill: "#9db9c9",
-          "font-size": 12
-        }, lat.toFixed(1) + "N"));
       }
 
-      for (let lon = lonStart; lon <= lonEnd + 0.0001; lon += 0.2) {
-        const [x] = project([minLat, lon]);
+      for (let lon = 114; lon <= 120; lon += 0.5) {
+        const [x] = project([geoBounds.minLat, lon]);
         svg.appendChild(el("line", {
           x1: x,
-          y1: margin.top,
+          y1: 0,
           x2: x,
-          y2: height - margin.bottom,
-          stroke: "rgba(255,255,255,0.08)",
+          y2: height,
+          stroke: "rgba(255,255,255,0.06)",
           "stroke-width": 1
         }));
-        svg.appendChild(el("text", {
-          x: x - 18,
-          y: height - 24,
-          fill: "#9db9c9",
-          "font-size": 12
-        }, lon.toFixed(1) + "E"));
       }
     }
 
-    function drawFrame() {
-      svg.appendChild(el("rect", {
-        x: margin.left,
-        y: margin.top,
-        width: width - margin.left - margin.right,
-        height: height - margin.top - margin.bottom,
-        rx: 18,
-        fill: "rgba(255,255,255,0.02)",
-        stroke: "rgba(118, 202, 237, 0.18)",
-        "stroke-width": 1.5
-      }));
+    function drawLandmasses() {
+      landmasses.forEach((landmass) => {
+        const coords = landmass.points.map(project);
+        const pointsAttr = coords.map(([x, y]) => `${x},${y}`).join(" ");
+        svg.appendChild(el("polygon", {
+          points: pointsAttr,
+          fill: "rgba(95, 165, 92, 0.24)",
+          stroke: "rgba(136, 214, 122, 0.82)",
+          "stroke-width": 2.2,
+          "stroke-linejoin": "round"
+        }));
+
+        const [labelLat, labelLon] = polygonCentroid(landmass.points);
+        const [labelX, labelY] = project([labelLat, labelLon]);
+        svg.appendChild(el("text", {
+          x: labelX,
+          y: labelY,
+          fill: "#d9f0d2",
+          "font-size": 14,
+          "font-weight": 700,
+          "text-anchor": "middle"
+        }, landmass.label));
+      });
     }
 
     function drawRoutes() {
-      routes.forEach((route) => {
+      variants.forEach((variant) => variant.routes.forEach((route) => {
         const coords = route.points.map(project);
         const pointsAttr = coords.map(([x, y]) => `${x},${y}`).join(" ");
+
+        svg.appendChild(el("polyline", {
+          points: pointsAttr,
+          fill: "none",
+          stroke: "rgba(5, 16, 25, 0.48)",
+          "stroke-width": 8,
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+          "stroke-dasharray": variant.dash
+        }));
+
         svg.appendChild(el("polyline", {
           points: pointsAttr,
           fill: "none",
           stroke: route.color,
-          "stroke-width": 5,
+          "stroke-width": 4,
           "stroke-linecap": "round",
-          "stroke-linejoin": "round"
+          "stroke-linejoin": "round",
+          "stroke-dasharray": variant.dash
         }));
 
-        coords.forEach(([x, y], index) => {
+        coords.forEach(([x, y]) => {
           svg.appendChild(el("circle", {
             cx: x,
             cy: y,
-            r: 6.5,
-            fill: route.color,
-            stroke: "#0a1f2d",
-            "stroke-width": 2
+            r: 5.6,
+            fill: "rgba(5, 16, 25, 0.58)"
           }));
 
-          svg.appendChild(el("text", {
-            x: x + 10,
-            y: y - 10,
+          svg.appendChild(el("circle", {
+            cx: x,
+            cy: y,
+            r: 3.9,
             fill: route.color,
-            "font-size": 12,
-            "font-weight": 700
-          }, `${route.key.toUpperCase()}-${index + 1}`));
+            stroke: "#ffffff",
+            "stroke-width": 1.2
+          }));
         });
-      });
-    }
-
-    function drawTitle() {
-      svg.appendChild(el("text", {
-        x: margin.left,
-        y: 30,
-        fill: "#eaf7fb",
-        "font-size": 22,
-        "font-weight": 700
-      }, "South China Sea Corridor Geometry"));
-      svg.appendChild(el("text", {
-        x: margin.left,
-        y: 50,
-        fill: "#9db9c9",
-        "font-size": 12
-      }, "Derived directly from the current south_china_sea route arrays in the generator."));
+      }));
     }
 
     function buildTable() {
       const rows = [];
-      routes.forEach((route) => {
+      variants.forEach((variant) => variant.routes.forEach((route) => {
         route.points.forEach(([lat, lon], index) => {
           rows.push(`
             <tr>
+              <td>${variant.label}</td>
               <td><span class="swatch" style="background:${route.color};"></span>${route.label}</td>
               <td>${route.key.toUpperCase()}-${index + 1}</td>
               <td>${lat.toFixed(2)}</td>
@@ -540,14 +659,13 @@
             </tr>
           `);
         });
-      });
+      }));
       table.innerHTML = rows.join("");
     }
 
-    drawFrame();
     drawGrid();
+    drawLandmasses();
     drawRoutes();
-    drawTitle();
     buildTable();
   </script>
 </body>

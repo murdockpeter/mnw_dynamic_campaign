@@ -211,10 +211,104 @@ const THEATER_TEMPLATES = {
       { unitId: "akula_screen", name: "Akula Screen", faction: "RU", platformType: "submarine", dbid: 34 }
     ],
     route: {
-      playerCorridor: [[16.4, 118.78], [16.56, 118.56], [16.68, 118.92], [16.78, 119.12]],
-      enemyCorridor: [[16.84, 119.32], [16.7, 119.16], [16.52, 118.88], [16.28, 118.2]],
-      supportCorridor: [[17.04, 118.42], [16.84, 118.14], [16.54, 117.96]],
-      airCorridor: [[16.9, 118.94], [16.76, 118.72], [16.62, 118.44]]
+      variants: [
+        {
+          id: "reed_bank_gate",
+          label: "Reed Bank Gate",
+          playerCorridor: [[16.4, 118.78], [16.56, 118.56], [16.68, 118.92], [16.78, 119.12]],
+          enemyCorridor: [[16.84, 119.32], [16.7, 119.16], [16.52, 118.88], [16.28, 118.2]],
+          supportCorridor: [[17.04, 118.42], [16.84, 118.14], [16.54, 117.96]],
+          airCorridor: [[16.9, 118.94], [16.76, 118.72], [16.62, 118.44]]
+        },
+        {
+          id: "palawan_seam",
+          label: "Palawan Seam",
+          playerCorridor: [[14.92, 117.94], [15.14, 117.62], [15.36, 117.28], [15.58, 116.98]],
+          enemyCorridor: [[15.86, 116.74], [15.62, 116.98], [15.34, 117.26], [15.04, 117.58]],
+          supportCorridor: [[16.18, 117.16], [15.94, 116.86], [15.58, 116.52]],
+          airCorridor: [[15.74, 117.46], [15.52, 117.14], [15.3, 116.84]]
+        },
+        {
+          id: "spratly_arc",
+          label: "Spratly Arc",
+          playerCorridor: [[12.72, 114.9], [12.96, 115.26], [13.2, 115.68], [13.44, 116.02]],
+          enemyCorridor: [[13.86, 116.28], [13.58, 115.98], [13.26, 115.64], [12.94, 115.22]],
+          supportCorridor: [[14.08, 115.4], [13.82, 115.02], [13.46, 114.72]],
+          airCorridor: [[13.76, 116.02], [13.48, 115.66], [13.18, 115.3]]
+        },
+        {
+          id: "luzon_western_approach",
+          label: "Luzon Western Approach",
+          playerCorridor: [[18.02, 119.22], [17.82, 118.96], [17.58, 118.64], [17.28, 118.34]],
+          enemyCorridor: [[17.06, 118.18], [17.28, 118.46], [17.54, 118.82], [17.84, 119.08]],
+          supportCorridor: [[16.72, 117.84], [17.02, 118.08], [17.36, 118.32]],
+          airCorridor: [[17.56, 119.04], [17.34, 118.74], [17.1, 118.42]]
+        },
+        {
+          id: "scarborough_sweep",
+          label: "Scarborough Sweep",
+          playerCorridor: [[15.98, 118.86], [16.22, 119.08], [16.48, 119.34], [16.72, 119.58]],
+          enemyCorridor: [[17.04, 120.08], [16.82, 119.82], [16.56, 119.48], [16.26, 119.16]],
+          supportCorridor: [[16.94, 119.22], [16.72, 118.96], [16.42, 118.74]],
+          airCorridor: [[16.88, 119.72], [16.62, 119.42], [16.36, 119.16]]
+        },
+        {
+          id: "thitu_pivot",
+          label: "Thitu Pivot",
+          playerCorridor: [[11.64, 114.88], [11.92, 115.14], [12.18, 115.44], [12.42, 115.78]],
+          enemyCorridor: [[12.88, 116.02], [12.62, 115.72], [12.34, 115.42], [12.04, 115.14]],
+          supportCorridor: [[13.08, 115.32], [12.82, 115.04], [12.52, 114.78]],
+          airCorridor: [[12.76, 115.82], [12.48, 115.52], [12.18, 115.22]]
+        },
+        {
+          id: "namyet_chain",
+          label: "Namyet Chain",
+          playerCorridor: [[10.86, 115.42], [11.12, 115.74], [11.38, 116.06], [11.66, 116.34]],
+          enemyCorridor: [[12.14, 116.72], [11.88, 116.46], [11.6, 116.16], [11.3, 115.88]],
+          supportCorridor: [[12.28, 116.1], [12.02, 115.82], [11.72, 115.54]],
+          airCorridor: [[11.96, 116.46], [11.68, 116.18], [11.4, 115.9]]
+        },
+        {
+          id: "central_basin_run",
+          label: "Central Basin Run",
+          playerCorridor: [[13.92, 116.66], [14.18, 116.98], [14.44, 117.28], [14.7, 117.56]],
+          enemyCorridor: [[15.18, 117.84], [14.92, 117.54], [14.64, 117.24], [14.34, 116.92]],
+          supportCorridor: [[15.36, 117.2], [15.06, 116.92], [14.78, 116.62]],
+          airCorridor: [[15.02, 117.62], [14.74, 117.32], [14.46, 117.02]]
+        },
+        {
+          id: "west_palawan_gate",
+          label: "West Palawan Gate",
+          playerCorridor: [[11.78, 116.62], [12.02, 116.34], [12.28, 116.04], [12.54, 115.74]],
+          enemyCorridor: [[13.08, 115.52], [12.84, 115.78], [12.56, 116.06], [12.26, 116.34]],
+          supportCorridor: [[13.28, 116.0], [12.98, 115.72], [12.68, 115.42]],
+          airCorridor: [[12.96, 115.54], [12.68, 115.84], [12.38, 116.12]]
+        },
+        {
+          id: "balabac_extension",
+          label: "Balabac Extension",
+          playerCorridor: [[9.84, 116.82], [10.12, 116.54], [10.38, 116.26], [10.66, 115.98]],
+          enemyCorridor: [[11.08, 115.76], [10.84, 116.02], [10.58, 116.28], [10.3, 116.56]],
+          supportCorridor: [[11.32, 116.24], [11.04, 115.96], [10.76, 115.68]],
+          airCorridor: [[11.02, 115.82], [10.74, 116.12], [10.46, 116.38]]
+        },
+        {
+          id: "calamian_ladder",
+          label: "Calamian Ladder",
+          playerCorridor: [[11.86, 118.22], [12.12, 117.94], [12.4, 117.64], [12.68, 117.36]],
+          enemyCorridor: [[13.18, 117.12], [12.92, 117.4], [12.64, 117.7], [12.34, 117.98]],
+          supportCorridor: [[13.4, 117.56], [13.08, 117.28], [12.8, 117.02]],
+          airCorridor: [[13.02, 117.16], [12.76, 117.46], [12.48, 117.74]]
+        },
+        {
+          id: "commodore_trough",
+          label: "Commodore Trough",
+          playerCorridor: [[14.84, 118.92], [15.1, 118.6], [15.34, 118.28], [15.58, 117.98]],
+          enemyCorridor: [[16.02, 117.76], [15.8, 118.04], [15.56, 118.34], [15.3, 118.66]],
+          supportCorridor: [[16.22, 118.18], [15.94, 117.9], [15.66, 117.62]],
+          airCorridor: [[15.86, 117.84], [15.6, 118.14], [15.34, 118.44]]
+        }
+      ]
     }
   }
 };
@@ -301,6 +395,26 @@ function summarizePath(points) {
     .join(" -> ");
 }
 
+function getRouteVariantSet(template, index, rng) {
+  const variants = template.route?.variants;
+  if (Array.isArray(variants) && variants.length) {
+    const baseVariantIndex = Math.floor(rng() * variants.length);
+    const variantIndex = (baseVariantIndex + Math.max(0, index)) % variants.length;
+    return {
+      ...variants[variantIndex],
+      variantIndex,
+      variantCount: variants.length
+    };
+  }
+  return {
+    ...template.route,
+    id: template.route?.id || "default_route",
+    label: template.route?.label || `${template.label} Default Route`,
+    variantIndex: 0,
+    variantCount: 1
+  };
+}
+
 function buildSurfaceShadowGeometry(template, index, count, rng) {
   const enemyBase = template.route.enemyCorridor;
   const playerBase = template.route.playerCorridor;
@@ -341,10 +455,11 @@ function buildSurfaceShadowGeometry(template, index, count, rng) {
 }
 
 function buildSubHuntGeometry(template, index, count, rng) {
-  const playerBase = template.route.playerCorridor;
-  const enemyBase = template.route.enemyCorridor;
-  const supportBase = template.route.supportCorridor;
-  const airBase = template.route.airCorridor;
+  const routeSet = getRouteVariantSet(template, index, rng);
+  const playerBase = routeSet.playerCorridor;
+  const enemyBase = routeSet.enemyCorridor;
+  const supportBase = routeSet.supportCorridor;
+  const airBase = routeSet.airCorridor;
   const scale = 0.05 + (index * 0.02);
   const playerSpawn = jitterPoint(playerBase[Math.min(index, playerBase.length - 1)], rng, scale, scale);
   const datum = jitterPoint(enemyBase[1], rng, scale, scale);
@@ -360,6 +475,8 @@ function buildSubHuntGeometry(template, index, count, rng) {
   const withdrawal = jitterPoint([playerSpawn[0], playerSpawn[1] - 1.35], rng, scale, scale);
 
   return {
+    routeVariantId: routeSet.id,
+    routeVariantLabel: routeSet.label,
     playerSpawn,
     datum,
     yasen,
