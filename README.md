@@ -11,9 +11,6 @@ It contains:
 - a deterministic campaign generator that does not require external AI
 - developer and player workflows side by side
 
-Latest General How-To Is Located Here: https://murdockpeter.github.io/mnw_dynamic_campaign/local-ai-campaign-workflow.html
-Latest Tool Reference Is Located Here: https://murdockpeter.github.io/mnw_dynamic_campaign/tool-reference.html
-
 ## Start Here
 
 Choose the guide that matches what you are trying to do.
