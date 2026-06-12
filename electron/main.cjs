@@ -1,6 +1,6 @@
 const path = require("path");
 const { pathToFileURL } = require("url");
-const { app, BrowserWindow, ipcMain } = require("electron");
+const { app, BrowserWindow, ipcMain, shell } = require("electron");
 
 function getSettingsPath() {
   return path.join(app.getPath("userData"), "settings.json");
@@ -16,6 +16,12 @@ function getWorkspaceRoot() {
   return app.isPackaged
     ? path.join(app.getPath("userData"), "workspace")
     : getContentRoot();
+}
+
+function getDesktopGuidePath() {
+  return app.isPackaged
+    ? path.join(process.resourcesPath, "docs", "DESKTOP_APP_GUIDE.md")
+    : path.join(__dirname, "..", "DESKTOP_APP_GUIDE.md");
 }
 
 async function loadPortableModule(modulePath) {
@@ -56,6 +62,20 @@ ipcMain.handle("mnw:loadSettings", async () => {
 ipcMain.handle("mnw:saveSettings", async (_event, payload) => {
   const { saveSettingsForDesktop } = await loadPortableModule("portable/lib/desktop-api.mjs");
   return saveSettingsForDesktop({ settingsPath: getSettingsPath(), settings: payload || {} });
+});
+
+ipcMain.handle("mnw:loadRuntimeSnapshot", async (_event, payload) => {
+  const { loadRuntimeSnapshotForDesktop } = await loadPortableModule("portable/lib/desktop-api.mjs");
+  return loadRuntimeSnapshotForDesktop({
+    ...(payload || {}),
+    contentRoot: getContentRoot(),
+    workspaceRoot: getWorkspaceRoot()
+  });
+});
+
+ipcMain.handle("mnw:openDesktopGuide", async () => {
+  const guidePath = getDesktopGuidePath();
+  return shell.openPath(guidePath);
 });
 
 ipcMain.handle("mnw:exportRuntime", async (_event, payload) => {

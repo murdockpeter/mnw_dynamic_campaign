@@ -701,6 +701,20 @@ function toggleDesktopOnlyButtons(enabled) {
   });
 }
 
+function initializeGuideLink() {
+  const button = document.getElementById("tracking-open-guide");
+  if (!button) {
+    return;
+  }
+  button.onclick = async () => {
+    if (desktopApi?.openDesktopGuide) {
+      await desktopApi.openDesktopGuide();
+      return;
+    }
+    window.open("../DESKTOP_APP_GUIDE.md", "_blank", "noopener,noreferrer");
+  };
+}
+
 async function initializeWizard() {
   if (!document.getElementById("wizard-theater")) {
     return;
@@ -886,12 +900,8 @@ async function loadInitialRuntime() {
     desktopInfo = await desktopApi.getDesktopInfo();
     renderDesktopStatus(desktopInfo);
     toggleDesktopOnlyButtons(true);
-    try {
-      const result = await desktopApi.exportRuntime({ campaignId: desktopInfo.settings?.preferredCampaignId || "silent_meridian" });
-      return result.payload || null;
-    } catch {
-      return null;
-    }
+    const result = await desktopApi.loadRuntimeSnapshot();
+    return result?.payload || null;
   }
   renderDesktopStatus(null);
   toggleDesktopOnlyButtons(false);
@@ -909,6 +919,7 @@ async function main() {
   } else {
     renderRuntimeUnavailable("No exported runtime snapshot exists yet. Generate and deploy a campaign first, then export runtime data from Authoring or ingest a post-mission result.");
   }
+  initializeGuideLink();
   await initializeDesktopSettings();
   await initializeWizard();
   await initializeDesktopOps();

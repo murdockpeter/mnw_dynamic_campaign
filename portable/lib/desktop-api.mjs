@@ -1,7 +1,7 @@
 import path from "node:path";
 
 import { buildPackage } from "./build-package.mjs";
-import { defaultGamePaths, ensureDir, repoRoot, writeJson } from "./fs-helpers.mjs";
+import { defaultGamePaths, ensureDir, readJson, repoRoot, writeJson } from "./fs-helpers.mjs";
 import { deployPackage } from "./deploy-package.mjs";
 import { generateCampaign } from "./generate-campaign.mjs";
 import { exportRuntimePayload, ingestMissionResult } from "./runtime.mjs";
@@ -62,6 +62,17 @@ export async function exportRuntimeSnapshot({ campaignId, outputPath, stateDir, 
   await ensureDir(path.dirname(resolvedOutput));
   await writeJson(resolvedOutput, payload);
   return { outputPath: resolvedOutput, payload };
+}
+
+export async function loadRuntimeSnapshotForDesktop({ outputPath, contentRoot, workspaceRoot } = {}) {
+  const roots = await resolveRoots({ contentRoot, workspaceRoot });
+  const resolvedOutput = path.resolve(outputPath || path.join(roots.workspaceRoot, "generated", "ui", "runtime.json"));
+  try {
+    const payload = await readJson(resolvedOutput);
+    return { outputPath: resolvedOutput, payload };
+  } catch {
+    return null;
+  }
 }
 
 export async function buildPackageForDesktop({ sourceDir, outputPath, settingsPath, contentRoot, workspaceRoot } = {}) {

@@ -32,9 +32,15 @@
       "src/**/*",
       "generated/**/*",
       "state/**/*",
-      "README.md"
+      "README.md",
+      "DEVELOPER_GUIDE.md",
+      "DESKTOP_APP_GUIDE.md"
     ],
     "extraResources": [
+      {
+        "from": "DESKTOP_APP_GUIDE.md",
+        "to": "docs/DESKTOP_APP_GUIDE.md"
+      },
       {
         "from": "campaigns",
         "to": "seed/campaigns"
