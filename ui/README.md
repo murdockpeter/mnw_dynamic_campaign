@@ -17,6 +17,7 @@ Current purpose:
 - inspect next-mission generation directives
 - build a normalized manual mission-result JSON from the browser
 - parse pasted MNW debrief text into a draft result before manual review
+- choose continuation intent and append one more scenario in the desktop app workflow
 
 The current UI reads static sample data from `ui/data/sample-runtime.json`.
 
@@ -28,7 +29,8 @@ If `generated/ui/runtime.json` exists, the UI prefers that live exported snapsho
 2. Run the UI.
 3. Ingest a normalized mission result JSON.
 4. Refresh the exported UI snapshot.
-5. Reload the page and inspect the updated state.
+5. If desired, append one more scenario from `Campaign Tracking`.
+6. Reload the page and inspect the updated state.
 
 ## Manual Result Builder
 
@@ -78,3 +80,20 @@ Helper scripts:
 - `tools/ingest-result.py`
 - `tools/ingest-and-refresh.ps1`
 - `tools/refresh-ui-state.ps1`
+
+## Continuation Flow
+
+The desktop app now treats `Campaign Tracking` as the post-mission decision loop.
+
+After ingesting a result, the operator can choose:
+
+- next objective
+- risk posture
+- operational tempo
+
+Then `Continue Campaign` will:
+
+1. append one new scenario to the campaign mission chain
+2. rebuild the package
+3. redeploy it when configured paths are available
+4. refresh the exported runtime snapshot used by the tracker

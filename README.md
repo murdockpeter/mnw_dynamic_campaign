@@ -9,6 +9,7 @@ It contains:
 - a modular persistence scaffold
 - a browser and Electron frontend
 - a deterministic campaign generator that does not require external AI
+- a continuation workflow that can append one more scenario after mission results are reviewed
 - developer and player workflows side by side
 
 ## Start Here
@@ -66,9 +67,9 @@ The packaged app does not replace the original repo-native workflow. It sits alo
 - `electron/`
   desktop wrapper
 - `portable/`
-  Node-based portable build, deploy, export, ingest, and generation actions
+  Node-based portable build, deploy, export, ingest, generation, and continuation actions
 - `shared/campaign-generator.mjs`
-  deterministic campaign blueprint generator
+  deterministic campaign blueprint and continuation generator
 
 ## Release Recommendation
 

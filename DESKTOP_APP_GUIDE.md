@@ -13,6 +13,7 @@ It lets you:
 - build and deploy the generated campaign package
 - inspect campaign runtime state
 - ingest mission-result JSON after missions
+- continue the campaign by appending one more scenario after results are reviewed
 
 You do not need:
 
@@ -95,6 +96,8 @@ This workspace lets you:
 
 It also shows the pathing model and platform selection model used by the generator.
 
+For an MVP-style dynamic workflow, you can also start with a single scenario here and then extend the campaign later from `Campaign Tracking`.
+
 ### Campaign Tracking
 
 Use this after missions.
@@ -107,6 +110,8 @@ This workspace lets you:
 - review next-mission generation directives
 - build a manual result JSON
 - paste and parse debrief text into a draft result
+- choose a next objective, risk posture, and operational tempo
+- append one new scenario onto the current campaign, rebuild, and redeploy it
 
 Important:
 
@@ -145,7 +150,7 @@ It does not call an AI model. Instead, it uses:
 - mission archetype sequences
 - seeded variation
 
-That means the same inputs will always produce the same campaign.
+That means the same inputs will always produce the same campaign or continuation scenario.
 
 ### Pathing
 
@@ -195,10 +200,27 @@ For a first-time player or operator:
 8. build the package
 9. deploy the package
 10. launch MNW and play
-11. return to `Authoring` and use `Export Runtime Snapshot` once the campaign exists in MNW
+11. return to `Campaign Tracking` and use `Export Runtime Snapshot` once the campaign exists in MNW
 12. open `Campaign Tracking` to inspect the exported real state
 13. after each mission, ingest a result JSON or use the result-builder workflow
-14. export or refresh runtime again as needed
+14. if you want to keep going, use `Continue Campaign` to choose the next objective and append one new scenario
+15. export or refresh runtime again as needed
+
+### Recommended Dynamic Use
+
+If you want the campaign to grow based on mission results and your choices, the cleanest current flow is:
+
+1. start with `Scenario Count` set to `1`
+2. play that scenario
+3. ingest the mission result
+4. open `Campaign Tracking`
+5. choose:
+   - next objective
+   - risk posture
+   - operational tempo
+6. click `Continue Campaign`
+7. let the app append, rebuild, redeploy, and refresh tracking state
+8. repeat after the next mission if you want to keep extending the campaign
 
 ## If Something Looks Wrong
 
@@ -211,6 +233,12 @@ Check these first:
 - the package was deployed after the latest build
 
 If the app launches but cannot find campaign files, the most common cause is a path or ID mismatch.
+
+If `Continue Campaign` does not produce the next mission you expect, check that:
+
+- the runtime campaign ID points at the campaign you actually played
+- the latest result JSON was ingested before extending
+- the package deploy paths still point at the correct MNW install and user campaign folders
 
 ## Advanced Users
 
