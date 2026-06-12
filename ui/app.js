@@ -103,6 +103,61 @@ function renderDesktopStatus(info) {
   `;
 }
 
+function setTrackingRuntimeAvailability(hasRuntime, message = "") {
+  const emptyState = document.getElementById("tracking-empty-state");
+  const runtimeContent = document.getElementById("tracking-runtime-content");
+  const emptyCopy = document.getElementById("tracking-empty-copy");
+  if (emptyState) {
+    emptyState.style.display = hasRuntime ? "none" : "block";
+  }
+  if (runtimeContent) {
+    runtimeContent.style.display = hasRuntime ? "block" : "none";
+  }
+  if (emptyCopy && message) {
+    emptyCopy.textContent = message;
+  }
+}
+
+function renderRuntimeUnavailable(reason) {
+  const campaignSummary = document.getElementById("campaign-summary");
+  const moduleSummary = document.getElementById("module-summary");
+  const heroStats = document.getElementById("hero-stats");
+  const message = reason || "Campaign Tracking now shows exported runtime data only. No runtime snapshot has been loaded yet.";
+
+  if (campaignSummary) {
+    campaignSummary.innerHTML = `
+      <div class="stack-item">
+        <div class="title">No Runtime Loaded</div>
+        <div class="meta">Export a runtime snapshot from Authoring after the campaign exists in MNW.</div>
+      </div>
+    `;
+  }
+
+  if (moduleSummary) {
+    moduleSummary.innerHTML = `
+      <div class="stack-item">
+        <div class="title">No Module State Loaded</div>
+        <div class="meta">Module summaries appear here after a real runtime snapshot is exported.</div>
+      </div>
+    `;
+  }
+
+  if (heroStats) {
+    heroStats.innerHTML = `
+      <div class="stat">
+        <div class="label">Runtime Status</div>
+        <div class="value">Waiting</div>
+      </div>
+      <div class="stat">
+        <div class="label">Source</div>
+        <div class="value">Real Only</div>
+      </div>
+    `;
+  }
+
+  setTrackingRuntimeAvailability(false, message);
+}
+
 function renderHeroStats(data) {
   const root = document.getElementById("hero-stats");
   const stats = [
@@ -814,6 +869,7 @@ async function initializeDesktopSettings() {
 }
 
 function hydrateRuntime(data) {
+  setTrackingRuntimeAvailability(true);
   renderCampaignSummary(data);
   renderModuleSummary(data);
   renderHeroStats(data);
@@ -830,21 +886,29 @@ async function loadInitialRuntime() {
     desktopInfo = await desktopApi.getDesktopInfo();
     renderDesktopStatus(desktopInfo);
     toggleDesktopOnlyButtons(true);
-    const result = await desktopApi.exportRuntime({ campaignId: desktopInfo.settings?.preferredCampaignId || "silent_meridian" });
-    return result.payload;
+    try {
+      const result = await desktopApi.exportRuntime({ campaignId: desktopInfo.settings?.preferredCampaignId || "silent_meridian" });
+      return result.payload || null;
+    } catch {
+      return null;
+    }
   }
   renderDesktopStatus(null);
   toggleDesktopOnlyButtons(false);
   try {
     return await loadJson("../generated/ui/runtime.json");
   } catch {
-    return loadJson("./data/sample-runtime.json");
+    return null;
   }
 }
 
 async function main() {
   const runtime = await loadInitialRuntime();
-  hydrateRuntime(runtime);
+  if (runtime) {
+    hydrateRuntime(runtime);
+  } else {
+    renderRuntimeUnavailable("No exported runtime snapshot exists yet. Generate and deploy a campaign first, then export runtime data from Authoring or ingest a post-mission result.");
+  }
   await initializeDesktopSettings();
   await initializeWizard();
   await initializeDesktopOps();

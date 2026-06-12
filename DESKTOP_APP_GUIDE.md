@@ -108,6 +108,12 @@ This workspace lets you:
 - build a manual result JSON
 - paste and parse debrief text into a draft result
 
+Important:
+
+- `Campaign Tracking` now uses real exported runtime data only
+- it does not fall back to sample campaign state
+- if no runtime snapshot exists yet, the app will show instructions instead of fake data
+
 ## Campaign ID vs Package ID
 
 These usually match.
@@ -189,8 +195,10 @@ For a first-time player or operator:
 8. build the package
 9. deploy the package
 10. launch MNW and play
-11. return to `Campaign Tracking` after the mission
-12. inspect state or ingest a result JSON
+11. return to `Authoring` and use `Export Runtime Snapshot` once the campaign exists in MNW
+12. open `Campaign Tracking` to inspect the exported real state
+13. after each mission, ingest a result JSON or use the result-builder workflow
+14. export or refresh runtime again as needed
 
 ## If Something Looks Wrong
 

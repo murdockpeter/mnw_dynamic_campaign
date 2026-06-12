@@ -295,133 +295,158 @@
           <div class="hero-stats" id="hero-stats"></div>
         </section>
 
-        <section class="grid two-up">
-          <article class="card">
-            <div class="card-head">
-              <h3>Order of Battle</h3>
-              <span class="badge">Persistent Units</span>
-            </div>
-            <div id="oob-table-wrap" class="table-wrap"></div>
-          </article>
-
-          <article class="card">
-            <div class="card-head">
-              <h3>Recent Mission Result</h3>
-              <span class="badge alt">Normalized Events</span>
-            </div>
-            <div id="result-summary"></div>
-          </article>
-        </section>
-
-        <section class="grid two-up">
-          <article class="card">
-            <div class="card-head">
-              <h3>Generation Plan</h3>
-              <span class="badge">Next Mission Hook</span>
-            </div>
-            <div id="generation-plan"></div>
-          </article>
-
-          <article class="card">
-            <div class="card-head">
-              <h3>Module Contracts</h3>
-              <span class="badge alt">Runtime Shape</span>
-            </div>
-            <div id="module-contracts"></div>
-          </article>
-        </section>
-
-        <section class="card">
+        <section id="tracking-empty-state" class="card">
           <div class="card-head">
-            <h3>Manual Result Builder</h3>
-            <span class="badge alt">Operator Workflow</span>
+            <h3>No Runtime Snapshot Loaded Yet</h3>
+            <span class="badge alt">Real Data Only</span>
           </div>
-          <div class="builder-grid">
-            <div class="builder-form">
-              <div class="field-grid">
-                <label>
-                  <span>Mission ID</span>
-                  <input id="builder-mission-id" type="text">
-                </label>
-                <label>
-                  <span>Outcome</span>
-                  <select id="builder-outcome">
-                    <option value="success">success</option>
-                    <option value="partial_success">partial_success</option>
-                    <option value="failure">failure</option>
-                    <option value="abort">abort</option>
-                  </select>
-                </label>
-                <label>
-                  <span>Elapsed Hours</span>
-                  <input id="builder-hours" type="number" min="0" step="0.25" value="1">
-                </label>
-                <label>
-                  <span>Unit</span>
-                  <select id="builder-unit"></select>
-                </label>
-                <label>
-                  <span>Weapon Key</span>
-                  <input id="builder-weapon-key" type="text" placeholder="mk48_mod7">
-                </label>
-                <label>
-                  <span>Weapon Amount</span>
-                  <input id="builder-weapon-amount" type="number" min="0" step="1" value="0">
-                </label>
-                <label>
-                  <span>Damage Fraction</span>
-                  <input id="builder-damage-amount" type="number" min="0" max="1" step="0.01" value="0">
-                </label>
-                <label class="toggle">
-                  <span>Mark Unit Destroyed</span>
-                  <input id="builder-destroyed" type="checkbox">
-                </label>
-              </div>
-              <label class="full-width">
-                <span>Metadata Source</span>
-                <input id="builder-source" type="text" value="ui_manual_builder">
-              </label>
-              <div class="builder-actions">
-                <button id="builder-generate" type="button">Generate Result JSON</button>
-                <button id="builder-download" type="button">Download JSON</button>
-                <button id="builder-copy" type="button">Copy JSON</button>
-              </div>
-              <p class="muted builder-help">
-                Use the downloaded JSON with <code>tools/ingest-and-refresh.ps1 -ResultPath ...</code>.
-              </p>
-            </div>
-            <div class="builder-preview">
-              <div class="preview-head">Normalized Result Preview</div>
-              <pre id="builder-json">{}</pre>
-            </div>
+          <div class="notes">
+            <p id="tracking-empty-copy">
+              Campaign Tracking now shows exported runtime data only. No sample campaign state is loaded into this workspace anymore.
+            </p>
+            <p>
+              First-use path:
+            </p>
+            <p>
+              1. Generate, build, and deploy a campaign from <strong>Authoring</strong>.
+              2. After starting or advancing that campaign, use <strong>Export Runtime Snapshot</strong>.
+              3. After each mission, ingest a normalized result JSON to refresh campaign state for the tracker.
+            </p>
+            <p>
+              See <a href="../DESKTOP_APP_GUIDE.md" target="_blank" rel="noopener noreferrer">DESKTOP_APP_GUIDE.md</a> for the full player workflow.
+            </p>
           </div>
         </section>
 
-        <section class="card">
-          <div class="card-head">
-            <h3>Debrief Text Parser</h3>
-            <span class="badge">Draft Automation</span>
-          </div>
-          <div class="builder-grid">
-            <div class="builder-form">
-              <label class="full-width">
-                <span>Paste MNW Debrief Text</span>
-                <textarea id="parser-input" rows="16" placeholder="Paste debrief text here..."></textarea>
-              </label>
-              <div class="builder-actions">
-                <button id="parser-run" type="button">Parse Debrief Text</button>
-                <button id="parser-apply" type="button">Load Into Builder</button>
+        <div id="tracking-runtime-content">
+          <section class="grid two-up">
+            <article class="card">
+              <div class="card-head">
+                <h3>Order of Battle</h3>
+                <span class="badge">Persistent Units</span>
               </div>
-              <p class="muted builder-help">
-                This parser produces a draft only. Review and correct the generated result before ingesting it.
-              </p>
+              <div id="oob-table-wrap" class="table-wrap"></div>
+            </article>
+
+            <article class="card">
+              <div class="card-head">
+                <h3>Recent Mission Result</h3>
+                <span class="badge alt">Normalized Events</span>
+              </div>
+              <div id="result-summary"></div>
+            </article>
+          </section>
+
+          <section class="grid two-up">
+            <article class="card">
+              <div class="card-head">
+                <h3>Generation Plan</h3>
+                <span class="badge">Next Mission Hook</span>
+              </div>
+              <div id="generation-plan"></div>
+            </article>
+
+            <article class="card">
+              <div class="card-head">
+                <h3>Module Contracts</h3>
+                <span class="badge alt">Runtime Shape</span>
+              </div>
+              <div id="module-contracts"></div>
+            </article>
+          </section>
+
+          <section class="card">
+            <div class="card-head">
+              <h3>Manual Result Builder</h3>
+              <span class="badge alt">Operator Workflow</span>
             </div>
-            <div class="builder-preview">
-              <div class="preview-head">Parsed Draft Result</div>
-              <pre id="parser-json">{}</pre>
+            <div class="builder-grid">
+              <div class="builder-form">
+                <div class="field-grid">
+                  <label>
+                    <span>Mission ID</span>
+                    <input id="builder-mission-id" type="text">
+                  </label>
+                  <label>
+                    <span>Outcome</span>
+                    <select id="builder-outcome">
+                      <option value="success">success</option>
+                      <option value="partial_success">partial_success</option>
+                      <option value="failure">failure</option>
+                      <option value="abort">abort</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>Elapsed Hours</span>
+                    <input id="builder-hours" type="number" min="0" step="0.25" value="1">
+                  </label>
+                  <label>
+                    <span>Unit</span>
+                    <select id="builder-unit"></select>
+                  </label>
+                  <label>
+                    <span>Weapon Key</span>
+                    <input id="builder-weapon-key" type="text" placeholder="mk48_mod7">
+                  </label>
+                  <label>
+                    <span>Weapon Amount</span>
+                    <input id="builder-weapon-amount" type="number" min="0" step="1" value="0">
+                  </label>
+                  <label>
+                    <span>Damage Fraction</span>
+                    <input id="builder-damage-amount" type="number" min="0" max="1" step="0.01" value="0">
+                  </label>
+                  <label class="toggle">
+                    <span>Mark Unit Destroyed</span>
+                    <input id="builder-destroyed" type="checkbox">
+                  </label>
+                </div>
+                <label class="full-width">
+                  <span>Metadata Source</span>
+                  <input id="builder-source" type="text" value="ui_manual_builder">
+                </label>
+                <div class="builder-actions">
+                  <button id="builder-generate" type="button">Generate Result JSON</button>
+                  <button id="builder-download" type="button">Download JSON</button>
+                  <button id="builder-copy" type="button">Copy JSON</button>
+                </div>
+                <p class="muted builder-help">
+                  Use the downloaded JSON with <code>tools/ingest-and-refresh.ps1 -ResultPath ...</code>.
+                </p>
+              </div>
+              <div class="builder-preview">
+                <div class="preview-head">Normalized Result Preview</div>
+                <pre id="builder-json">{}</pre>
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
+
+          <section class="card">
+            <div class="card-head">
+              <h3>Debrief Text Parser</h3>
+              <span class="badge">Draft Automation</span>
+            </div>
+            <div class="builder-grid">
+              <div class="builder-form">
+                <label class="full-width">
+                  <span>Paste MNW Debrief Text</span>
+                  <textarea id="parser-input" rows="16" placeholder="Paste debrief text here..."></textarea>
+                </label>
+                <div class="builder-actions">
+                  <button id="parser-run" type="button">Parse Debrief Text</button>
+                  <button id="parser-apply" type="button">Load Into Builder</button>
+                </div>
+                <p class="muted builder-help">
+                  This parser produces a draft only. Review and correct the generated result before ingesting it.
+                </p>
+              </div>
+              <div class="builder-preview">
+                <div class="preview-head">Parsed Draft Result</div>
+                <pre id="parser-json">{}</pre>
+              </div>
+            </div>
+          </section>
+        </div>
       </div>
     </main>
   </div>
