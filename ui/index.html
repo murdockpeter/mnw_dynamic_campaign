@@ -27,6 +27,11 @@
         </div>
       </div>
 
+      <div class="panel">
+        <h2>Workflow Status</h2>
+        <div id="workflow-status" class="stack-list"></div>
+      </div>
+
       <div class="panel mode-scope mode-tracking-only">
         <h2>Campaign</h2>
         <div id="campaign-summary" class="kv-list"></div>
@@ -266,11 +271,11 @@
               Campaign Tracking now shows exported runtime data only. No sample campaign state is loaded into this workspace anymore.
             </p>
             <p>
-              First-use path: generate, build, and deploy from <strong>Authoring</strong>, then come back here.
+              First-use path: generate the campaign in <strong>Authoring</strong>. The app now initializes Campaign Tracking automatically for the first mission.
             </p>
             <p>
               Normal path after that:
-              1. <strong>Export Runtime Snapshot</strong>
+              1. <strong>Refresh From Current Campaign State</strong>
               2. <strong>Save Result To Campaign</strong>
               3. <strong>Continue Campaign</strong>
             </p>
@@ -301,10 +306,10 @@
                 </label>
               </div>
               <div class="builder-actions">
-                <button id="desktop-export-runtime" type="button">Export Runtime Snapshot</button>
+                <button id="desktop-export-runtime" type="button">Refresh From Current Campaign State</button>
               </div>
               <p id="desktop-ops-status" class="muted builder-help">
-                Export the current runtime first. After a mission, use the manual result panel below to save the outcome directly and refresh tracking.
+                Use this after playing in MNW to refresh the tracker from the current campaign state. For a newly generated campaign, the first tracker snapshot is created automatically.
               </p>
             </div>
           </section>

@@ -186,6 +186,49 @@ body::after {
   font-size: 13px;
 }
 
+.status-summary {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(111, 212, 255, 0.08);
+}
+
+.status-summary .title {
+  font-weight: 700;
+}
+
+.status-summary .meta {
+  color: var(--muted);
+  margin-top: 6px;
+  font-size: 13px;
+}
+
+.status-checklist {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.status-step {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  align-items: start;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.status-step-label {
+  font-weight: 700;
+}
+
+.status-step-detail {
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: 2px;
+}
+
 .future-list {
   margin: 0;
   padding-left: 18px;

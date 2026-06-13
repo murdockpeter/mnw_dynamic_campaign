@@ -54,6 +54,16 @@ ipcMain.handle("mnw:getDesktopInfo", async () => {
   });
 });
 
+ipcMain.handle("mnw:getWorkflowStatus", async (_event, payload) => {
+  const { getWorkflowStatusForDesktop } = await loadPortableModule("portable/lib/desktop-api.mjs");
+  return getWorkflowStatusForDesktop({
+    ...(payload || {}),
+    settingsPath: getSettingsPath(),
+    contentRoot: getContentRoot(),
+    workspaceRoot: getWorkspaceRoot()
+  });
+});
+
 ipcMain.handle("mnw:loadSettings", async () => {
   const { loadSettingsForDesktop } = await loadPortableModule("portable/lib/desktop-api.mjs");
   return loadSettingsForDesktop({ settingsPath: getSettingsPath() });

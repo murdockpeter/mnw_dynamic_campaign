@@ -9,6 +9,7 @@ const desktopApi = globalThis.mnwDesktop ?? null;
 let currentWizardBlueprint = null;
 let desktopInfo = null;
 let packageIdSyncEnabled = true;
+let workflowStatus = null;
 
 async function loadJson(targetPath) {
   const response = await fetch(targetPath);
@@ -104,6 +105,60 @@ function renderDesktopStatus(info) {
   `;
 }
 
+function renderWorkflowStatus(status) {
+  const root = document.getElementById("workflow-status");
+  if (!root) {
+    return;
+  }
+  if (!status) {
+    root.innerHTML = `
+      <div class="status-summary">
+        <div class="title">Browser Preview Mode</div>
+        <div class="meta">Workflow status becomes available in the packaged desktop app.</div>
+      </div>
+    `;
+    return;
+  }
+  workflowStatus = status;
+  const readyPill = status.readyToPlay
+    ? '<span class="pill ok">Ready To Play</span>'
+    : '<span class="pill warn">Needs Attention</span>';
+  root.innerHTML = `
+    <div class="status-summary">
+      <div class="title">${status.campaignId}</div>
+      <div class="meta">${readyPill}</div>
+      <div class="meta">${status.recommendation}</div>
+    </div>
+    <div class="status-checklist">
+      ${status.steps.map((step) => `
+        <div class="status-step">
+          <span class="pill ${step.state === "complete" ? "ok" : "warn"}">${step.state === "complete" ? "Done" : "Next"}</span>
+          <div>
+            <div class="status-step-label">${step.label}</div>
+            <div class="status-step-detail">${step.detail}</div>
+          </div>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+async function refreshWorkflowStatus() {
+  if (!desktopApi?.getWorkflowStatus) {
+    renderWorkflowStatus(null);
+    return null;
+  }
+  const campaignId = document.getElementById("desktop-campaign-id")?.value.trim()
+    || document.getElementById("settings-campaign-id")?.value.trim()
+    || "silent_meridian";
+  const packageId = document.getElementById("desktop-package-id")?.value.trim()
+    || document.getElementById("settings-package-id")?.value.trim()
+    || campaignId;
+  const status = await desktopApi.getWorkflowStatus({ campaignId, packageId });
+  renderWorkflowStatus(status);
+  return status;
+}
+
 function setTrackingRuntimeAvailability(hasRuntime, message = "") {
   const emptyState = document.getElementById("tracking-empty-state");
   const runtimeContent = document.getElementById("tracking-runtime-content");
@@ -123,13 +178,13 @@ function renderRuntimeUnavailable(reason) {
   const campaignSummary = document.getElementById("campaign-summary");
   const moduleSummary = document.getElementById("module-summary");
   const heroStats = document.getElementById("hero-stats");
-  const message = reason || "Campaign Tracking now shows exported runtime data only. No runtime snapshot has been loaded yet.";
+  const message = reason || "Campaign Tracking now shows real runtime data only. No runtime snapshot has been loaded yet.";
 
   if (campaignSummary) {
     campaignSummary.innerHTML = `
       <div class="stack-item">
         <div class="title">No Runtime Loaded</div>
-        <div class="meta">Export a runtime snapshot from Campaign Tracking after the campaign exists in MNW.</div>
+        <div class="meta">Refresh Campaign Tracking from current campaign state after the campaign exists in MNW.</div>
       </div>
     `;
   }
@@ -574,6 +629,7 @@ function renderManualBuilder(data) {
       hydrateRuntime(result.runtime.payload);
       setWorkspaceMode("tracking");
     }
+    await refreshWorkflowStatus();
   };
   refreshPreview();
 }
@@ -819,6 +875,7 @@ function renderContinuationPlanner(data) {
     } else if (result.continuation?.runtime) {
       hydrateRuntime(result.continuation.runtime);
     }
+    await refreshWorkflowStatus();
   };
 }
 
@@ -905,7 +962,11 @@ async function initializeWizard() {
     document.getElementById("settings-source-dir").value = `${desktopInfo.workspaceRoot}/src/packages/${result.blueprint.campaignId}`;
     document.getElementById("settings-output-path").value = `${desktopInfo.workspaceRoot}/dist/${result.blueprint.campaignId}.kyt`;
     setDesktopOutput(result);
-    setWizardStatus(`Campaign files written for ${result.blueprint.campaignId}.`);
+    setWizardStatus(`Campaign files written for ${result.blueprint.campaignId}. Campaign Tracking is initialized for the first mission.`);
+    if (result.runtime?.payload) {
+      hydrateRuntime(result.runtime.payload);
+    }
+    await refreshWorkflowStatus();
   };
   document.getElementById("wizard-build").onclick = async () => {
     if (!desktopApi) {
@@ -919,6 +980,7 @@ async function initializeWizard() {
     });
     setDesktopOutput(result);
     setWizardStatus(`Built ${blueprint.campaignId}.kyt with MD5 ${result.hash}.`);
+    await refreshWorkflowStatus();
   };
   document.getElementById("wizard-deploy").onclick = async () => {
     if (!desktopApi) {
@@ -931,6 +993,7 @@ async function initializeWizard() {
     });
     setDesktopOutput(result);
     setWizardStatus(`Deployed ${blueprint.campaignId}.kyt to the configured campaign targets.`);
+    await refreshWorkflowStatus();
   };
 }
 
@@ -941,17 +1004,18 @@ async function initializeDesktopOps() {
   }
   exportButton.onclick = async () => {
     if (!desktopApi) {
-      setDesktopOpsStatus("Desktop app required to export runtime snapshots.");
+      setDesktopOpsStatus("Desktop app required to refresh runtime state.");
       return;
     }
     const campaignId = document.getElementById("desktop-campaign-id").value.trim() || "silent_meridian";
     const result = await desktopApi.exportRuntime({ campaignId });
     setDesktopOutput(result);
-    setDesktopOpsStatus(`Runtime snapshot exported for ${campaignId}.`);
+    setDesktopOpsStatus(`Campaign Tracking refreshed from current state for ${campaignId}.`);
     if (result.payload) {
       hydrateRuntime(result.payload);
       setWorkspaceMode("tracking");
     }
+    await refreshWorkflowStatus();
   };
 }
 
@@ -999,9 +1063,10 @@ async function initializeDesktopSettings() {
     const saved = await desktopApi.saveSettings(collectDesktopSettingsForm());
     renderSettingsPreview(saved);
     setSettingsStatus("Desktop settings saved.");
+    await refreshWorkflowStatus();
   });
 
-  document.getElementById("settings-use-generated")?.addEventListener("click", () => {
+  document.getElementById("settings-use-generated")?.addEventListener("click", async () => {
     const campaignId = document.getElementById("wizard-campaign-id")?.value.trim() || "generated_campaign";
     const baseRoot = desktopInfo?.workspaceRoot || "";
     const settingsCampaignId = document.getElementById("settings-campaign-id");
@@ -1028,6 +1093,7 @@ async function initializeDesktopSettings() {
       preferredCampaignId: campaignId
     });
     setSettingsStatus(`Prepared settings defaults for ${campaignId}. Save them to persist.`);
+    await refreshWorkflowStatus();
   });
 
   if (!settings.firstLaunchComplete) {
@@ -1072,10 +1138,11 @@ async function loadInitialRuntime() {
 
 async function main() {
   const runtime = await loadInitialRuntime();
+  await refreshWorkflowStatus();
   if (runtime) {
     hydrateRuntime(runtime);
   } else {
-    renderRuntimeUnavailable("No exported runtime snapshot exists yet. Generate and deploy a campaign first, then export runtime data from Campaign Tracking or ingest a post-mission result.");
+    renderRuntimeUnavailable("No runtime snapshot exists yet. Generate a campaign first to initialize tracking, or refresh from current campaign state after MNW has loaded the campaign.");
   }
   initializeGuideLink();
   await initializeDesktopSettings();
