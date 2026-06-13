@@ -118,6 +118,16 @@ ipcMain.handle("mnw:ingestResult", async (_event, payload) => {
   });
 });
 
+ipcMain.handle("mnw:saveManualResult", async (_event, payload) => {
+  const { ingestResultPayloadForDesktop } = await loadPortableModule("portable/lib/desktop-api.mjs");
+  return ingestResultPayloadForDesktop({
+    ...(payload || {}),
+    settingsPath: getSettingsPath(),
+    contentRoot: getContentRoot(),
+    workspaceRoot: getWorkspaceRoot()
+  });
+});
+
 ipcMain.handle("mnw:generateCampaign", async (_event, payload) => {
   const { generateCampaignForDesktop } = await loadPortableModule("portable/lib/desktop-api.mjs");
   return generateCampaignForDesktop({

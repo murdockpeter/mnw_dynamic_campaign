@@ -515,10 +515,12 @@ function renderManualBuilder(data) {
   const unitSelect = document.getElementById("builder-unit");
   const missionInput = document.getElementById("builder-mission-id");
   const preview = document.getElementById("builder-json");
+  const saveButton = document.getElementById("builder-save");
   unitSelect.innerHTML = units.map((unit) => `
     <option value="${unit.unit_id}">${unit.name} (${unit.unit_id})</option>
   `).join("");
   missionInput.value = data.plan.mission_id || data.state.current_mission_id || "";
+  setBuilderStatus("Build the result here, then save it directly. Download and copy remain available only if you want a record outside the app.");
 
   const refreshPreview = () => {
     const payload = buildManualResult(data);
@@ -547,6 +549,31 @@ function renderManualBuilder(data) {
   document.getElementById("builder-copy").onclick = async () => {
     const payload = refreshPreview();
     await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
+  };
+  saveButton.onclick = async () => {
+    const payload = refreshPreview();
+    if (!desktopApi?.saveManualResult) {
+      setBuilderStatus("Desktop app required to save manual results directly into campaign state.");
+      return;
+    }
+    if (!payload.mission_id) {
+      setBuilderStatus("Mission ID is required before saving the result.");
+      return;
+    }
+    const campaignId = document.getElementById("desktop-campaign-id").value.trim() || data.state.metadata.campaign_id || "silent_meridian";
+    setBuilderStatus(`Saving result for ${payload.mission_id} and refreshing Campaign Tracking...`);
+    const result = await desktopApi.saveManualResult({
+      campaignId,
+      result: payload,
+      advanceHours: 24.0
+    });
+    setDesktopOutput(result);
+    setDesktopOpsStatus(`Manual result saved for ${campaignId}.`);
+    setBuilderStatus(`Saved ${payload.outcome} result for ${payload.mission_id}. Campaign Tracking refreshed.`);
+    if (result.runtime?.payload) {
+      hydrateRuntime(result.runtime.payload);
+      setWorkspaceMode("tracking");
+    }
   };
   refreshPreview();
 }
@@ -713,6 +740,13 @@ function setDesktopOpsStatus(message) {
   document.getElementById("desktop-ops-status").textContent = message;
 }
 
+function setBuilderStatus(message) {
+  const node = document.getElementById("builder-status");
+  if (node) {
+    node.textContent = message;
+  }
+}
+
 function setDesktopOutput(value) {
   document.getElementById("desktop-output").textContent = JSON.stringify(value, null, 2);
 }
@@ -818,7 +852,7 @@ function syncWizardDefaultsWithTheater() {
 }
 
 function toggleDesktopOnlyButtons(enabled) {
-  ["wizard-generate", "wizard-build", "wizard-deploy", "desktop-export-runtime", "desktop-ingest-result", "continuation-generate"].forEach((id) => {
+  ["wizard-generate", "wizard-build", "wizard-deploy", "desktop-export-runtime", "builder-save", "continuation-generate"].forEach((id) => {
     const button = document.getElementById(id);
     if (button) {
       button.disabled = !enabled;
@@ -902,8 +936,7 @@ async function initializeWizard() {
 
 async function initializeDesktopOps() {
   const exportButton = document.getElementById("desktop-export-runtime");
-  const ingestButton = document.getElementById("desktop-ingest-result");
-  if (!exportButton || !ingestButton) {
+  if (!exportButton) {
     return;
   }
   exportButton.onclick = async () => {
@@ -917,25 +950,6 @@ async function initializeDesktopOps() {
     setDesktopOpsStatus(`Runtime snapshot exported for ${campaignId}.`);
     if (result.payload) {
       hydrateRuntime(result.payload);
-      setWorkspaceMode("tracking");
-    }
-  };
-  ingestButton.onclick = async () => {
-    if (!desktopApi) {
-      setDesktopOpsStatus("Desktop app required to ingest results.");
-      return;
-    }
-    const campaignId = document.getElementById("desktop-campaign-id").value.trim() || "silent_meridian";
-    const resultPath = document.getElementById("desktop-result-path").value.trim();
-    if (!resultPath) {
-      setDesktopOpsStatus("Provide a result JSON path first.");
-      return;
-    }
-    const result = await desktopApi.ingestResult({ campaignId, resultPath, advanceHours: 24.0 });
-    setDesktopOutput(result);
-    setDesktopOpsStatus(`Result ingested for ${campaignId}.`);
-    if (result.runtime?.payload) {
-      hydrateRuntime(result.runtime.payload);
       setWorkspaceMode("tracking");
     }
   };

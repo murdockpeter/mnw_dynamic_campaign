@@ -5,7 +5,7 @@ import { appendContinuationScenario } from "./continue-campaign.mjs";
 import { defaultGamePaths, ensureDir, readJson, repoRoot, writeJson } from "./fs-helpers.mjs";
 import { deployPackage } from "./deploy-package.mjs";
 import { generateCampaign } from "./generate-campaign.mjs";
-import { exportRuntimePayload, ingestMissionResult } from "./runtime.mjs";
+import { exportRuntimePayload, ingestMissionResult, ingestMissionResultPayload } from "./runtime.mjs";
 import { loadSettings, saveSettings } from "./settings-store.mjs";
 import { ensureWorkspace } from "./workspace-bootstrap.mjs";
 
@@ -101,6 +101,27 @@ export async function ingestResultForDesktop({ campaignId, resultPath, stateDir,
   const effectiveCampaignId = campaignId || settings.preferredCampaignId || "silent_meridian";
   const ingest = await ingestMissionResult({ repoRoot: roots.workspaceRoot, campaignId: effectiveCampaignId, resultPath, stateDir, advanceHours });
   const runtime = await exportRuntimeSnapshot({ campaignId: effectiveCampaignId, stateDir, settingsPath, contentRoot: roots.contentRoot, workspaceRoot: roots.workspaceRoot });
+  return { ingest, runtime };
+}
+
+export async function ingestResultPayloadForDesktop({ campaignId, result, stateDir, advanceHours = 24.0, settingsPath, contentRoot, workspaceRoot } = {}) {
+  const settings = await readDesktopSettings(settingsPath);
+  const roots = await resolveRoots({ contentRoot, workspaceRoot });
+  const effectiveCampaignId = campaignId || settings.preferredCampaignId || "silent_meridian";
+  const ingest = await ingestMissionResultPayload({
+    repoRoot: roots.workspaceRoot,
+    campaignId: effectiveCampaignId,
+    result,
+    stateDir,
+    advanceHours
+  });
+  const runtime = await exportRuntimeSnapshot({
+    campaignId: effectiveCampaignId,
+    stateDir,
+    settingsPath,
+    contentRoot: roots.contentRoot,
+    workspaceRoot: roots.workspaceRoot
+  });
   return { ingest, runtime };
 }
 

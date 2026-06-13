@@ -286,6 +286,10 @@ body::after {
   padding: 20px;
 }
 
+.tracking-step-card {
+  margin-top: 20px;
+}
+
 .card-head {
   display: flex;
   justify-content: space-between;
@@ -310,6 +314,40 @@ body::after {
   background: rgba(111, 212, 255, 0.12);
   color: var(--accent);
   border-color: rgba(111, 212, 255, 0.18);
+}
+
+.collapsible-card {
+  margin-top: 20px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.collapsible-summary {
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px;
+  cursor: pointer;
+}
+
+.collapsible-summary::-webkit-details-marker {
+  display: none;
+}
+
+.collapsible-summary .muted {
+  margin-top: 4px;
+}
+
+.collapsible-content {
+  margin: 0;
+  padding: 0 20px 20px;
+}
+
+.nested-card {
+  background: rgba(255, 255, 255, 0.02);
+  box-shadow: none;
 }
 
 .table-wrap {

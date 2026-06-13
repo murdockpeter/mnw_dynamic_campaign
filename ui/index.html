@@ -247,10 +247,10 @@
         <section class="hero">
           <div>
             <div class="eyebrow">Campaign Tracking</div>
-            <h2>Live Runtime And Result Workflow</h2>
+            <h2>Three-Step Campaign Loop</h2>
             <p>
-              Review the active state, inspect generation directives, build normalized results, and ingest mission outcomes
-              without mixing that work into system setup and campaign authoring.
+              For MNW, the normal loop is simple: load the current runtime, save the mission result, then extend the campaign.
+              Everything else is secondary.
             </p>
           </div>
           <div class="hero-stats" id="hero-stats"></div>
@@ -266,12 +266,13 @@
               Campaign Tracking now shows exported runtime data only. No sample campaign state is loaded into this workspace anymore.
             </p>
             <p>
-              First-use path:
+              First-use path: generate, build, and deploy from <strong>Authoring</strong>, then come back here.
             </p>
             <p>
-              1. Generate, build, and deploy a campaign from <strong>Authoring</strong>.
-              2. After starting or advancing that campaign, use <strong>Export Runtime Snapshot</strong> here in <strong>Campaign Tracking</strong>.
-              3. After each mission, ingest a normalized result JSON to refresh campaign state for the tracker.
+              Normal path after that:
+              1. <strong>Export Runtime Snapshot</strong>
+              2. <strong>Save Result To Campaign</strong>
+              3. <strong>Continue Campaign</strong>
             </p>
             <p>
               See <button id="tracking-open-guide" class="inline-link-button" type="button">DESKTOP_APP_GUIDE.md</button> for the full player workflow.
@@ -279,13 +280,16 @@
           </div>
         </section>
 
-        <section class="grid two-up">
-          <article class="card">
+        <div id="tracking-runtime-content">
+          <section class="card tracking-step-card">
             <div class="card-head">
-              <h3>Desktop Operations</h3>
-              <span class="badge alt">Portable Workflow</span>
+              <h3>Step 1: Load Current Campaign</h3>
+              <span class="badge alt">Start Here</span>
             </div>
             <div class="builder-form">
+              <p class="muted builder-help">
+                Pull the latest live campaign state from the desktop workspace before entering a mission result.
+              </p>
               <div class="field-grid">
                 <label>
                   <span>Runtime Campaign ID</span>
@@ -296,129 +300,25 @@
                   <input id="desktop-package-id" type="text" value="iron_archipelago">
                 </label>
               </div>
-              <label class="full-width">
-                <span>Mission Result JSON Path</span>
-                <input id="desktop-result-path" type="text" placeholder="C:\path\to\manual_result.json">
-              </label>
               <div class="builder-actions">
                 <button id="desktop-export-runtime" type="button">Export Runtime Snapshot</button>
-                <button id="desktop-ingest-result" type="button">Ingest Result JSON</button>
               </div>
               <p id="desktop-ops-status" class="muted builder-help">
-                These actions let the desktop app refresh runtime state and ingest a normalized result without using PowerShell directly.
+                Export the current runtime first. After a mission, use the manual result panel below to save the outcome directly and refresh tracking.
               </p>
             </div>
-          </article>
+          </section>
 
-          <article class="card">
+          <section class="card tracking-step-card">
             <div class="card-head">
-              <h3>Desktop Output</h3>
-              <span class="badge">Latest Action</span>
-            </div>
-            <div class="builder-preview">
-              <div class="preview-head">Result Payload</div>
-              <pre id="desktop-output">{}</pre>
-            </div>
-          </article>
-        </section>
-
-        <div id="tracking-runtime-content">
-          <section class="card">
-            <div class="card-head">
-              <h3>Continue Campaign</h3>
-              <span class="badge alt">Post-Mission Decision</span>
+              <h3>Step 2: Save Mission Result</h3>
+              <span class="badge alt">Primary Workflow</span>
             </div>
             <div class="builder-grid">
               <div class="builder-form">
-                <div class="field-grid">
-                  <label>
-                    <span>Next Objective</span>
-                    <select id="continuation-objective">
-                      <option value="pursue_contact">Pursue Contact</option>
-                      <option value="shadow_safely">Shadow Safely</option>
-                      <option value="break_contact">Break Contact</option>
-                      <option value="defend_chokepoint">Defend Chokepoint</option>
-                      <option value="intercept_route">Intercept Route</option>
-                    </select>
-                  </label>
-                  <label>
-                    <span>Risk Posture</span>
-                    <select id="continuation-risk">
-                      <option value="balanced">Balanced</option>
-                      <option value="cautious">Cautious</option>
-                      <option value="aggressive">Aggressive</option>
-                    </select>
-                  </label>
-                  <label>
-                    <span>Operational Tempo</span>
-                    <select id="continuation-tempo">
-                      <option value="deliberate">Deliberate</option>
-                      <option value="immediate">Immediate</option>
-                      <option value="recovery">Recovery</option>
-                    </select>
-                  </label>
-                  <div class="wizard-block">
-                    <strong>What happens</strong>
-                    <div class="wizard-meta">Append one new scenario, rebuild the package, redeploy if paths are configured, and refresh Campaign Tracking.</div>
-                  </div>
-                </div>
-                <div class="builder-actions">
-                  <button id="continuation-generate" type="button">Continue Campaign</button>
-                </div>
-                <p id="continuation-status" class="muted builder-help">
-                  Choose the next operational intent after ingesting a mission result.
+                <p class="muted builder-help">
+                  Enter only what changed during the mission, then save it directly into campaign state.
                 </p>
-              </div>
-              <div class="builder-preview">
-                <div class="preview-head">Continuation Preview</div>
-                <div id="continuation-preview" class="wizard-summary"></div>
-              </div>
-            </div>
-          </section>
-
-          <section class="grid two-up">
-            <article class="card">
-              <div class="card-head">
-                <h3>Order of Battle</h3>
-                <span class="badge">Persistent Units</span>
-              </div>
-              <div id="oob-table-wrap" class="table-wrap"></div>
-            </article>
-
-            <article class="card">
-              <div class="card-head">
-                <h3>Recent Mission Result</h3>
-                <span class="badge alt">Normalized Events</span>
-              </div>
-              <div id="result-summary"></div>
-            </article>
-          </section>
-
-          <section class="grid two-up">
-            <article class="card">
-              <div class="card-head">
-                <h3>Generation Plan</h3>
-                <span class="badge">Next Mission Hook</span>
-              </div>
-              <div id="generation-plan"></div>
-            </article>
-
-            <article class="card">
-              <div class="card-head">
-                <h3>Module Contracts</h3>
-                <span class="badge alt">Runtime Shape</span>
-              </div>
-              <div id="module-contracts"></div>
-            </article>
-          </section>
-
-          <section class="card">
-            <div class="card-head">
-              <h3>Manual Result Builder</h3>
-              <span class="badge alt">Operator Workflow</span>
-            </div>
-            <div class="builder-grid">
-              <div class="builder-form">
                 <div class="field-grid">
                   <label>
                     <span>Mission ID</span>
@@ -464,11 +364,12 @@
                 </label>
                 <div class="builder-actions">
                   <button id="builder-generate" type="button">Generate Result JSON</button>
+                  <button id="builder-save" type="button">Save Result To Campaign</button>
                   <button id="builder-download" type="button">Download JSON</button>
                   <button id="builder-copy" type="button">Copy JSON</button>
                 </div>
-                <p class="muted builder-help">
-                  Use the downloaded JSON with <code>tools/ingest-and-refresh.ps1 -ResultPath ...</code>.
+                <p id="builder-status" class="muted builder-help">
+                  Build the result here, then save it directly. Download and copy remain available only if you want a record outside the app.
                 </p>
               </div>
               <div class="builder-preview">
@@ -478,31 +379,146 @@
             </div>
           </section>
 
-          <section class="card">
+          <section class="card tracking-step-card">
             <div class="card-head">
-              <h3>Debrief Text Parser</h3>
-              <span class="badge">Draft Automation</span>
+              <h3>Step 3: Continue Campaign</h3>
+              <span class="badge">Next Mission</span>
             </div>
             <div class="builder-grid">
               <div class="builder-form">
-                <label class="full-width">
-                  <span>Paste MNW Debrief Text</span>
-                  <textarea id="parser-input" rows="16" placeholder="Paste debrief text here..."></textarea>
-                </label>
-                <div class="builder-actions">
-                  <button id="parser-run" type="button">Parse Debrief Text</button>
-                  <button id="parser-apply" type="button">Load Into Builder</button>
-                </div>
                 <p class="muted builder-help">
-                  This parser produces a draft only. Review and correct the generated result before ingesting it.
+                  Choose the next operational intent after saving the current mission result.
+                </p>
+                <div class="field-grid">
+                  <label>
+                    <span>Next Objective</span>
+                    <select id="continuation-objective">
+                      <option value="pursue_contact">Pursue Contact</option>
+                      <option value="shadow_safely">Shadow Safely</option>
+                      <option value="break_contact">Break Contact</option>
+                      <option value="defend_chokepoint">Defend Chokepoint</option>
+                      <option value="intercept_route">Intercept Route</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>Risk Posture</span>
+                    <select id="continuation-risk">
+                      <option value="balanced">Balanced</option>
+                      <option value="cautious">Cautious</option>
+                      <option value="aggressive">Aggressive</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>Operational Tempo</span>
+                    <select id="continuation-tempo">
+                      <option value="deliberate">Deliberate</option>
+                      <option value="immediate">Immediate</option>
+                      <option value="recovery">Recovery</option>
+                    </select>
+                  </label>
+                  <div class="wizard-block">
+                    <strong>What happens</strong>
+                    <div class="wizard-meta">Append one new scenario, rebuild the package, redeploy if paths are configured, and refresh Campaign Tracking.</div>
+                  </div>
+                </div>
+                <div class="builder-actions">
+                  <button id="continuation-generate" type="button">Continue Campaign</button>
+                </div>
+                <p id="continuation-status" class="muted builder-help">
+                  Choose the next operational intent after saving a mission result.
                 </p>
               </div>
               <div class="builder-preview">
-                <div class="preview-head">Parsed Draft Result</div>
-                <pre id="parser-json">{}</pre>
+                <div class="preview-head">Continuation Preview</div>
+                <div id="continuation-preview" class="wizard-summary"></div>
               </div>
             </div>
           </section>
+
+          <details class="card collapsible-card">
+            <summary class="collapsible-summary">
+              <div>
+                <strong>Advanced Campaign Detail</strong>
+                <div class="muted">Recent result history, persistent units, debug output, parser, and generation internals.</div>
+              </div>
+              <span class="badge alt">Optional</span>
+            </summary>
+
+            <div class="grid two-up collapsible-content">
+              <article class="card nested-card">
+                <div class="card-head">
+                  <h3>Recent Mission Result</h3>
+                  <span class="badge alt">Normalized Events</span>
+                </div>
+                <div id="result-summary"></div>
+              </article>
+
+              <article class="card nested-card">
+                <div class="card-head">
+                  <h3>Order of Battle</h3>
+                  <span class="badge">Persistent Units</span>
+                </div>
+                <div id="oob-table-wrap" class="table-wrap"></div>
+              </article>
+            </div>
+
+            <div class="grid two-up collapsible-content">
+              <article class="card nested-card">
+                <div class="card-head">
+                  <h3>Desktop Output</h3>
+                  <span class="badge">Latest Action</span>
+                </div>
+                <div class="builder-preview">
+                  <div class="preview-head">Result Payload</div>
+                  <pre id="desktop-output">{}</pre>
+                </div>
+              </article>
+
+              <article class="card nested-card">
+                <div class="card-head">
+                  <h3>Debrief Text Parser</h3>
+                  <span class="badge">Draft Automation</span>
+                </div>
+                <div class="builder-grid">
+                  <div class="builder-form">
+                    <label class="full-width">
+                      <span>Paste MNW Debrief Text</span>
+                      <textarea id="parser-input" rows="16" placeholder="Paste debrief text here..."></textarea>
+                    </label>
+                    <div class="builder-actions">
+                      <button id="parser-run" type="button">Parse Debrief Text</button>
+                      <button id="parser-apply" type="button">Load Into Builder</button>
+                    </div>
+                    <p class="muted builder-help">
+                      This parser produces a draft only. Review and correct the generated result before saving it.
+                    </p>
+                  </div>
+                  <div class="builder-preview">
+                    <div class="preview-head">Parsed Draft Result</div>
+                    <pre id="parser-json">{}</pre>
+                  </div>
+                </div>
+              </article>
+            </div>
+
+            <div class="grid two-up collapsible-content">
+              <article class="card nested-card">
+                <div class="card-head">
+                  <h3>Generation Plan</h3>
+                  <span class="badge">Next Mission Hook</span>
+                </div>
+                <div id="generation-plan"></div>
+              </article>
+
+              <article class="card nested-card">
+                <div class="card-head">
+                  <h3>Module Contracts</h3>
+                  <span class="badge alt">Runtime Shape</span>
+                </div>
+                <div id="module-contracts"></div>
+              </article>
+            </div>
+          </details>
         </div>
       </div>
     </main>

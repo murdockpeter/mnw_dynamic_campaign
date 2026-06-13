@@ -86,6 +86,38 @@ function advanceTime(state, hours, modulesConfig) {
   return state;
 }
 
+async function ingestMissionResultRecord({ repoRoot, campaignId, result, stateDir, advanceHours = 24.0 }) {
+  const campaignDir = path.join(repoRoot, "campaigns", campaignId);
+  const modulesConfig = await readJson(path.join(campaignDir, "modules.json"));
+  const { state, statePath } = await loadOrBootstrapState({ repoRoot, campaignId, stateDir, campaignDir });
+  initializeModules(state, modulesConfig);
+  ingestResult(state, result, modulesConfig);
+  advanceTime(state, advanceHours, modulesConfig);
+  state.current_mission_id = result.mission_id;
+
+  await writeJson(statePath, state);
+
+  const effectiveStateDir = stateDir || path.join(repoRoot, "state");
+  const historyPath = path.join(effectiveStateDir, campaignId, "mission_results.json");
+  let history = [];
+  try {
+    history = await readJson(historyPath);
+  } catch {
+    history = [];
+  }
+  history.push(result);
+  await writeJson(historyPath, history);
+
+  return {
+    campaign_id: campaignId,
+    mission_id: result.mission_id,
+    outcome: result.outcome,
+    advance_hours: advanceHours,
+    state_path: statePath,
+    results_path: historyPath
+  };
+}
+
 export async function readMissionChain(campaignId, packageDir) {
   const questPath = path.join(packageDir, campaignId, "quest.cmp");
   try {
@@ -210,34 +242,10 @@ export async function exportRuntimePayload({ repoRoot, campaignId, stateDir }) {
 }
 
 export async function ingestMissionResult({ repoRoot, campaignId, resultPath, stateDir, advanceHours = 24.0 }) {
-  const campaignDir = path.join(repoRoot, "campaigns", campaignId);
-  const modulesConfig = await readJson(path.join(campaignDir, "modules.json"));
-  const { state, statePath } = await loadOrBootstrapState({ repoRoot, campaignId, stateDir, campaignDir });
-  initializeModules(state, modulesConfig);
   const result = await readJson(resultPath);
-  ingestResult(state, result, modulesConfig);
-  advanceTime(state, advanceHours, modulesConfig);
-  state.current_mission_id = result.mission_id;
+  return ingestMissionResultRecord({ repoRoot, campaignId, result, stateDir, advanceHours });
+}
 
-  await writeJson(statePath, state);
-
-  const effectiveStateDir = stateDir || path.join(repoRoot, "state");
-  const historyPath = path.join(effectiveStateDir, campaignId, "mission_results.json");
-  let history = [];
-  try {
-    history = await readJson(historyPath);
-  } catch {
-    history = [];
-  }
-  history.push(result);
-  await writeJson(historyPath, history);
-
-  return {
-    campaign_id: campaignId,
-    mission_id: result.mission_id,
-    outcome: result.outcome,
-    advance_hours: advanceHours,
-    state_path: statePath,
-    results_path: historyPath
-  };
+export async function ingestMissionResultPayload({ repoRoot, campaignId, result, stateDir, advanceHours = 24.0 }) {
+  return ingestMissionResultRecord({ repoRoot, campaignId, result, stateDir, advanceHours });
 }

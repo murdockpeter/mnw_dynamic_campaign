@@ -15,7 +15,7 @@ Current purpose:
 - inspect order of battle state
 - inspect mission result events
 - inspect next-mission generation directives
-- build a normalized manual mission-result JSON from the browser
+- build and save a normalized manual mission result from the browser
 - parse pasted MNW debrief text into a draft result before manual review
 - choose continuation intent and append one more scenario in the desktop app workflow
 
@@ -27,8 +27,8 @@ If `generated/ui/runtime.json` exists, the UI prefers that live exported snapsho
 
 1. Export or bootstrap campaign state.
 2. Run the UI.
-3. Ingest a normalized mission result JSON.
-4. Refresh the exported UI snapshot.
+3. Save a manual mission result directly from `Campaign Tracking`.
+4. Let the tracker refresh itself from the updated runtime snapshot.
 5. If desired, append one more scenario from `Campaign Tracking`.
 6. Reload the page and inspect the updated state.
 
@@ -40,14 +40,10 @@ Current flow:
 
 1. open the UI
 2. fill in mission outcome, elapsed hours, unit, ammo expenditure, damage, or destruction
-3. generate and download normalized result JSON
-4. ingest it with:
+3. click `Save Result To Campaign`
+4. let the tracker refresh the live campaign state automatically
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\tools\ingest-and-refresh.ps1 -ResultPath "C:\Path\To\manual_result.json"
-```
-
-This is intentionally simple for now. It keeps the operator workflow visible before we add a direct backend bridge or packaged desktop shell.
+`Download JSON` and `Copy JSON` still exist if you want an external record, but they are no longer required for the normal MNW desktop workflow.
 
 ## Debrief Text Parser
 
@@ -62,8 +58,7 @@ Current flow:
 3. review the generated draft JSON
 4. click `Load Into Builder`
 5. correct anything the parser could not infer cleanly
-6. download or copy the final normalized result JSON
-7. ingest it with `tools/ingest-and-refresh.ps1`
+6. click `Save Result To Campaign`
 
 This parser should be treated as an operator assist, not a final authority.
 
@@ -80,6 +75,8 @@ Helper scripts:
 - `tools/ingest-result.py`
 - `tools/ingest-and-refresh.ps1`
 - `tools/refresh-ui-state.ps1`
+
+Those scripts still exist for non-desktop or manual workflows, but the packaged Electron app no longer requires them for normal post-mission result entry.
 
 ## Continuation Flow
 
