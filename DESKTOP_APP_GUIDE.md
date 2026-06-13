@@ -12,7 +12,7 @@ It lets you:
 - generate a simple campaign, including a single-scenario start, without bringing your own AI
 - build and deploy the generated campaign package
 - inspect campaign runtime state
-- ingest mission-result JSON after missions
+- save mission results directly in the app after missions
 - continue the campaign by appending one more scenario after results are reviewed
 
 You do not need:
@@ -104,20 +104,18 @@ Use this after missions.
 
 This workspace lets you:
 
-- inspect the campaign summary
-- inspect tracked units and persistence modules
-- review recent result data
-- review next-mission generation directives
-- build a manual result JSON
-- paste and parse debrief text into a draft result
+- export the current runtime snapshot from the live campaign
+- enter and save a manual mission result directly into campaign state
 - choose a next objective, risk posture, and operational tempo
 - append one new scenario onto the current campaign, rebuild, and redeploy it
+- optionally open advanced detail for recent results, persistent units, parser tools, and generation internals
 
 Important:
 
 - `Campaign Tracking` now uses real exported runtime data only
 - it does not fall back to sample campaign state
 - if no runtime snapshot exists yet, the app will show instructions instead of fake data
+- the normal MNW loop is now: `Export Runtime Snapshot` -> `Save Result To Campaign` -> `Continue Campaign`
 
 ## Campaign ID vs Package ID
 
@@ -202,9 +200,10 @@ For a first-time player or operator:
 10. launch MNW and play
 11. return to `Campaign Tracking` and use `Export Runtime Snapshot` once the campaign exists in MNW
 12. open `Campaign Tracking` to inspect the exported real state
-13. after each mission, ingest a result JSON or use the result-builder workflow
-14. if you want to keep going, use `Continue Campaign` to choose the next objective and append one new scenario
-15. export or refresh runtime again as needed
+13. after each mission, enter only the changes that matter in `Step 2: Save Mission Result`
+14. click `Save Result To Campaign`
+15. if you want to keep going, use `Step 3: Continue Campaign` to choose the next objective and append one new scenario
+16. export or refresh runtime again as needed
 
 ### Recommended Dynamic Use
 
@@ -212,15 +211,35 @@ If you want the campaign to grow based on mission results and your choices, the 
 
 1. start with `Scenario Count` set to `1`
 2. play that scenario
-3. ingest the mission result
-4. open `Campaign Tracking`
-5. choose:
+3. open `Campaign Tracking`
+4. click `Export Runtime Snapshot`
+5. enter the mission outcome manually and click `Save Result To Campaign`
+6. choose:
    - next objective
    - risk posture
    - operational tempo
-6. click `Continue Campaign`
-7. let the app append, rebuild, redeploy, and refresh tracking state
-8. repeat after the next mission if you want to keep extending the campaign
+7. click `Continue Campaign`
+8. let the app append, rebuild, redeploy, and refresh tracking state
+9. repeat after the next mission if you want to keep extending the campaign
+
+### Campaign Tracking Layout
+
+The current tracker is intentionally arranged as a simple three-step loop:
+
+1. `Step 1: Load Current Campaign`
+   Use `Export Runtime Snapshot`.
+2. `Step 2: Save Mission Result`
+   Enter the mission changes and click `Save Result To Campaign`.
+3. `Step 3: Continue Campaign`
+   Choose the next intent and append the next mission.
+
+If you want more detail, open `Advanced Campaign Detail` for:
+
+- recent normalized result data
+- persistent unit state
+- debrief text parser
+- latest desktop action payload
+- generation-plan and module internals
 
 ## If Something Looks Wrong
 
@@ -237,8 +256,10 @@ If the app launches but cannot find campaign files, the most common cause is a p
 If `Continue Campaign` does not produce the next mission you expect, check that:
 
 - the runtime campaign ID points at the campaign you actually played
-- the latest result JSON was ingested before extending
+- the latest mission result was saved before extending
 - the package deploy paths still point at the correct MNW install and user campaign folders
+
+If the next mission does not appear inside MNW immediately, remember that MNW still unlocks chained campaign missions only after the current one is actually completed in-game.
 
 ## Advanced Users
 

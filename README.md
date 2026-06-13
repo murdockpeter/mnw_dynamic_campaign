@@ -9,7 +9,7 @@ It contains:
 - a modular persistence scaffold
 - a browser and Electron frontend
 - a deterministic campaign generator that does not require external AI
-- a continuation workflow that can append one more scenario after mission results are reviewed
+- a continuation workflow that can append one more scenario after mission results are saved and reviewed
 - developer and player workflows side by side
 
 ## Start Here
@@ -53,6 +53,12 @@ The repo supports two audiences on purpose:
 - developers or operators who need direct access to source, scripts, and packaging internals
 
 The packaged app does not replace the original repo-native workflow. It sits alongside it.
+
+For the packaged desktop workflow, the intended post-mission loop is now:
+
+1. export the current runtime snapshot
+2. save the mission result directly inside `Campaign Tracking`
+3. continue the campaign if you want to append the next scenario
 
 ## Main Components
 
