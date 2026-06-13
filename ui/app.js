@@ -584,6 +584,11 @@ function renderSettingsPreview(settings) {
     preferredCampaignId,
     preferredPackageId
   });
+  syncAuthoringDefaults({
+    preferredCampaignId
+  }, {
+    refreshPreview: Boolean(document.getElementById("wizard-theater"))
+  });
 }
 
 function syncPackageIdFromCampaign() {
@@ -593,6 +598,9 @@ function syncPackageIdFromCampaign() {
   syncDesktopOpsDefaults({
     preferredCampaignId: document.getElementById("settings-campaign-id").value.trim(),
     preferredPackageId: document.getElementById("settings-package-id").value.trim()
+  });
+  syncAuthoringDefaults({
+    preferredCampaignId: document.getElementById("settings-campaign-id").value.trim()
   });
 }
 
@@ -604,6 +612,29 @@ function syncDesktopOpsDefaults({ preferredCampaignId, preferredPackageId }) {
   }
   if (desktopPackageId) {
     desktopPackageId.value = preferredPackageId || preferredCampaignId || "silent_meridian";
+  }
+}
+
+function campaignIdToTitle(campaignId) {
+  return String(campaignId || "")
+    .trim()
+    .split("_")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function syncAuthoringDefaults({ preferredCampaignId }, options = {}) {
+  const wizardCampaignId = document.getElementById("wizard-campaign-id");
+  const wizardTitle = document.getElementById("wizard-title");
+  if (wizardCampaignId) {
+    wizardCampaignId.value = preferredCampaignId || "generated_campaign";
+  }
+  if (wizardTitle && options.syncTitle !== false) {
+    wizardTitle.value = campaignIdToTitle(preferredCampaignId) || "Generated Campaign";
+  }
+  if (options.refreshPreview !== false && document.getElementById("wizard-theater")) {
+    renderWizardPreview(buildCampaignBlueprint(collectWizardSpec()));
   }
 }
 
@@ -939,6 +970,11 @@ async function initializeDesktopSettings() {
       preferredCampaignId: document.getElementById("settings-campaign-id").value.trim(),
       preferredPackageId: document.getElementById("settings-package-id").value.trim()
     });
+    syncAuthoringDefaults({
+      preferredCampaignId: document.getElementById("settings-campaign-id").value.trim()
+    }, {
+      syncTitle: false
+    });
   });
 
   document.getElementById("settings-save")?.addEventListener("click", async () => {
@@ -973,6 +1009,9 @@ async function initializeDesktopSettings() {
     syncDesktopOpsDefaults({
       preferredCampaignId: campaignId,
       preferredPackageId: settingsPackageId?.value.trim() || campaignId
+    });
+    syncAuthoringDefaults({
+      preferredCampaignId: campaignId
     });
     setSettingsStatus(`Prepared settings defaults for ${campaignId}. Save them to persist.`);
   });

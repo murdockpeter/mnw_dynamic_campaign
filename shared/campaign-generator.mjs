@@ -334,7 +334,7 @@ function hashSeed(value) {
 
 function clampScenarioCount(value) {
   const count = Number(value || DEFAULT_SCENARIO_COUNT);
-  return Math.max(2, Math.min(4, Math.round(count)));
+  return Math.max(1, Math.min(4, Math.round(count)));
 }
 
 function sanitizeCampaignId(value) {

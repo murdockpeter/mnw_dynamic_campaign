@@ -9,7 +9,7 @@ The desktop app is a packaged frontend and workflow wrapper for the dynamic camp
 It lets you:
 
 - configure where `Modern Naval Warfare` stores campaign packages
-- generate a simple multi-scenario campaign without bringing your own AI
+- generate a simple campaign, including a single-scenario start, without bringing your own AI
 - build and deploy the generated campaign package
 - inspect campaign runtime state
 - ingest mission-result JSON after missions
