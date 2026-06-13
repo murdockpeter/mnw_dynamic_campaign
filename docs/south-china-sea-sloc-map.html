@@ -6,21 +6,19 @@
   <title>South China Sea SLOC Map | MNW Campaign Console</title>
   <style>
     :root {
-      --bg: #051019;
-      --bg-2: #0a1b28;
-      --panel: rgba(11, 31, 45, 0.92);
+      --bg: #07131d;
+      --panel: rgba(14, 33, 47, 0.94);
+      --panel-2: rgba(17, 39, 55, 0.96);
       --line: rgba(118, 202, 237, 0.14);
-      --text: #eaf7fb;
-      --muted: #9db9c9;
-      --player: #74d8ff;
+      --text: #ecf7fb;
+      --muted: #9ebccc;
+      --accent: #74d8ff;
+      --accent-2: #57e0b7;
+      --accent-3: #ffd06e;
       --enemy: #ff8d72;
-      --support: #59e2b5;
-      --air: #ffd06e;
-      --land-fill: rgba(95, 165, 92, 0.24);
-      --land-stroke: rgba(136, 214, 122, 0.82);
       --shadow: 0 28px 72px rgba(0, 0, 0, 0.34);
-      --radius: 24px;
-      --content-width: 1320px;
+      --radius: 22px;
+      --content-width: 1060px;
     }
 
     * { box-sizing: border-box; }
@@ -29,170 +27,216 @@
       margin: 0;
       color: var(--text);
       background:
-        radial-gradient(circle at top left, rgba(89, 226, 181, 0.12), transparent 24%),
+        radial-gradient(circle at top left, rgba(87, 224, 183, 0.12), transparent 24%),
         radial-gradient(circle at top right, rgba(116, 216, 255, 0.14), transparent 24%),
-        linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 48%, var(--bg) 100%);
-      font: 16px/1.6 "Segoe UI", "Aptos", system-ui, sans-serif;
+        linear-gradient(180deg, #07131d 0%, #091a25 48%, #07131d 100%);
+      font: 16px/1.55 "Segoe UI", "Aptos", system-ui, sans-serif;
     }
 
-    code { font-family: "Cascadia Code", Consolas, monospace; }
+    code {
+      font-family: "Cascadia Code", Consolas, monospace;
+      color: var(--accent);
+    }
 
     .page {
       width: min(calc(100% - 28px), var(--content-width));
       margin: 0 auto;
-      padding: 20px 0 40px;
+      padding: 8px 0 28px;
     }
 
-    .hero,
     .panel,
-    .legend-item,
-    .table-wrap,
-    .map-frame {
+    .stat,
+    .map-panel {
       border: 1px solid var(--line);
       border-radius: var(--radius);
       background: var(--panel);
       box-shadow: var(--shadow);
     }
 
-    .hero,
-    .panel,
-    .table-wrap {
-      padding: 24px;
-    }
-
     .hero {
-      background:
-        linear-gradient(135deg, rgba(14, 33, 47, 0.96), rgba(8, 20, 30, 0.98)),
-        radial-gradient(circle at 100% 0%, rgba(116, 216, 255, 0.1), transparent 32%);
-    }
-
-    .eyebrow {
-      color: var(--player);
-      font-size: 12px;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
+      padding: 10px 0 14px;
     }
 
     h1, h2, h3, p { margin: 0; }
 
     h1 {
-      margin-top: 10px;
-      font-size: clamp(2rem, 4vw, 3.5rem);
-      line-height: 1.05;
-      max-width: 12ch;
+      font-size: clamp(2.5rem, 5vw, 4rem);
+      line-height: 1.02;
+      max-width: 8ch;
+      margin-bottom: 12px;
     }
 
     .hero p {
-      margin-top: 14px;
-      max-width: 940px;
+      max-width: 900px;
       color: var(--muted);
+      font-size: 1.05rem;
     }
 
-    .hero-grid,
-    .content-grid,
-    .legend,
-    .facts {
+    .top-grid {
       display: grid;
-      gap: 16px;
+      grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+      gap: 14px;
+      margin-top: 14px;
     }
 
-    .hero-grid {
-      grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
-      margin-top: 26px;
+    .panel {
+      padding: 18px 18px 20px;
     }
 
-    .facts {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .fact {
-      padding: 16px;
-      border-radius: 18px;
-      border: 1px solid var(--line);
-      background: rgba(255, 255, 255, 0.03);
-    }
-
-    .fact-label {
-      color: var(--muted);
+    .eyebrow {
+      color: var(--accent);
       font-size: 12px;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.12em;
       text-transform: uppercase;
-    }
-
-    .fact-value {
-      margin-top: 8px;
-      font-size: 1.35rem;
+      margin-bottom: 10px;
       font-weight: 700;
     }
 
-    .content-grid {
-      grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
-      margin-top: 20px;
-      align-items: start;
+    .panel h2 {
+      font-size: 1.1rem;
+      margin-bottom: 14px;
     }
 
-    .map-frame {
-      overflow: hidden;
-      padding: 0;
-      background:
-        linear-gradient(180deg, rgba(10, 27, 40, 0.96), rgba(7, 20, 31, 0.98));
+    .panel p + p {
+      margin-top: 10px;
     }
 
-    .map-shell { padding: 18px; }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .stat {
+      padding: 16px;
+      background: var(--panel-2);
+    }
+
+    .stat-label {
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .stat-value {
+      margin-top: 8px;
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .middle-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(290px, 0.75fr);
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    .map-panel {
+      padding: 16px;
+      background: var(--panel-2);
+    }
+
+    .map-title {
+      font-size: 0.98rem;
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+
+    .map-subtitle {
+      color: var(--muted);
+      font-size: 11px;
+      margin-bottom: 10px;
+    }
+
+    .map-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .map-toolbar-note {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .download-button {
+      border: 1px solid rgba(116, 216, 255, 0.28);
+      border-radius: 999px;
+      background: linear-gradient(180deg, rgba(23, 76, 108, 0.96), rgba(15, 56, 83, 0.96));
+      color: var(--text);
+      padding: 10px 16px;
+      font: 600 13px/1 "Segoe UI", "Aptos", system-ui, sans-serif;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition: transform 120ms ease, border-color 120ms ease, filter 120ms ease;
+    }
+
+    .download-button:hover {
+      transform: translateY(-1px);
+      border-color: rgba(116, 216, 255, 0.46);
+      filter: brightness(1.05);
+    }
 
     svg {
+      display: block;
       width: 100%;
       height: auto;
-      display: block;
-      border-radius: 18px;
+      border-radius: 14px;
       background:
-        radial-gradient(circle at 48% 40%, rgba(116, 216, 255, 0.08), transparent 22%),
-        linear-gradient(180deg, #0b2232 0%, #0a1f2d 100%);
+        linear-gradient(180deg, rgba(11, 34, 50, 0.98), rgba(10, 28, 42, 0.98));
+      border: 1px solid rgba(118, 202, 237, 0.14);
     }
 
-    .legend { margin-top: 16px; }
-
-    .legend-item {
-      padding: 14px 16px;
-      border-radius: 18px;
-      background: rgba(255, 255, 255, 0.03);
+    .notes {
+      padding: 18px;
     }
 
-    .legend-line {
-      display: inline-flex;
-      width: 46px;
-      height: 0;
-      border-top: 4px solid currentColor;
-      vertical-align: middle;
-      margin-right: 10px;
-    }
-
-    .legend-title { font-weight: 700; }
-
-    .legend-copy {
-      margin-top: 6px;
-      color: var(--muted);
-      font-size: 0.95rem;
-    }
-
-    .panel h2 {
-      color: var(--player);
+    .notes h3 {
       font-size: 0.98rem;
-      text-transform: uppercase;
       letter-spacing: 0.08em;
-      margin-bottom: 12px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 14px;
     }
 
-    .panel h3 {
-      margin-bottom: 12px;
-      font-size: 1.5rem;
+    .notes h2 {
+      font-size: 1.15rem;
+      margin-bottom: 14px;
     }
 
-    .panel p + p { margin-top: 10px; }
+    .notes p {
+      color: var(--text);
+    }
+
+    .notes p + p {
+      margin-top: 10px;
+    }
+
+    .notes .muted {
+      color: var(--muted);
+    }
 
     .table-wrap {
-      margin-top: 20px;
+      margin-top: 14px;
+      padding: 16px 18px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow);
       overflow: auto;
+    }
+
+    .link-row {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .link-row a {
+      color: var(--accent);
     }
 
     table {
@@ -202,44 +246,32 @@
 
     th, td {
       text-align: left;
-      padding: 12px 10px;
+      padding: 10px 8px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.08);
       vertical-align: top;
+      font-size: 14px;
     }
 
     th {
-      color: var(--player);
-      font-size: 12px;
-      letter-spacing: 0.08em;
+      color: var(--accent);
       text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 11px;
     }
-
-    td { color: var(--text); }
-    .muted { color: var(--muted); }
 
     .swatch {
       display: inline-block;
-      width: 12px;
-      height: 12px;
+      width: 10px;
+      height: 10px;
       border-radius: 999px;
       margin-right: 8px;
       vertical-align: middle;
     }
 
-    .footer {
-      margin-top: 20px;
-      padding: 16px 20px;
-      text-align: center;
-      color: var(--muted);
-      border: 1px solid var(--line);
-      border-radius: 18px;
-      background: rgba(10, 24, 35, 0.76);
-    }
-
     @media (max-width: 980px) {
-      .hero-grid,
-      .content-grid,
-      .facts {
+      .top-grid,
+      .middle-grid,
+      .stats {
         grid-template-columns: 1fr;
       }
     }
@@ -247,89 +279,76 @@
 </head>
 <body>
   <div class="page">
-    <header class="hero">
-      <div class="eyebrow">Modern Naval Warfare</div>
+    <section class="hero">
       <h1>South China Sea SLOC Map</h1>
       <p>
-        This page visualizes the current South China Sea route variants from
-        <code>shared/campaign-generator.mjs</code> in a tighter synthetic viewport centered on the main SLOC cluster.
+        This map visualizes the current South China Sea route corridors defined in
+        <code>shared/campaign-generator.mjs</code>. It is a code-derived operational geometry view, not a real chart or satellite basemap.
       </p>
-      <div class="hero-grid">
-        <div class="panel">
-          <h2>What You Are Seeing</h2>
-          <h3>Twelve Generator SLOC Variants</h3>
-          <p>
-            The South China Sea theater now carries twelve distinct route variants spanning the Reed Bank,
-            west-Palawan, central basin, Spratly, and western Luzon operational lanes.
-          </p>
-          <p>
-            This view is intentionally zoomed in so the SLOC patterns are easier to compare without wasting space on empty water.
-          </p>
+    </section>
+
+    <section class="top-grid">
+      <article class="panel">
+        <div class="eyebrow">What You Are Seeing</div>
+        <h2>Current Route Families In Code</h2>
+        <p>
+          The generator currently defines twelve South China Sea corridor variants for the
+          <code>south_china_sea</code> theater across player movement, enemy movement, support movement, and air search movement.
+        </p>
+        <p>
+          These corridors drive the sub-hunt campaign geometry used by the generator when it builds scenarios in this theater.
+        </p>
+      </article>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-label">Theater ID</div>
+          <div class="stat-value">south_china_sea</div>
         </div>
-        <div class="facts">
-          <div class="fact">
-            <div class="fact-label">Theater ID</div>
-            <div class="fact-value">south_china_sea</div>
-          </div>
-          <div class="fact">
-            <div class="fact-label">Route Variants</div>
-            <div class="fact-value">12</div>
-          </div>
-          <div class="fact">
-            <div class="fact-label">Presentation</div>
-            <div class="fact-value">SVG Only</div>
-          </div>
-          <div class="fact">
-            <div class="fact-label">Corridor Sets</div>
-            <div class="fact-value">48 Total</div>
-          </div>
+        <div class="stat">
+          <div class="stat-label">Route Variants</div>
+          <div class="stat-value">12</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Player Side</div>
+          <div class="stat-value">U.S. Submarine</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Corridor Sets</div>
+          <div class="stat-value">48 Total</div>
         </div>
       </div>
-    </header>
+    </section>
 
-    <div class="content-grid">
-      <section class="map-frame">
-        <div class="map-shell">
-          <svg id="route-map" viewBox="0 0 1566 775" role="img" aria-label="South China Sea route corridor overlay"></svg>
-          <div class="legend">
-            <div class="legend-item">
-              <div class="legend-title"><span class="legend-line" style="color: var(--player);"></span>Player Corridor</div>
-              <div class="legend-copy">U.S. submarine route family used to seed player spawn and withdrawal geometry.</div>
-            </div>
-            <div class="legend-item">
-              <div class="legend-title"><span class="legend-line" style="color: var(--enemy);"></span>Enemy Corridor</div>
-              <div class="legend-copy">Primary opposition transit chain used to derive Yasen and escort movement.</div>
-            </div>
-            <div class="legend-item">
-              <div class="legend-title"><span class="legend-line" style="color: var(--support);"></span>Support Corridor</div>
-              <div class="legend-copy">Support group geometry used for support or reinforcement movement.</div>
-            </div>
-            <div class="legend-item">
-              <div class="legend-title"><span class="legend-line" style="color: var(--air);"></span>Air Corridor</div>
-              <div class="legend-copy">Air or search route family used to seed P-8 and related search geometry.</div>
-            </div>
-            <div class="legend-item">
-              <div class="legend-title"><span class="legend-line" style="color: var(--land-stroke);"></span>Main Landmasses</div>
-              <div class="legend-copy">Simplified Palawan, Luzon, Mindoro, Visayas edge, Vietnam shelf, and NW Borneo context for orientation only.</div>
-            </div>
-          </div>
+    <section class="middle-grid">
+      <article class="map-panel">
+        <div class="map-title">South China Sea SLOC-Style Corridor Geometry</div>
+        <div class="map-subtitle">Derived directly from the current south_china_sea route variants in the generator.</div>
+        <div class="map-toolbar">
+          <div class="map-toolbar-note">Download the full corridor listing as a Google Earth KML overlay.</div>
+          <button id="download-kml" class="download-button" type="button">Download KML</button>
         </div>
-      </section>
+        <div class="link-row">Google basemap view: <a href="./south-china-sea-sloc-google-map.html">south-china-sea-sloc-google-map.html</a></div>
+        <svg id="route-map" viewBox="0 0 900 640" role="img" aria-label="South China Sea route corridor geometry plot"></svg>
+      </article>
 
-      <aside class="panel">
-        <h2>Notes</h2>
-        <h3>Zoomed Window</h3>
+      <aside class="panel notes">
+        <h3>Notes</h3>
+        <h2>Operational Interpretation</h2>
         <p>
-          The viewport is now focused on the operational cluster itself rather than the full broader South China Sea frame.
+          These are not shipping lanes in a legal or hydrographic sense. They are the route corridors the current generator uses as SLOC-like movement scaffolds in the South China Sea theater.
         </p>
         <p>
-          Because twelve variants would become unreadable with point labels, this version keeps the overlay cleaner and pushes exact coordinates into the table below.
+          The generator now chooses among multiple route variants, which broadens the operational feel beyond the original single Reed Bank-style axis.
+        </p>
+        <p>
+          If the code changes, this map should be regenerated so it stays aligned with its active corridor definitions.
         </p>
         <p class="muted">
-          Variant selection in the generator remains deterministic per campaign seed, but the theater now has much more route diversity available.
+          Coordinate bounds here are auto-fitted from the operational route cluster with a small padding margin added for readability.
         </p>
       </aside>
-    </div>
+    </section>
 
     <section class="table-wrap">
       <table>
@@ -345,10 +364,6 @@
         <tbody id="route-table"></tbody>
       </table>
     </section>
-
-    <footer class="footer">
-      Overlay routes: current South China Sea route variants in <code>shared/campaign-generator.mjs</code>.
-    </footer>
   </div>
 
   <script>
@@ -356,269 +371,204 @@
       {
         id: "reed_bank_gate",
         label: "Reed Bank Gate",
-        dash: "",
         routes: [
-          { key: "player", label: "Player Corridor", color: "#74d8ff", points: [[16.4, 118.78], [16.56, 118.56], [16.68, 118.92], [16.78, 119.12]] },
-          { key: "enemy", label: "Enemy Corridor", color: "#ff8d72", points: [[16.84, 119.32], [16.7, 119.16], [16.52, 118.88], [16.28, 118.2]] },
-          { key: "support", label: "Support Corridor", color: "#59e2b5", points: [[17.04, 118.42], [16.84, 118.14], [16.54, 117.96]] },
-          { key: "air", label: "Air Corridor", color: "#ffd06e", points: [[16.9, 118.94], [16.76, 118.72], [16.62, 118.44]] }
+          { key: "player", color: "#74d8ff", points: [[16.4, 118.78], [16.56, 118.56], [16.68, 118.92], [16.78, 119.12]] },
+          { key: "enemy", color: "#ff8d72", points: [[16.84, 119.32], [16.7, 119.16], [16.52, 118.88], [16.28, 118.2]] },
+          { key: "support", color: "#59e2b5", points: [[17.04, 118.42], [16.84, 118.14], [16.54, 117.96]] },
+          { key: "air", color: "#ffd06e", points: [[16.9, 118.94], [16.76, 118.72], [16.62, 118.44]] }
         ]
       },
       {
         id: "palawan_seam",
         label: "Palawan Seam",
-        dash: "18 10",
         routes: [
-          { key: "player", label: "Player Corridor", color: "#74d8ff", points: [[14.92, 117.94], [15.14, 117.62], [15.36, 117.28], [15.58, 116.98]] },
-          { key: "enemy", label: "Enemy Corridor", color: "#ff8d72", points: [[15.86, 116.74], [15.62, 116.98], [15.34, 117.26], [15.04, 117.58]] },
-          { key: "support", label: "Support Corridor", color: "#59e2b5", points: [[16.18, 117.16], [15.94, 116.86], [15.58, 116.52]] },
-          { key: "air", label: "Air Corridor", color: "#ffd06e", points: [[15.74, 117.46], [15.52, 117.14], [15.3, 116.84]] }
+          { key: "player", color: "#74d8ff", points: [[14.92, 117.94], [15.14, 117.62], [15.36, 117.28], [15.58, 116.98]] },
+          { key: "enemy", color: "#ff8d72", points: [[15.86, 116.74], [15.62, 116.98], [15.34, 117.26], [15.04, 117.58]] },
+          { key: "support", color: "#59e2b5", points: [[16.18, 117.16], [15.94, 116.86], [15.58, 116.52]] },
+          { key: "air", color: "#ffd06e", points: [[15.74, 117.46], [15.52, 117.14], [15.3, 116.84]] }
         ]
       },
       {
         id: "spratly_arc",
         label: "Spratly Arc",
-        dash: "6 10",
         routes: [
-          { key: "player", label: "Player Corridor", color: "#74d8ff", points: [[12.72, 114.9], [12.96, 115.26], [13.2, 115.68], [13.44, 116.02]] },
-          { key: "enemy", label: "Enemy Corridor", color: "#ff8d72", points: [[13.86, 116.28], [13.58, 115.98], [13.26, 115.64], [12.94, 115.22]] },
-          { key: "support", label: "Support Corridor", color: "#59e2b5", points: [[14.08, 115.4], [13.82, 115.02], [13.46, 114.72]] },
-          { key: "air", label: "Air Corridor", color: "#ffd06e", points: [[13.76, 116.02], [13.48, 115.66], [13.18, 115.3]] }
+          { key: "player", color: "#74d8ff", points: [[12.72, 114.9], [12.96, 115.26], [13.2, 115.68], [13.44, 116.02]] },
+          { key: "enemy", color: "#ff8d72", points: [[13.86, 116.28], [13.58, 115.98], [13.26, 115.64], [12.94, 115.22]] },
+          { key: "support", color: "#59e2b5", points: [[14.08, 115.4], [13.82, 115.02], [13.46, 114.72]] },
+          { key: "air", color: "#ffd06e", points: [[13.76, 116.02], [13.48, 115.66], [13.18, 115.3]] }
         ]
       },
       {
         id: "luzon_western_approach",
         label: "Luzon Western Approach",
-        dash: "18 10 5 10",
         routes: [
-          { key: "player", label: "Player Corridor", color: "#74d8ff", points: [[18.02, 119.22], [17.82, 118.96], [17.58, 118.64], [17.28, 118.34]] },
-          { key: "enemy", label: "Enemy Corridor", color: "#ff8d72", points: [[17.06, 118.18], [17.28, 118.46], [17.54, 118.82], [17.84, 119.08]] },
-          { key: "support", label: "Support Corridor", color: "#59e2b5", points: [[16.72, 117.84], [17.02, 118.08], [17.36, 118.32]] },
-          { key: "air", label: "Air Corridor", color: "#ffd06e", points: [[17.56, 119.04], [17.34, 118.74], [17.1, 118.42]] }
+          { key: "player", color: "#74d8ff", points: [[18.02, 119.22], [17.82, 118.96], [17.58, 118.64], [17.28, 118.34]] },
+          { key: "enemy", color: "#ff8d72", points: [[17.06, 118.18], [17.28, 118.46], [17.54, 118.82], [17.84, 119.08]] },
+          { key: "support", color: "#59e2b5", points: [[16.72, 117.84], [17.02, 118.08], [17.36, 118.32]] },
+          { key: "air", color: "#ffd06e", points: [[17.56, 119.04], [17.34, 118.74], [17.1, 118.42]] }
         ]
       },
       {
         id: "scarborough_sweep",
         label: "Scarborough Sweep",
-        dash: "30 10",
         routes: [
-          { key: "player", label: "Player Corridor", color: "#74d8ff", points: [[15.98, 118.86], [16.22, 119.08], [16.48, 119.34], [16.72, 119.58]] },
-          { key: "enemy", label: "Enemy Corridor", color: "#ff8d72", points: [[17.04, 120.08], [16.82, 119.82], [16.56, 119.48], [16.26, 119.16]] },
-          { key: "support", label: "Support Corridor", color: "#59e2b5", points: [[16.94, 119.22], [16.72, 118.96], [16.42, 118.74]] },
-          { key: "air", label: "Air Corridor", color: "#ffd06e", points: [[16.88, 119.72], [16.62, 119.42], [16.36, 119.16]] }
+          { key: "player", color: "#74d8ff", points: [[15.98, 118.86], [16.22, 119.08], [16.48, 119.34], [16.72, 119.58]] },
+          { key: "enemy", color: "#ff8d72", points: [[17.04, 120.08], [16.82, 119.82], [16.56, 119.48], [16.26, 119.16]] },
+          { key: "support", color: "#59e2b5", points: [[16.94, 119.22], [16.72, 118.96], [16.42, 118.74]] },
+          { key: "air", color: "#ffd06e", points: [[16.88, 119.72], [16.62, 119.42], [16.36, 119.16]] }
         ]
       },
       {
         id: "thitu_pivot",
         label: "Thitu Pivot",
-        dash: "10 10 2 10",
         routes: [
-          { key: "player", label: "Player Corridor", color: "#74d8ff", points: [[11.64, 114.88], [11.92, 115.14], [12.18, 115.44], [12.42, 115.78]] },
-          { key: "enemy", label: "Enemy Corridor", color: "#ff8d72", points: [[12.88, 116.02], [12.62, 115.72], [12.34, 115.42], [12.04, 115.14]] },
-          { key: "support", label: "Support Corridor", color: "#59e2b5", points: [[13.08, 115.32], [12.82, 115.04], [12.52, 114.78]] },
-          { key: "air", label: "Air Corridor", color: "#ffd06e", points: [[12.76, 115.82], [12.48, 115.52], [12.18, 115.22]] }
+          { key: "player", color: "#74d8ff", points: [[11.64, 114.88], [11.92, 115.14], [12.18, 115.44], [12.42, 115.78]] },
+          { key: "enemy", color: "#ff8d72", points: [[12.88, 116.02], [12.62, 115.72], [12.34, 115.42], [12.04, 115.14]] },
+          { key: "support", color: "#59e2b5", points: [[13.08, 115.32], [12.82, 115.04], [12.52, 114.78]] },
+          { key: "air", color: "#ffd06e", points: [[12.76, 115.82], [12.48, 115.52], [12.18, 115.22]] }
         ]
       },
       {
         id: "namyet_chain",
         label: "Namyet Chain",
-        dash: "3 9",
         routes: [
-          { key: "player", label: "Player Corridor", color: "#74d8ff", points: [[10.86, 115.42], [11.12, 115.74], [11.38, 116.06], [11.66, 116.34]] },
-          { key: "enemy", label: "Enemy Corridor", color: "#ff8d72", points: [[12.14, 116.72], [11.88, 116.46], [11.6, 116.16], [11.3, 115.88]] },
-          { key: "support", label: "Support Corridor", color: "#59e2b5", points: [[12.28, 116.1], [12.02, 115.82], [11.72, 115.54]] },
-          { key: "air", label: "Air Corridor", color: "#ffd06e", points: [[11.96, 116.46], [11.68, 116.18], [11.4, 115.9]] }
+          { key: "player", color: "#74d8ff", points: [[10.86, 115.42], [11.12, 115.74], [11.38, 116.06], [11.66, 116.34]] },
+          { key: "enemy", color: "#ff8d72", points: [[12.14, 116.72], [11.88, 116.46], [11.6, 116.16], [11.3, 115.88]] },
+          { key: "support", color: "#59e2b5", points: [[12.28, 116.1], [12.02, 115.82], [11.72, 115.54]] },
+          { key: "air", color: "#ffd06e", points: [[11.96, 116.46], [11.68, 116.18], [11.4, 115.9]] }
         ]
       },
       {
         id: "central_basin_run",
         label: "Central Basin Run",
-        dash: "24 8 6 8",
         routes: [
-          { key: "player", label: "Player Corridor", color: "#74d8ff", points: [[13.92, 116.66], [14.18, 116.98], [14.44, 117.28], [14.7, 117.56]] },
-          { key: "enemy", label: "Enemy Corridor", color: "#ff8d72", points: [[15.18, 117.84], [14.92, 117.54], [14.64, 117.24], [14.34, 116.92]] },
-          { key: "support", label: "Support Corridor", color: "#59e2b5", points: [[15.36, 117.2], [15.06, 116.92], [14.78, 116.62]] },
-          { key: "air", label: "Air Corridor", color: "#ffd06e", points: [[15.02, 117.62], [14.74, 117.32], [14.46, 117.02]] }
+          { key: "player", color: "#74d8ff", points: [[13.92, 116.66], [14.18, 116.98], [14.44, 117.28], [14.7, 117.56]] },
+          { key: "enemy", color: "#ff8d72", points: [[15.18, 117.84], [14.92, 117.54], [14.64, 117.24], [14.34, 116.92]] },
+          { key: "support", color: "#59e2b5", points: [[15.36, 117.2], [15.06, 116.92], [14.78, 116.62]] },
+          { key: "air", color: "#ffd06e", points: [[15.02, 117.62], [14.74, 117.32], [14.46, 117.02]] }
         ]
       },
       {
         id: "west_palawan_gate",
         label: "West Palawan Gate",
-        dash: "14 6",
         routes: [
-          { key: "player", label: "Player Corridor", color: "#74d8ff", points: [[11.78, 116.62], [12.02, 116.34], [12.28, 116.04], [12.54, 115.74]] },
-          { key: "enemy", label: "Enemy Corridor", color: "#ff8d72", points: [[13.08, 115.52], [12.84, 115.78], [12.56, 116.06], [12.26, 116.34]] },
-          { key: "support", label: "Support Corridor", color: "#59e2b5", points: [[13.28, 116.0], [12.98, 115.72], [12.68, 115.42]] },
-          { key: "air", label: "Air Corridor", color: "#ffd06e", points: [[12.96, 115.54], [12.68, 115.84], [12.38, 116.12]] }
+          { key: "player", color: "#74d8ff", points: [[11.78, 116.62], [12.02, 116.34], [12.28, 116.04], [12.54, 115.74]] },
+          { key: "enemy", color: "#ff8d72", points: [[13.08, 115.52], [12.84, 115.78], [12.56, 116.06], [12.26, 116.34]] },
+          { key: "support", color: "#59e2b5", points: [[13.28, 116.0], [12.98, 115.72], [12.68, 115.42]] },
+          { key: "air", color: "#ffd06e", points: [[12.96, 115.54], [12.68, 115.84], [12.38, 116.12]] }
         ]
       },
       {
         id: "balabac_extension",
         label: "Balabac Extension",
-        dash: "20 8 2 8 2 8",
         routes: [
-          { key: "player", label: "Player Corridor", color: "#74d8ff", points: [[9.84, 116.82], [10.12, 116.54], [10.38, 116.26], [10.66, 115.98]] },
-          { key: "enemy", label: "Enemy Corridor", color: "#ff8d72", points: [[11.08, 115.76], [10.84, 116.02], [10.58, 116.28], [10.3, 116.56]] },
-          { key: "support", label: "Support Corridor", color: "#59e2b5", points: [[11.32, 116.24], [11.04, 115.96], [10.76, 115.68]] },
-          { key: "air", label: "Air Corridor", color: "#ffd06e", points: [[11.02, 115.82], [10.74, 116.12], [10.46, 116.38]] }
+          { key: "player", color: "#74d8ff", points: [[9.84, 116.82], [10.12, 116.54], [10.38, 116.26], [10.66, 115.98]] },
+          { key: "enemy", color: "#ff8d72", points: [[11.08, 115.76], [10.84, 116.02], [10.58, 116.28], [10.3, 116.56]] },
+          { key: "support", color: "#59e2b5", points: [[11.32, 116.24], [11.04, 115.96], [10.76, 115.68]] },
+          { key: "air", color: "#ffd06e", points: [[11.02, 115.82], [10.74, 116.12], [10.46, 116.38]] }
         ]
       },
       {
         id: "calamian_ladder",
         label: "Calamian Ladder",
-        dash: "8 6 8 14",
         routes: [
-          { key: "player", label: "Player Corridor", color: "#74d8ff", points: [[11.86, 118.22], [12.12, 117.94], [12.4, 117.64], [12.68, 117.36]] },
-          { key: "enemy", label: "Enemy Corridor", color: "#ff8d72", points: [[13.18, 117.12], [12.92, 117.4], [12.64, 117.7], [12.34, 117.98]] },
-          { key: "support", label: "Support Corridor", color: "#59e2b5", points: [[13.4, 117.56], [13.08, 117.28], [12.8, 117.02]] },
-          { key: "air", label: "Air Corridor", color: "#ffd06e", points: [[13.02, 117.16], [12.76, 117.46], [12.48, 117.74]] }
+          { key: "player", color: "#74d8ff", points: [[11.86, 118.22], [12.12, 117.94], [12.4, 117.64], [12.68, 117.36]] },
+          { key: "enemy", color: "#ff8d72", points: [[13.18, 117.12], [12.92, 117.4], [12.64, 117.7], [12.34, 117.98]] },
+          { key: "support", color: "#59e2b5", points: [[13.4, 117.56], [13.08, 117.28], [12.8, 117.02]] },
+          { key: "air", color: "#ffd06e", points: [[13.02, 117.16], [12.76, 117.46], [12.48, 117.74]] }
         ]
       },
       {
         id: "commodore_trough",
         label: "Commodore Trough",
-        dash: "26 6",
         routes: [
-          { key: "player", label: "Player Corridor", color: "#74d8ff", points: [[14.84, 118.92], [15.1, 118.6], [15.34, 118.28], [15.58, 117.98]] },
-          { key: "enemy", label: "Enemy Corridor", color: "#ff8d72", points: [[16.02, 117.76], [15.8, 118.04], [15.56, 118.34], [15.3, 118.66]] },
-          { key: "support", label: "Support Corridor", color: "#59e2b5", points: [[16.22, 118.18], [15.94, 117.9], [15.66, 117.62]] },
-          { key: "air", label: "Air Corridor", color: "#ffd06e", points: [[15.86, 117.84], [15.6, 118.14], [15.34, 118.44]] }
+          { key: "player", color: "#74d8ff", points: [[14.84, 118.92], [15.1, 118.6], [15.34, 118.28], [15.58, 117.98]] },
+          { key: "enemy", color: "#ff8d72", points: [[16.02, 117.76], [15.8, 118.04], [15.56, 118.34], [15.3, 118.66]] },
+          { key: "support", color: "#59e2b5", points: [[16.22, 118.18], [15.94, 117.9], [15.66, 117.62]] },
+          { key: "air", color: "#ffd06e", points: [[15.86, 117.84], [15.6, 118.14], [15.34, 118.44]] }
         ]
-      }
-    ];
-
-    const landmasses = [
-      {
-        label: "Vietnam",
-        points: [[11.2, 113.6], [11.8, 113.9], [12.4, 114.3], [13.2, 114.8], [14.0, 115.2], [14.9, 115.6], [15.8, 115.9], [16.6, 116.1], [17.2, 116.1], [16.6, 115.7], [15.6, 115.2], [14.6, 114.6], [13.6, 114.1], [12.6, 113.7], [11.8, 113.5]]
-      },
-      {
-        label: "Palawan",
-        points: [[9.6, 117.6], [10.0, 117.8], [10.5, 117.95], [11.0, 117.95], [11.5, 117.82], [12.0, 117.62], [12.4, 117.42], [12.75, 117.18], [12.95, 116.96], [12.68, 117.04], [12.2, 117.26], [11.7, 117.48], [11.15, 117.66], [10.6, 117.72], [10.05, 117.64], [9.72, 117.52]]
-      },
-      {
-        label: "Luzon",
-        points: [[17.25, 119.98], [17.0, 119.78], [16.72, 119.56], [16.48, 119.36], [16.36, 119.28], [16.44, 119.44], [16.72, 119.7], [17.08, 119.94], [17.34, 120.02]]
-      },
-      {
-        label: "Mindoro",
-        points: [[13.66, 120.0], [13.48, 120.08], [13.32, 120.2], [13.26, 120.36], [13.4, 120.38], [13.56, 120.28], [13.7, 120.12]]
-      },
-      {
-        label: "Panay-Negros",
-        points: [[10.36, 119.98], [10.66, 120.14], [10.94, 120.3], [11.18, 120.48], [11.06, 120.68], [10.78, 120.66], [10.5, 120.5], [10.32, 120.22]]
-      },
-      {
-        label: "Cebu-Leyte",
-        points: [[10.0, 120.86], [10.24, 121.02], [10.52, 121.18], [10.78, 121.34], [10.96, 121.46], [10.74, 121.48], [10.44, 121.34], [10.16, 121.14]]
-      },
-      {
-        label: "NW Borneo",
-        points: [[9.5, 114.1], [9.9, 114.42], [10.36, 114.78], [10.78, 115.1], [11.1, 115.34], [10.84, 115.14], [10.42, 114.8], [9.98, 114.46], [9.62, 114.18]]
       }
     ];
 
     const svg = document.getElementById("route-map");
     const table = document.getElementById("route-table");
-    const width = 1566;
-    const height = 775;
-    const geoBounds = {
-      minLat: 9.35,
-      maxLat: 17.55,
-      minLon: 113.55,
-      maxLon: 120.45
-    };
+    const downloadKmlButton = document.getElementById("download-kml");
+    const width = 900;
+    const height = 640;
+    const plot = { left: 60, top: 18, right: 850, bottom: 600 };
+    const allPoints = variants.flatMap((variant) => variant.routes.flatMap((route) => route.points));
+    const lats = allPoints.map((point) => point[0]);
+    const lons = allPoints.map((point) => point[1]);
+    const minLat = Math.min(...lats) - 0.25;
+    const maxLat = Math.max(...lats) + 0.25;
+    const minLon = Math.min(...lons) - 0.25;
+    const maxLon = Math.max(...lons) + 0.25;
 
     function project([lat, lon]) {
-      const x = ((lon - geoBounds.minLon) / (geoBounds.maxLon - geoBounds.minLon)) * width;
-      const y = height - ((lat - geoBounds.minLat) / (geoBounds.maxLat - geoBounds.minLat)) * height;
+      const x = plot.left + ((lon - minLon) / (maxLon - minLon)) * (plot.right - plot.left);
+      const y = plot.bottom - ((lat - minLat) / (maxLat - minLat)) * (plot.bottom - plot.top);
       return [x, y];
     }
 
     function el(name, attrs = {}, text = "") {
       const node = document.createElementNS("http://www.w3.org/2000/svg", name);
       Object.entries(attrs).forEach(([key, value]) => node.setAttribute(key, String(value)));
-      if (text) {
-        node.textContent = text;
-      }
+      if (text) node.textContent = text;
       return node;
     }
 
-    function polygonCentroid(points) {
-      const totals = points.reduce((acc, [lat, lon]) => [acc[0] + lat, acc[1] + lon], [0, 0]);
-      return [totals[0] / points.length, totals[1] / points.length];
-    }
-
-    function densifyPolygon(points, subdivisions = 100) {
-      if (!Array.isArray(points) || points.length < 2 || subdivisions <= 1) {
-        return points;
-      }
-      const output = [];
-      for (let i = 0; i < points.length; i += 1) {
-        const start = points[i];
-        const end = points[(i + 1) % points.length];
-        output.push(start);
-        for (let step = 1; step < subdivisions; step += 1) {
-          const t = step / subdivisions;
-          output.push([
-            start[0] + ((end[0] - start[0]) * t),
-            start[1] + ((end[1] - start[1]) * t)
-          ]);
-        }
-      }
-      return output;
-    }
-
     function drawGrid() {
-      for (let lat = 10; lat <= 17; lat += 0.5) {
-        const [, y] = project([lat, geoBounds.minLon]);
+      svg.appendChild(el("rect", {
+        x: plot.left,
+        y: plot.top,
+        width: plot.right - plot.left,
+        height: plot.bottom - plot.top,
+        rx: 16,
+        fill: "rgba(255,255,255,0.015)",
+        stroke: "rgba(116, 216, 255, 0.16)",
+        "stroke-width": 1.2
+      }));
+
+      const latStart = Math.floor(minLat * 10) / 10;
+      const latEnd = Math.ceil(maxLat * 10) / 10;
+      const lonStart = Math.floor(minLon * 10) / 10;
+      const lonEnd = Math.ceil(maxLon * 10) / 10;
+
+      for (let lat = latStart; lat <= latEnd + 0.0001; lat += 0.2) {
+        const [, y] = project([lat, minLon]);
         svg.appendChild(el("line", {
-          x1: 0,
+          x1: plot.left,
           y1: y,
-          x2: width,
+          x2: plot.right,
           y2: y,
-          stroke: "rgba(255,255,255,0.06)",
+          stroke: "rgba(255,255,255,0.05)",
           "stroke-width": 1
         }));
+        svg.appendChild(el("text", {
+          x: 10,
+          y: y + 4,
+          fill: "#9ebccc",
+          "font-size": 11
+        }, `${lat.toFixed(1)}N`));
       }
 
-      for (let lon = 114; lon <= 120; lon += 0.5) {
-        const [x] = project([geoBounds.minLat, lon]);
+      for (let lon = lonStart; lon <= lonEnd + 0.0001; lon += 0.2) {
+        const [x] = project([minLat, lon]);
         svg.appendChild(el("line", {
           x1: x,
-          y1: 0,
+          y1: plot.top,
           x2: x,
-          y2: height,
-          stroke: "rgba(255,255,255,0.06)",
+          y2: plot.bottom,
+          stroke: "rgba(255,255,255,0.05)",
           "stroke-width": 1
         }));
-      }
-    }
-
-    function drawLandmasses() {
-      landmasses.forEach((landmass) => {
-        const densePoints = densifyPolygon(landmass.points, 100);
-        const coords = densePoints.map(project);
-        const pointsAttr = coords.map(([x, y]) => `${x},${y}`).join(" ");
-        svg.appendChild(el("polygon", {
-          points: pointsAttr,
-          fill: "rgba(95, 165, 92, 0.24)",
-          stroke: "rgba(136, 214, 122, 0.82)",
-          "stroke-width": 2.2,
-          "stroke-linejoin": "round"
-        }));
-
-        const [labelLat, labelLon] = polygonCentroid(densePoints);
-        const [labelX, labelY] = project([labelLat, labelLon]);
         svg.appendChild(el("text", {
-          x: labelX,
-          y: labelY,
-          fill: "#d9f0d2",
-          "font-size": 14,
-          "font-weight": 700,
-          "text-anchor": "middle"
-        }, landmass.label));
-      });
+          x: x - 10,
+          y: height - 6,
+          fill: "#9ebccc",
+          "font-size": 10
+        }, `${lon.toFixed(1)}E`));
+      }
     }
 
     function drawRoutes() {
@@ -629,39 +579,29 @@
         svg.appendChild(el("polyline", {
           points: pointsAttr,
           fill: "none",
-          stroke: "rgba(5, 16, 25, 0.48)",
-          "stroke-width": 8,
-          "stroke-linecap": "round",
-          "stroke-linejoin": "round",
-          "stroke-dasharray": variant.dash
-        }));
-
-        svg.appendChild(el("polyline", {
-          points: pointsAttr,
-          fill: "none",
           stroke: route.color,
-          "stroke-width": 4,
+          "stroke-width": 3,
           "stroke-linecap": "round",
-          "stroke-linejoin": "round",
-          "stroke-dasharray": variant.dash
+          "stroke-linejoin": "round"
         }));
 
-        coords.forEach(([x, y]) => {
+        coords.forEach(([x, y], index) => {
           svg.appendChild(el("circle", {
             cx: x,
             cy: y,
-            r: 5.6,
-            fill: "rgba(5, 16, 25, 0.58)"
-          }));
-
-          svg.appendChild(el("circle", {
-            cx: x,
-            cy: y,
-            r: 3.9,
+            r: 3.5,
             fill: route.color,
             stroke: "#ffffff",
-            "stroke-width": 1.2
+            "stroke-width": 1
           }));
+
+          svg.appendChild(el("text", {
+            x: x + 6,
+            y: y - 5,
+            fill: route.color,
+            "font-size": 10,
+            "font-weight": 700
+          }, `${route.key.toUpperCase()}-${index + 1}`));
         });
       }));
     }
@@ -673,7 +613,7 @@
           rows.push(`
             <tr>
               <td>${variant.label}</td>
-              <td><span class="swatch" style="background:${route.color};"></span>${route.label}</td>
+              <td><span class="swatch" style="background:${route.color};"></span>${route.key}</td>
               <td>${route.key.toUpperCase()}-${index + 1}</td>
               <td>${lat.toFixed(2)}</td>
               <td>${lon.toFixed(2)}</td>
@@ -684,10 +624,102 @@
       table.innerHTML = rows.join("");
     }
 
+    function escapeXml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll("\"", "&quot;")
+        .replaceAll("'", "&apos;");
+    }
+
+    function routeHexColor(routeColor) {
+      return routeColor.replace("#", "").toLowerCase();
+    }
+
+    function kmlColorFromHex(routeColor) {
+      const hex = routeHexColor(routeColor);
+      const red = hex.slice(0, 2);
+      const green = hex.slice(2, 4);
+      const blue = hex.slice(4, 6);
+      return `ff${blue}${green}${red}`;
+    }
+
+    function buildKml() {
+      const placemarks = [];
+
+      variants.forEach((variant) => variant.routes.forEach((route) => {
+        const styleId = `${variant.id}_${route.key}_style`;
+        const coordinates = route.points
+          .map(([lat, lon]) => `${lon.toFixed(6)},${lat.toFixed(6)},0`)
+          .join(" ");
+
+        placemarks.push(`
+    <Style id="${escapeXml(styleId)}">
+      <LineStyle>
+        <color>${kmlColorFromHex(route.color)}</color>
+        <width>3</width>
+      </LineStyle>
+      <IconStyle>
+        <color>${kmlColorFromHex(route.color)}</color>
+        <scale>0.8</scale>
+      </IconStyle>
+      <LabelStyle>
+        <color>${kmlColorFromHex(route.color)}</color>
+        <scale>0.8</scale>
+      </LabelStyle>
+    </Style>
+    <Placemark>
+      <name>${escapeXml(`${variant.label} | ${route.key}`)}</name>
+      <description>${escapeXml(`Route variant ${variant.id}, ${route.key} corridor from the MNW South China Sea generator.`)}</description>
+      <styleUrl>#${escapeXml(styleId)}</styleUrl>
+      <LineString>
+        <tessellate>1</tessellate>
+        <coordinates>${coordinates}</coordinates>
+      </LineString>
+    </Placemark>`);
+
+        route.points.forEach(([lat, lon], index) => {
+          placemarks.push(`
+    <Placemark>
+      <name>${escapeXml(`${route.key.toUpperCase()}-${index + 1}`)}</name>
+      <description>${escapeXml(`${variant.label} ${route.key} waypoint ${index + 1}`)}</description>
+      <styleUrl>#${escapeXml(styleId)}</styleUrl>
+      <Point>
+        <coordinates>${lon.toFixed(6)},${lat.toFixed(6)},0</coordinates>
+      </Point>
+    </Placemark>`);
+        });
+      }));
+
+      return `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>south-china-sea-sloc-map</name>
+    <description>South China Sea SLOC-style corridor geometry derived from shared/campaign-generator.mjs.</description>
+${placemarks.join("\n")}
+  </Document>
+</kml>
+`;
+    }
+
+    function downloadKml() {
+      const content = buildKml();
+      const blob = new Blob([content], { type: "application/vnd.google-earth.kml+xml" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "south-china-sea-sloc-map.kml";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+
     drawGrid();
-    drawLandmasses();
     drawRoutes();
     buildTable();
+    downloadKmlButton.addEventListener("click", downloadKml);
   </script>
 </body>
 </html>

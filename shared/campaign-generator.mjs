@@ -313,6 +313,315 @@ const THEATER_TEMPLATES = {
   }
 };
 
+const LAND_CLEARANCE_DEGREES = 0.12;
+const MAX_POINT_RETRIES = 48;
+const MAX_ROUTE_REPAIRS = 28;
+
+const THEATER_LAND_MASKS = {
+  luzon_strait: [
+    {
+      id: "southern_taiwan",
+      polygon: [[22.36, 120.62], [22.16, 121.06], [21.98, 121.34], [21.72, 121.22], [21.66, 120.82], [21.92, 120.5]]
+    },
+    {
+      id: "northern_luzon",
+      polygon: [[19.86, 121.12], [20.12, 121.78], [20.56, 122.38], [21.06, 122.54], [21.36, 122.06], [21.18, 121.28], [20.76, 120.9], [20.18, 120.84]]
+    },
+    {
+      id: "batanes",
+      polygon: [[20.28, 121.72], [20.42, 122.02], [20.64, 122.18], [20.82, 121.94], [20.74, 121.66], [20.48, 121.6]]
+    }
+  ],
+  south_china_sea: [
+    {
+      id: "west_luzon",
+      polygon: [[18.84, 119.5], [17.96, 120.0], [16.98, 120.42], [15.92, 120.56], [15.2, 120.26], [15.06, 119.76], [15.62, 119.28], [16.66, 119.12], [17.62, 119.06], [18.44, 119.14]]
+    },
+    {
+      id: "mindoro",
+      polygon: [[13.72, 120.28], [13.44, 121.02], [12.86, 121.28], [12.42, 121.08], [12.34, 120.46], [12.66, 120.02], [13.18, 119.92]]
+    },
+    {
+      id: "palawan",
+      polygon: [[11.76, 117.06], [11.24, 117.92], [10.52, 118.64], [9.82, 119.12], [8.94, 118.92], [8.48, 118.26], [8.68, 117.5], [9.42, 116.92], [10.3, 116.62], [11.18, 116.58]]
+    },
+    {
+      id: "northwest_borneo",
+      polygon: [[8.22, 114.06], [7.86, 115.02], [7.42, 116.18], [6.88, 117.0], [6.14, 117.1], [5.88, 116.08], [6.2, 114.88], [6.92, 114.08]]
+    },
+    {
+      id: "vietnam_shelf",
+      polygon: [[16.88, 109.64], [16.32, 110.54], [15.42, 111.48], [14.54, 112.22], [13.54, 112.92], [12.46, 113.48], [11.34, 114.12], [10.06, 114.76], [8.86, 115.12], [8.48, 114.54], [9.04, 113.44], [10.14, 112.18], [11.26, 111.0], [12.42, 109.98], [13.76, 109.18], [15.2, 108.82], [16.48, 108.94]]
+    }
+  ]
+};
+
+function toVector([lat, lon]) {
+  return { x: lon, y: lat };
+}
+
+function segmentDistanceSquared(point, start, end) {
+  const vx = end.x - start.x;
+  const vy = end.y - start.y;
+  if (vx === 0 && vy === 0) {
+    const dx = point.x - start.x;
+    const dy = point.y - start.y;
+    return (dx * dx) + (dy * dy);
+  }
+  const t = Math.max(0, Math.min(1, (((point.x - start.x) * vx) + ((point.y - start.y) * vy)) / ((vx * vx) + (vy * vy))));
+  const px = start.x + (t * vx);
+  const py = start.y + (t * vy);
+  const dx = point.x - px;
+  const dy = point.y - py;
+  return (dx * dx) + (dy * dy);
+}
+
+function orientation(a, b, c) {
+  const value = ((b.y - a.y) * (c.x - b.x)) - ((b.x - a.x) * (c.y - b.y));
+  if (Math.abs(value) < 1e-9) {
+    return 0;
+  }
+  return value > 0 ? 1 : 2;
+}
+
+function onSegment(a, b, c) {
+  return b.x <= Math.max(a.x, c.x) + 1e-9
+    && b.x + 1e-9 >= Math.min(a.x, c.x)
+    && b.y <= Math.max(a.y, c.y) + 1e-9
+    && b.y + 1e-9 >= Math.min(a.y, c.y);
+}
+
+function segmentsIntersect(pointA, pointB, pointC, pointD) {
+  const o1 = orientation(pointA, pointB, pointC);
+  const o2 = orientation(pointA, pointB, pointD);
+  const o3 = orientation(pointC, pointD, pointA);
+  const o4 = orientation(pointC, pointD, pointB);
+
+  if (o1 !== o2 && o3 !== o4) {
+    return true;
+  }
+
+  if (o1 === 0 && onSegment(pointA, pointC, pointB)) return true;
+  if (o2 === 0 && onSegment(pointA, pointD, pointB)) return true;
+  if (o3 === 0 && onSegment(pointC, pointA, pointD)) return true;
+  if (o4 === 0 && onSegment(pointC, pointB, pointD)) return true;
+
+  return false;
+}
+
+function pointInPolygon(point, polygon) {
+  const [lat, lon] = point;
+  let inside = false;
+  for (let index = 0, prior = polygon.length - 1; index < polygon.length; prior = index++) {
+    const [latA, lonA] = polygon[index];
+    const [latB, lonB] = polygon[prior];
+    const intersects = ((latA > lat) !== (latB > lat))
+      && (lon < (((lonB - lonA) * (lat - latA)) / ((latB - latA) || 1e-9)) + lonA);
+    if (intersects) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+function distanceToPolygon(point, polygon) {
+  const vectorPoint = toVector(point);
+  let minDistanceSquared = Number.POSITIVE_INFINITY;
+  for (let index = 0; index < polygon.length; index += 1) {
+    const start = toVector(polygon[index]);
+    const end = toVector(polygon[(index + 1) % polygon.length]);
+    minDistanceSquared = Math.min(minDistanceSquared, segmentDistanceSquared(vectorPoint, start, end));
+  }
+  return Math.sqrt(minDistanceSquared);
+}
+
+function polygonCentroid(polygon) {
+  const total = polygon.reduce((accumulator, [lat, lon]) => {
+    accumulator.lat += lat;
+    accumulator.lon += lon;
+    return accumulator;
+  }, { lat: 0, lon: 0 });
+  return [total.lat / polygon.length, total.lon / polygon.length];
+}
+
+function getLandMasks(theaterId) {
+  return THEATER_LAND_MASKS[theaterId] || [];
+}
+
+function pointViolatesLandMask(theaterId, point, clearance = LAND_CLEARANCE_DEGREES) {
+  for (const mask of getLandMasks(theaterId)) {
+    if (pointInPolygon(point, mask.polygon)) {
+      return mask;
+    }
+    if (distanceToPolygon(point, mask.polygon) < clearance) {
+      return mask;
+    }
+  }
+  return null;
+}
+
+function segmentViolatesLandMask(theaterId, fromPoint, toPoint, clearance = LAND_CLEARANCE_DEGREES) {
+  const midpoint = [
+    Number(((fromPoint[0] + toPoint[0]) / 2).toFixed(6)),
+    Number(((fromPoint[1] + toPoint[1]) / 2).toFixed(6))
+  ];
+  const midpointMask = pointViolatesLandMask(theaterId, midpoint, clearance);
+  if (midpointMask) {
+    return midpointMask;
+  }
+
+  const lineStart = toVector(fromPoint);
+  const lineEnd = toVector(toPoint);
+  for (const mask of getLandMasks(theaterId)) {
+    const polygon = mask.polygon;
+    for (let index = 0; index < polygon.length; index += 1) {
+      const edgeStart = toVector(polygon[index]);
+      const edgeEnd = toVector(polygon[(index + 1) % polygon.length]);
+      if (segmentsIntersect(lineStart, lineEnd, edgeStart, edgeEnd)) {
+        return mask;
+      }
+    }
+  }
+  return null;
+}
+
+function movePointOffshore(point, polygon, step = LAND_CLEARANCE_DEGREES * 1.35, multiplier = 1) {
+  const [centerLat, centerLon] = polygonCentroid(polygon);
+  const latVector = point[0] - centerLat;
+  const lonVector = point[1] - centerLon;
+  const magnitude = Math.hypot(latVector, lonVector) || 1;
+  return [
+    Number((point[0] + ((latVector / magnitude) * step * multiplier)).toFixed(6)),
+    Number((point[1] + ((lonVector / magnitude) * step * multiplier)).toFixed(6))
+  ];
+}
+
+function pickSafePoint(theaterId, seedPoint, rng, latDelta, lonDelta) {
+  let candidate = seedPoint;
+  let violatingMask = pointViolatesLandMask(theaterId, candidate);
+  if (!violatingMask) {
+    return candidate;
+  }
+
+  for (let attempt = 0; attempt < MAX_POINT_RETRIES; attempt += 1) {
+    candidate = jitterPoint(seedPoint, rng, latDelta, lonDelta);
+    violatingMask = pointViolatesLandMask(theaterId, candidate);
+    if (!violatingMask) {
+      return candidate;
+    }
+  }
+
+  candidate = seedPoint;
+  for (let attempt = 1; attempt <= 6; attempt += 1) {
+    candidate = movePointOffshore(candidate, violatingMask.polygon, LAND_CLEARANCE_DEGREES * 1.6, attempt);
+    violatingMask = pointViolatesLandMask(theaterId, candidate);
+    if (!violatingMask) {
+      return candidate;
+    }
+  }
+
+  return seedPoint;
+}
+
+function repairRoutePath(theaterId, points, rng) {
+  const repaired = [];
+  for (let index = 0; index < points.length; index += 1) {
+    let candidate = points[index];
+    candidate = pickSafePoint(theaterId, candidate, rng, 0.08, 0.12);
+    if (!repaired.length) {
+      repaired.push(candidate);
+      continue;
+    }
+
+    const previous = repaired[repaired.length - 1];
+    let violatingMask = segmentViolatesLandMask(theaterId, previous, candidate);
+    if (!violatingMask) {
+      repaired.push(candidate);
+      continue;
+    }
+
+    const basePoint = candidate;
+    for (let attempt = 0; attempt < MAX_ROUTE_REPAIRS; attempt += 1) {
+      candidate = jitterPoint(basePoint, rng, 0.1 + (attempt * 0.01), 0.14 + (attempt * 0.015));
+      candidate = pickSafePoint(theaterId, candidate, rng, 0.06, 0.08);
+      violatingMask = segmentViolatesLandMask(theaterId, previous, candidate);
+      if (!violatingMask) {
+        break;
+      }
+    }
+
+    if (violatingMask) {
+      candidate = movePointOffshore(basePoint, violatingMask.polygon, LAND_CLEARANCE_DEGREES * 1.8, 2);
+    }
+    repaired.push(candidate);
+  }
+  return repaired;
+}
+
+function applyGeometrySafety(theaterId, family, geometry, rng) {
+  const safeGeometry = { ...geometry };
+  const pointKeys = Object.entries(geometry)
+    .filter(([, value]) => Array.isArray(value) && value.length === 2 && value.every((entry) => typeof entry === "number"))
+    .map(([key]) => key);
+
+  for (const key of pointKeys) {
+    safeGeometry[key] = pickSafePoint(theaterId, geometry[key], rng, 0.08, 0.12);
+  }
+
+  if (family === "surface_shadow") {
+    const routePath = repairRoutePath(theaterId, [
+      safeGeometry.playerSpawn,
+      safeGeometry.datum,
+      safeGeometry.lead,
+      safeGeometry.destination,
+      safeGeometry.withdrawal
+    ], rng);
+    [safeGeometry.playerSpawn, safeGeometry.datum, safeGeometry.lead, safeGeometry.destination, safeGeometry.withdrawal] = routePath;
+
+    const enemyPath = repairRoutePath(theaterId, [
+      safeGeometry.lead,
+      safeGeometry.escort,
+      safeGeometry.barrier,
+      safeGeometry.destination
+    ], rng);
+    [safeGeometry.lead, safeGeometry.escort, safeGeometry.barrier, safeGeometry.destination] = enemyPath;
+  } else {
+    const routePath = repairRoutePath(theaterId, [
+      safeGeometry.playerSpawn,
+      safeGeometry.datum,
+      safeGeometry.yasen,
+      safeGeometry.egress,
+      safeGeometry.withdrawal
+    ], rng);
+    [safeGeometry.playerSpawn, safeGeometry.datum, safeGeometry.yasen, safeGeometry.egress, safeGeometry.withdrawal] = routePath;
+
+    const enemyPath = repairRoutePath(theaterId, [
+      safeGeometry.yasen,
+      safeGeometry.escort,
+      safeGeometry.egress
+    ], rng);
+    [safeGeometry.yasen, safeGeometry.escort, safeGeometry.egress] = enemyPath;
+
+    const supportPath = repairRoutePath(theaterId, [
+      safeGeometry.supportGroup,
+      safeGeometry.supportDest
+    ], rng);
+    [safeGeometry.supportGroup, safeGeometry.supportDest] = supportPath;
+  }
+
+  safeGeometry.routeSummary = family === "surface_shadow"
+    ? summarizePath([safeGeometry.playerSpawn, safeGeometry.datum, safeGeometry.lead, safeGeometry.destination, safeGeometry.withdrawal])
+    : summarizePath([safeGeometry.playerSpawn, safeGeometry.datum, safeGeometry.yasen, safeGeometry.egress, safeGeometry.withdrawal]);
+  safeGeometry.enemyTransitSummary = family === "surface_shadow"
+    ? summarizePath([safeGeometry.lead, safeGeometry.escort, safeGeometry.barrier, safeGeometry.destination])
+    : summarizePath([safeGeometry.yasen, safeGeometry.escort, safeGeometry.egress]);
+  safeGeometry.safety = {
+    landMasksApplied: getLandMasks(theaterId).length,
+    clearanceDegrees: LAND_CLEARANCE_DEGREES
+  };
+  return safeGeometry;
+}
+
 function mulberry32(seed) {
   let state = seed >>> 0;
   return () => {
@@ -500,9 +809,10 @@ function buildScenarioRecord(template, campaignId, missionDef, index, count, yea
     ? `${year}-04-02T04:20:00Z`
     : `${year}-03-14T02:30:00Z`;
   const startTime = plusHours(startBase, index * 18);
-  const geometry = template.family === "surface_shadow"
+  const rawGeometry = template.family === "surface_shadow"
     ? buildSurfaceShadowGeometry(template, index, count, rng)
     : buildSubHuntGeometry(template, index, count, rng);
+  const geometry = applyGeometrySafety(template.id, template.family, rawGeometry, rng);
   const missionKey = `${campaignId}.${campaignId}.${missionDef.slug}`;
 
   return {
@@ -575,9 +885,10 @@ export function buildContinuationScenario({
     lastOutcome
   ].join(":")));
   const densityCount = Math.max(4, priorMissionCount + 2);
-  const geometry = family === "surface_shadow"
+  const rawGeometry = family === "surface_shadow"
     ? buildSurfaceShadowGeometry(theater, missionIndex, densityCount, rng)
     : buildSubHuntGeometry(theater, missionIndex, densityCount, rng);
+  const geometry = applyGeometrySafety(theater.id, family, rawGeometry, rng);
   const outcomeLine = lastOutcome === "failure"
     ? "The previous mission ended badly, so the next operation is framed around regaining control without losing the boat."
     : lastOutcome === "partial_success"

@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>South China Sea SLOC Google Map | MNW Campaign Console</title>
+  <style>
+    :root {
+      --bg: #07131d;
+      --panel: rgba(14, 33, 47, 0.94);
+      --panel-2: rgba(17, 39, 55, 0.96);
+      --line: rgba(118, 202, 237, 0.14);
+      --text: #ecf7fb;
+      --muted: #9ebccc;
+      --accent: #74d8ff;
+      --accent-2: #59e2b5;
+      --accent-3: #ffd06e;
+      --enemy: #ff8d72;
+      --shadow: 0 28px 72px rgba(0, 0, 0, 0.34);
+      --radius: 22px;
+      --content-width: 1180px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(87, 224, 183, 0.12), transparent 24%),
+        radial-gradient(circle at top right, rgba(116, 216, 255, 0.14), transparent 24%),
+        linear-gradient(180deg, #07131d 0%, #091a25 48%, #07131d 100%);
+      font: 16px/1.55 "Segoe UI", "Aptos", system-ui, sans-serif;
+    }
+
+    code {
+      font-family: "Cascadia Code", Consolas, monospace;
+      color: var(--accent);
+    }
+
+    .page {
+      width: min(calc(100% - 28px), var(--content-width));
+      margin: 0 auto;
+      padding: 10px 0 28px;
+    }
+
+    .hero,
+    .panel,
+    .map-shell {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .hero,
+    .panel {
+      padding: 18px;
+    }
+
+    h1, h2, h3, p { margin: 0; }
+
+    h1 {
+      font-size: clamp(2.4rem, 4.8vw, 3.8rem);
+      line-height: 1.02;
+      max-width: 10ch;
+      margin-bottom: 12px;
+    }
+
+    .hero p {
+      color: var(--muted);
+      max-width: 980px;
+    }
+
+    .eyebrow {
+      color: var(--accent);
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      font-weight: 700;
+    }
+
+    .top-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    .panel p + p {
+      margin-top: 10px;
+    }
+
+    .config-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .config-input {
+      flex: 1 1 260px;
+      min-width: 220px;
+      border-radius: 14px;
+      border: 1px solid rgba(116, 216, 255, 0.2);
+      background: rgba(9, 26, 38, 0.94);
+      color: var(--text);
+      padding: 11px 14px;
+      font: 14px/1.2 "Segoe UI", "Aptos", system-ui, sans-serif;
+    }
+
+    .button {
+      border: 1px solid rgba(116, 216, 255, 0.28);
+      border-radius: 999px;
+      background: linear-gradient(180deg, rgba(23, 76, 108, 0.96), rgba(15, 56, 83, 0.96));
+      color: var(--text);
+      padding: 10px 16px;
+      font: 600 13px/1 "Segoe UI", "Aptos", system-ui, sans-serif;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition: transform 120ms ease, border-color 120ms ease, filter 120ms ease;
+    }
+
+    .button:hover {
+      transform: translateY(-1px);
+      border-color: rgba(116, 216, 255, 0.46);
+      filter: brightness(1.05);
+    }
+
+    .button.secondary {
+      background: rgba(12, 34, 49, 0.96);
+    }
+
+    .status {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .map-shell {
+      margin-top: 14px;
+      overflow: hidden;
+      background: var(--panel-2);
+    }
+
+    .map-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 16px 18px 12px;
+      border-bottom: 1px solid rgba(118, 202, 237, 0.12);
+    }
+
+    .map-title {
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .map-subtitle {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 2px;
+    }
+
+    .legend {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .swatch {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+    }
+
+    #map {
+      width: 100%;
+      height: 760px;
+      background: linear-gradient(180deg, rgba(11, 34, 50, 0.98), rgba(10, 28, 42, 0.98));
+    }
+
+    .footer-note {
+      padding: 12px 18px 18px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .link-row {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .link-row a {
+      color: var(--accent);
+    }
+
+    @media (max-width: 980px) {
+      .top-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .map-header {
+        flex-direction: column;
+      }
+
+      #map {
+        height: 620px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <section class="hero">
+      <div class="eyebrow">Google Basemap View</div>
+      <h1>South China Sea SLOC Google Map</h1>
+      <p>
+        This page renders the exact South China Sea route variants from <code>shared/campaign-generator.mjs</code> as Google Maps
+        polylines and labeled markers. It does not use KML import, so it avoids the deprecated Google KML overlay path.
+      </p>
+    </section>
+
+    <section class="top-grid">
+      <article class="panel">
+        <div class="eyebrow">Setup</div>
+        <h2>Load Your Google Maps API Key</h2>
+        <p>
+          Enter a browser-safe Google Maps JavaScript API key, or pass it in the URL as <code>?apiKey=YOUR_KEY</code>.
+          The page stores the key in local browser storage so you do not have to re-enter it every time.
+        </p>
+        <div class="config-row">
+          <input id="api-key-input" class="config-input" type="password" placeholder="Paste Google Maps JavaScript API key">
+          <button id="load-map-button" class="button" type="button">Load Google Map</button>
+          <button id="clear-key-button" class="button secondary" type="button">Clear Saved Key</button>
+        </div>
+        <div id="map-status" class="status">Waiting for API key.</div>
+        <div class="link-row">
+          SVG view: <a href="./south-china-sea-sloc-map.html">south-china-sea-sloc-map.html</a>
+        </div>
+      </article>
+
+      <aside class="panel">
+        <div class="eyebrow">Behavior</div>
+        <h2>What This Page Draws</h2>
+        <p>Each variant gets four route layers: player, enemy, support, and air.</p>
+        <p>Markers are labeled with the same waypoint naming convention used in the SVG map: <code>PLAYER-1</code>, <code>ENEMY-2</code>, and so on.</p>
+        <p>The map auto-fits to all route points after load.</p>
+      </aside>
+    </section>
+
+    <section class="map-shell">
+      <div class="map-header">
+        <div>
+          <div class="map-title">Operational Route Overlay</div>
+          <div class="map-subtitle">Direct polyline rendering on a Google basemap.</div>
+        </div>
+        <div class="legend">
+          <span class="legend-item"><span class="swatch" style="background:#74d8ff"></span>Player</span>
+          <span class="legend-item"><span class="swatch" style="background:#ff8d72"></span>Enemy</span>
+          <span class="legend-item"><span class="swatch" style="background:#59e2b5"></span>Support</span>
+          <span class="legend-item"><span class="swatch" style="background:#ffd06e"></span>Air</span>
+        </div>
+      </div>
+      <div id="map" aria-label="Google map showing South China Sea route variants"></div>
+      <div class="footer-note">
+        Google Maps requires a valid client-side API key and normal Google Maps Platform billing/configuration on your project.
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "mnw_google_maps_api_key";
+    const variants = [
+      {
+        id: "reed_bank_gate",
+        label: "Reed Bank Gate",
+        routes: [
+          { key: "player", color: "#74d8ff", points: [[16.4, 118.78], [16.56, 118.56], [16.68, 118.92], [16.78, 119.12]] },
+          { key: "enemy", color: "#ff8d72", points: [[16.84, 119.32], [16.7, 119.16], [16.52, 118.88], [16.28, 118.2]] },
+          { key: "support", color: "#59e2b5", points: [[17.04, 118.42], [16.84, 118.14], [16.54, 117.96]] },
+          { key: "air", color: "#ffd06e", points: [[16.9, 118.94], [16.76, 118.72], [16.62, 118.44]] }
+        ]
+      },
+      {
+        id: "palawan_seam",
+        label: "Palawan Seam",
+        routes: [
+          { key: "player", color: "#74d8ff", points: [[14.92, 117.94], [15.14, 117.62], [15.36, 117.28], [15.58, 116.98]] },
+          { key: "enemy", color: "#ff8d72", points: [[15.86, 116.74], [15.62, 116.98], [15.34, 117.26], [15.04, 117.58]] },
+          { key: "support", color: "#59e2b5", points: [[16.18, 117.16], [15.94, 116.86], [15.58, 116.52]] },
+          { key: "air", color: "#ffd06e", points: [[15.74, 117.46], [15.52, 117.14], [15.3, 116.84]] }
+        ]
+      },
+      {
+        id: "spratly_arc",
+        label: "Spratly Arc",
+        routes: [
+          { key: "player", color: "#74d8ff", points: [[12.72, 114.9], [12.96, 115.26], [13.2, 115.68], [13.44, 116.02]] },
+          { key: "enemy", color: "#ff8d72", points: [[13.86, 116.28], [13.58, 115.98], [13.26, 115.64], [12.94, 115.22]] },
+          { key: "support", color: "#59e2b5", points: [[14.08, 115.4], [13.82, 115.02], [13.46, 114.72]] },
+          { key: "air", color: "#ffd06e", points: [[13.76, 116.02], [13.48, 115.66], [13.18, 115.3]] }
+        ]
+      },
+      {
+        id: "luzon_western_approach",
+        label: "Luzon Western Approach",
+        routes: [
+          { key: "player", color: "#74d8ff", points: [[18.02, 119.22], [17.82, 118.96], [17.58, 118.64], [17.28, 118.34]] },
+          { key: "enemy", color: "#ff8d72", points: [[17.06, 118.18], [17.28, 118.46], [17.54, 118.82], [17.84, 119.08]] },
+          { key: "support", color: "#59e2b5", points: [[16.72, 117.84], [17.02, 118.08], [17.36, 118.32]] },
+          { key: "air", color: "#ffd06e", points: [[17.56, 119.04], [17.34, 118.74], [17.1, 118.42]] }
+        ]
+      },
+      {
+        id: "scarborough_sweep",
+        label: "Scarborough Sweep",
+        routes: [
+          { key: "player", color: "#74d8ff", points: [[15.98, 118.86], [16.22, 119.08], [16.48, 119.34], [16.72, 119.58]] },
+          { key: "enemy", color: "#ff8d72", points: [[17.04, 120.08], [16.82, 119.82], [16.56, 119.48], [16.26, 119.16]] },
+          { key: "support", color: "#59e2b5", points: [[16.94, 119.22], [16.72, 118.96], [16.42, 118.74]] },
+          { key: "air", color: "#ffd06e", points: [[16.88, 119.72], [16.62, 119.42], [16.36, 119.16]] }
+        ]
+      },
+      {
+        id: "thitu_pivot",
+        label: "Thitu Pivot",
+        routes: [
+          { key: "player", color: "#74d8ff", points: [[11.64, 114.88], [11.92, 115.14], [12.18, 115.44], [12.42, 115.78]] },
+          { key: "enemy", color: "#ff8d72", points: [[12.88, 116.02], [12.62, 115.72], [12.34, 115.42], [12.04, 115.14]] },
+          { key: "support", color: "#59e2b5", points: [[13.08, 115.32], [12.82, 115.04], [12.52, 114.78]] },
+          { key: "air", color: "#ffd06e", points: [[12.76, 115.82], [12.48, 115.52], [12.18, 115.22]] }
+        ]
+      },
+      {
+        id: "namyet_chain",
+        label: "Namyet Chain",
+        routes: [
+          { key: "player", color: "#74d8ff", points: [[10.86, 115.42], [11.12, 115.74], [11.38, 116.06], [11.66, 116.34]] },
+          { key: "enemy", color: "#ff8d72", points: [[12.14, 116.72], [11.88, 116.46], [11.6, 116.16], [11.3, 115.88]] },
+          { key: "support", color: "#59e2b5", points: [[12.28, 116.1], [12.02, 115.82], [11.72, 115.54]] },
+          { key: "air", color: "#ffd06e", points: [[11.96, 116.46], [11.68, 116.18], [11.4, 115.9]] }
+        ]
+      },
+      {
+        id: "central_basin_run",
+        label: "Central Basin Run",
+        routes: [
+          { key: "player", color: "#74d8ff", points: [[13.92, 116.66], [14.18, 116.98], [14.44, 117.28], [14.7, 117.56]] },
+          { key: "enemy", color: "#ff8d72", points: [[15.18, 117.84], [14.92, 117.54], [14.64, 117.24], [14.34, 116.92]] },
+          { key: "support", color: "#59e2b5", points: [[15.36, 117.2], [15.06, 116.92], [14.78, 116.62]] },
+          { key: "air", color: "#ffd06e", points: [[15.02, 117.62], [14.74, 117.32], [14.46, 117.02]] }
+        ]
+      },
+      {
+        id: "west_palawan_gate",
+        label: "West Palawan Gate",
+        routes: [
+          { key: "player", color: "#74d8ff", points: [[11.78, 116.62], [12.02, 116.34], [12.28, 116.04], [12.54, 115.74]] },
+          { key: "enemy", color: "#ff8d72", points: [[13.08, 115.52], [12.84, 115.78], [12.56, 116.06], [12.26, 116.34]] },
+          { key: "support", color: "#59e2b5", points: [[13.28, 116.0], [12.98, 115.72], [12.68, 115.42]] },
+          { key: "air", color: "#ffd06e", points: [[12.96, 115.54], [12.68, 115.84], [12.38, 116.12]] }
+        ]
+      },
+      {
+        id: "balabac_extension",
+        label: "Balabac Extension",
+        routes: [
+          { key: "player", color: "#74d8ff", points: [[9.84, 116.82], [10.12, 116.54], [10.38, 116.26], [10.66, 115.98]] },
+          { key: "enemy", color: "#ff8d72", points: [[11.08, 115.76], [10.84, 116.02], [10.58, 116.28], [10.3, 116.56]] },
+          { key: "support", color: "#59e2b5", points: [[11.32, 116.24], [11.04, 115.96], [10.76, 115.68]] },
+          { key: "air", color: "#ffd06e", points: [[11.02, 115.82], [10.74, 116.12], [10.46, 116.38]] }
+        ]
+      },
+      {
+        id: "calamian_ladder",
+        label: "Calamian Ladder",
+        routes: [
+          { key: "player", color: "#74d8ff", points: [[11.86, 118.22], [12.12, 117.94], [12.4, 117.64], [12.68, 117.36]] },
+          { key: "enemy", color: "#ff8d72", points: [[13.18, 117.12], [12.92, 117.4], [12.64, 117.7], [12.34, 117.98]] },
+          { key: "support", color: "#59e2b5", points: [[13.4, 117.56], [13.08, 117.28], [12.8, 117.02]] },
+          { key: "air", color: "#ffd06e", points: [[13.02, 117.16], [12.76, 117.46], [12.48, 117.74]] }
+        ]
+      },
+      {
+        id: "commodore_trough",
+        label: "Commodore Trough",
+        routes: [
+          { key: "player", color: "#74d8ff", points: [[14.84, 118.92], [15.1, 118.6], [15.34, 118.28], [15.58, 117.98]] },
+          { key: "enemy", color: "#ff8d72", points: [[16.02, 117.76], [15.8, 118.04], [15.56, 118.34], [15.3, 118.66]] },
+          { key: "support", color: "#59e2b5", points: [[16.22, 118.18], [15.94, 117.9], [15.66, 117.62]] },
+          { key: "air", color: "#ffd06e", points: [[15.86, 117.84], [15.6, 118.14], [15.34, 118.44]] }
+        ]
+      }
+    ];
+
+    const mapStatus = document.getElementById("map-status");
+    const apiKeyInput = document.getElementById("api-key-input");
+    const loadMapButton = document.getElementById("load-map-button");
+    const clearKeyButton = document.getElementById("clear-key-button");
+    const queryKey = new URLSearchParams(window.location.search).get("apiKey");
+    let googleMapsScriptRequested = false;
+    let mapInitialized = false;
+
+    function setStatus(message) {
+      mapStatus.textContent = message;
+    }
+
+    function getStoredApiKey() {
+      return queryKey || window.localStorage.getItem(STORAGE_KEY) || "";
+    }
+
+    function saveApiKey(value) {
+      window.localStorage.setItem(STORAGE_KEY, value);
+    }
+
+    function clearApiKey() {
+      window.localStorage.removeItem(STORAGE_KEY);
+    }
+
+    function waypointLabel(routeKey, index) {
+      return `${routeKey.toUpperCase()}-${index + 1}`;
+    }
+
+    function buildLatLng(point) {
+      return { lat: point[0], lng: point[1] };
+    }
+
+    function renderGoogleMap() {
+      if (mapInitialized || !window.google?.maps) {
+        return;
+      }
+
+      const map = new google.maps.Map(document.getElementById("map"), {
+        center: { lat: 13.8, lng: 117.2 },
+        zoom: 6,
+        mapTypeId: "terrain",
+        streetViewControl: false,
+        fullscreenControl: true,
+        mapTypeControl: true
+      });
+
+      const bounds = new google.maps.LatLngBounds();
+
+      variants.forEach((variant) => variant.routes.forEach((route) => {
+        const path = route.points.map((point) => {
+          const latLng = buildLatLng(point);
+          bounds.extend(latLng);
+          return latLng;
+        });
+
+        new google.maps.Polyline({
+          map,
+          path,
+          strokeColor: route.color,
+          strokeOpacity: 0.95,
+          strokeWeight: 3
+        });
+
+        route.points.forEach((point, index) => {
+          const latLng = buildLatLng(point);
+          new google.maps.Marker({
+            map,
+            position: latLng,
+            title: `${variant.label} | ${waypointLabel(route.key, index)}`,
+            label: {
+              text: waypointLabel(route.key, index),
+              color: route.color,
+              fontSize: "10px",
+              fontWeight: "700"
+            },
+            icon: {
+              path: google.maps.SymbolPath.CIRCLE,
+              scale: 5,
+              fillColor: route.color,
+              fillOpacity: 1,
+              strokeColor: "#ffffff",
+              strokeWeight: 1.2
+            }
+          });
+        });
+      }));
+
+      map.fitBounds(bounds, 50);
+      mapInitialized = true;
+      setStatus("Google basemap loaded. All South China Sea route variants are rendered directly from the in-page route listing.");
+    }
+
+    function loadGoogleMaps(apiKey) {
+      if (!apiKey) {
+        setStatus("Enter a Google Maps JavaScript API key first.");
+        return;
+      }
+
+      if (window.google?.maps) {
+        renderGoogleMap();
+        return;
+      }
+
+      if (googleMapsScriptRequested) {
+        setStatus("Google Maps script is already loading.");
+        return;
+      }
+
+      googleMapsScriptRequested = true;
+      saveApiKey(apiKey);
+      setStatus("Loading Google Maps JavaScript API...");
+      window.__mnwInitGoogleMap = renderGoogleMap;
+
+      const script = document.createElement("script");
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&callback=__mnwInitGoogleMap`;
+      script.async = true;
+      script.defer = true;
+      script.onerror = () => {
+        googleMapsScriptRequested = false;
+        setStatus("Google Maps failed to load. Check that the API key is valid and that the Maps JavaScript API is enabled.");
+      };
+      document.head.appendChild(script);
+    }
+
+    apiKeyInput.value = getStoredApiKey();
+
+    loadMapButton.addEventListener("click", () => {
+      loadGoogleMaps(apiKeyInput.value.trim());
+    });
+
+    clearKeyButton.addEventListener("click", () => {
+      clearApiKey();
+      apiKeyInput.value = "";
+      setStatus("Saved API key cleared from this browser.");
+    });
+
+    if (apiKeyInput.value.trim()) {
+      loadGoogleMaps(apiKeyInput.value.trim());
+    }
+  </script>
+</body>
+</html>
