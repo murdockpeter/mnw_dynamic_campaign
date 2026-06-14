@@ -484,10 +484,11 @@ export function buildQuestScript(campaignMissionIds) {
 }
 
 export function buildScenarioPackageArtifacts({ blueprint, scenario }) {
+  const intelLine = scenario.intel?.prose || "Enemy activity is assessed along the current route family, but cueing remains imprecise.";
   const messages = {
     mission_from: blueprint.theaterId === "luzon_strait" ? "COMSUBPAC" : "COMSUBLANT",
     mission_to: blueprint.player.name.toUpperCase(),
-    mission_objectives: `BT\nSUBJ: ${scenario.name.toUpperCase()}\n\n1. ${scenario.summary}\n\n2. ${scenario.cue}\n\n3. Route Summary:\n   ${scenario.geometry.routeSummary}\n\n4. Enemy Transit:\n   ${scenario.geometry.enemyTransitSummary}\n\n5. Keep your submarine combat effective and raise antennas when you are ready to conclude the mission.`,
+    mission_objectives: `BT\nSUBJ: ${scenario.name.toUpperCase()}\n\n1. ${scenario.summary}\n\n2. ${scenario.cue}\n\n3. Intel Cue:\n   ${intelLine}\n\n4. Route Summary:\n   ${scenario.geometry.routeSummary}\n\n5. Enemy Transit:\n   ${scenario.geometry.enemyTransitSummary}\n\n6. Keep your submarine combat effective and raise antennas when you are ready to conclude the mission.`,
     mission_success: `BT\nSUBJ: MISSION STATUS - SUCCESS\n\n${scenario.successText}`
   };
   const metadata = missionMetadataRecord(

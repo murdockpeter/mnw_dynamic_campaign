@@ -893,6 +893,66 @@ function summarizePath(points) {
     .join(" -> ");
 }
 
+function approximateBearingDegrees([latA, lonA], [latB, lonB]) {
+  const lat1 = latA * (Math.PI / 180);
+  const lat2 = latB * (Math.PI / 180);
+  const dLon = (lonB - lonA) * (Math.PI / 180);
+  const y = Math.sin(dLon) * Math.cos(lat2);
+  const x = (Math.cos(lat1) * Math.sin(lat2))
+    - (Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon));
+  const bearing = (Math.atan2(y, x) * (180 / Math.PI) + 360) % 360;
+  return bearing;
+}
+
+function bearingLabelFromDegrees(degrees) {
+  const labels = ["north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west"];
+  const index = Math.round((((degrees % 360) + 360) % 360) / 45) % labels.length;
+  return labels[index];
+}
+
+function estimateIntelConfidence(template, geometry, index, rng) {
+  const base = template.family === "surface_shadow" ? 72 : 64;
+  const densityModifier = Number(geometry?.density || 1) >= 3 ? 6 : 0;
+  const progressionModifier = Math.min(10, index * 3);
+  const noise = Math.round((rng() - 0.5) * 14);
+  return Math.max(42, Math.min(91, base + densityModifier + progressionModifier + noise));
+}
+
+function buildScenarioIntel(template, geometry, forces, index, rng) {
+  const playerReference = geometry.playerSpawn;
+  const likelyContact = template.family === "surface_shadow"
+    ? geometry.lead
+    : geometry.yasen;
+  const axisReference = template.family === "surface_shadow"
+    ? geometry.destination
+    : geometry.egress;
+  const confidence = estimateIntelConfidence(template, geometry, index, rng);
+  const likelyBearing = bearingLabelFromDegrees(approximateBearingDegrees(playerReference, likelyContact));
+  const axisBearing = bearingLabelFromDegrees(approximateBearingDegrees(playerReference, axisReference));
+  const sectorLabel = geometry.routeVariantLabel || forces?.sector || "main axis";
+  const confidenceLabel = confidence >= 78
+    ? "high-confidence"
+    : confidence >= 62
+      ? "moderate-confidence"
+      : "low-confidence";
+  const likelyEnemy = template.family === "surface_shadow"
+    ? "enemy surface activity"
+    : "enemy submarine activity";
+  const likelyLocationText = `${likelyEnemy} is most likely ${likelyBearing} of your ingress track near ${sectorLabel}`;
+  const confidenceText = `${confidenceLabel} cueing (${confidence}% assessed confidence)`;
+  const prose = `${likelyLocationText}. Treat that as ${confidenceText}, not precise localization.`;
+  return {
+    confidence,
+    confidenceLabel,
+    likelyBearing,
+    axisBearing,
+    sectorLabel,
+    likelyLocationText,
+    confidenceText,
+    prose
+  };
+}
+
 function getRouteVariantSet(template, index, rng) {
   const variants = template.route?.variants;
   if (Array.isArray(variants) && variants.length) {
@@ -1199,6 +1259,7 @@ function buildScenarioRecord(template, campaignId, missionDef, index, count, yea
     : buildSubHuntGeometry(template, index, count, rng);
   const geometry = applyGeometrySafety(template.id, template.family, rawGeometry, rng);
   const forces = buildScenarioForces(template, geometry, index, theaterPicture, rng);
+  const intel = buildScenarioIntel(template, geometry, forces, index, rng);
   const missionKey = `${campaignId}.${campaignId}.${missionDef.slug}`;
 
   return {
@@ -1213,6 +1274,7 @@ function buildScenarioRecord(template, campaignId, missionDef, index, count, yea
     startMnw: startTime.mnw,
     geometry,
     forces,
+    intel,
     description: `${missionDef.summary} ${missionDef.cue}`,
     objectiveText: "Keep your submarine combat effective and raise antennas to conclude the mission.",
     successText: `${missionDef.name} surveillance is complete. Higher command has the refined route picture and can posture the next move using your report.`
@@ -1280,6 +1342,7 @@ export function buildContinuationScenario({
     : buildSubHuntGeometry(theater, missionIndex, densityCount, rng);
   const geometry = applyGeometrySafety(theater.id, family, rawGeometry, rng);
   const forces = buildScenarioForces(theater, geometry, missionIndex, theaterPicture, rng);
+  const intel = buildScenarioIntel(theater, geometry, forces, missionIndex, rng);
   const outcomeLine = lastOutcome === "failure"
     ? "The previous mission ended badly, so the next operation is framed around regaining control without losing the boat."
     : lastOutcome === "partial_success"
@@ -1307,6 +1370,7 @@ export function buildContinuationScenario({
     startMnw: formatMnwFromIso(startIso),
     geometry,
     forces,
+    intel,
     description,
     objectiveText,
     successText,
