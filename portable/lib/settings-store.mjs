@@ -9,7 +9,7 @@ function defaultSettings() {
     gameCampaignPath: defaults.gameCampaignPath,
     userCampaignPath: defaults.userCampaignPath,
     preferredCampaignId: "silent_meridian",
-    preferredPackageId: "iron_archipelago",
+    preferredPackageId: "silent_meridian",
     preferredPackageSourceDir: "",
     preferredPackageOutputPath: "",
     firstLaunchComplete: false

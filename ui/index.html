@@ -27,11 +27,6 @@
         </div>
       </div>
 
-      <div class="panel">
-        <h2>Workflow Status</h2>
-        <div id="workflow-status" class="stack-list"></div>
-      </div>
-
       <div class="panel mode-scope mode-tracking-only">
         <h2>Campaign</h2>
         <div id="campaign-summary" class="kv-list"></div>
@@ -190,40 +185,28 @@
               <span>Player Unit Name</span>
               <input id="wizard-player-name" type="text" value="USS Annapolis">
             </label>
-            <div class="builder-actions">
-              <button id="wizard-generate" type="button">Write Campaign Files</button>
-              <button id="wizard-build" type="button">Build Package</button>
-              <button id="wizard-deploy" type="button">Deploy Package</button>
-            </div>
             <p id="wizard-status" class="muted builder-help">
               Write campaign files first, then build and deploy. The desktop app also initializes Campaign Tracking for the first mission.
             </p>
           </div>
 
-          <details class="card collapsible-card authoring-advanced-card">
-            <summary class="collapsible-summary">
+          <section class="card authoring-flow-card">
+            <div class="card-head compact-card-head">
               <div>
-                <strong>Blueprint Preview</strong>
-                <div class="muted">Optional: open this only if you want to inspect the generated route logic and scenario flow.</div>
+                <h3>Authoring Flow</h3>
+                <div id="authoring-flow-summary" class="muted">Follow the highlighted step to move the campaign forward.</div>
               </div>
-              <span class="badge alt">Optional</span>
-            </summary>
-            <div class="collapsible-content">
-              <div class="builder-actions compact-actions">
-                <button id="wizard-preview" type="button">Refresh Blueprint Preview</button>
-              </div>
-              <div class="wizard-grid">
-                <div class="wizard-preview">
-                  <div class="preview-head">Blueprint Summary</div>
-                  <div id="wizard-summary" class="wizard-summary"></div>
-                </div>
-                <div class="wizard-preview">
-                  <div class="preview-head">Scenario Flow</div>
-                  <div id="wizard-scenarios" class="wizard-scenarios"></div>
-                </div>
-              </div>
+              <span id="authoring-flow-ready" class="badge alt">Waiting</span>
             </div>
-          </details>
+            <div id="authoring-flow" class="authoring-flow"></div>
+            <div class="builder-actions authoring-flow-actions">
+              <button id="wizard-generate" type="button">Write Campaign Files</button>
+              <button id="wizard-build" type="button">Build Package</button>
+              <button id="wizard-deploy" type="button">Deploy Package</button>
+              <button id="wizard-start-over" type="button" class="ghost-button">Start Over</button>
+            </div>
+          </section>
+
         </section>
 
         <section class="grid two-up">

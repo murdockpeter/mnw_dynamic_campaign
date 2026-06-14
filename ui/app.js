@@ -10,6 +10,7 @@ let currentWizardBlueprint = null;
 let desktopInfo = null;
 let packageIdSyncEnabled = true;
 let workflowStatus = null;
+let authoringStageOverride = null;
 
 async function loadJson(targetPath) {
   const response = await fetch(targetPath);
@@ -105,42 +106,130 @@ function renderDesktopStatus(info) {
   `;
 }
 
+function getAuthoringFlowStepKey(status) {
+  if (authoringStageOverride) {
+    return authoringStageOverride;
+  }
+  if (!status?.steps?.length) {
+    return "setup";
+  }
+  const nextPending = status.steps.find((step) => ["setup", "files", "build", "deploy"].includes(step.key) && step.state !== "complete");
+  if (nextPending) {
+    return nextPending.key;
+  }
+  if (!status.readyToPlay) {
+    return "ready";
+  }
+  return "ready";
+}
+
+function getVisibleAuthoringFlowSteps(status) {
+  if (!status) {
+    return [];
+  }
+  const flowSteps = [
+    ...status.steps.filter((step) => ["setup", "files", "build", "deploy"].includes(step.key)),
+    {
+      key: "ready",
+      label: "Ready In MNW",
+      state: status.readyToPlay ? "complete" : "pending",
+      detail: status.readyToPlay
+        ? "Package is deployed and Campaign Tracking has a live runtime snapshot."
+        : "After deploy, load the campaign in MNW and refresh Campaign Tracking."
+    }
+  ];
+
+  if (!authoringStageOverride) {
+    return flowSteps;
+  }
+
+  const overrideIndex = flowSteps.findIndex((step) => step.key === authoringStageOverride);
+  if (overrideIndex === -1) {
+    return flowSteps;
+  }
+
+  return flowSteps.map((step, index) => {
+    if (index < overrideIndex) {
+      return step;
+    }
+    if (index === overrideIndex) {
+      return { ...step, state: "pending" };
+    }
+    return { ...step, state: "pending" };
+  });
+}
+
+function updateAuthoringActionState(status = workflowStatus) {
+  const currentStepKey = getAuthoringFlowStepKey(status);
+  const desktopEnabled = Boolean(desktopApi);
+  const actionButtons = {
+    files: document.getElementById("wizard-generate"),
+    build: document.getElementById("wizard-build"),
+    deploy: document.getElementById("wizard-deploy")
+  };
+
+  Object.entries(actionButtons).forEach(([key, button]) => {
+    if (!button) {
+      return;
+    }
+    button.disabled = !desktopEnabled || currentStepKey !== key;
+  });
+
+  const startOverButton = document.getElementById("wizard-start-over");
+  if (startOverButton) {
+    const hasProgress = Boolean(status?.steps?.some((step) => step.state === "complete")) || Boolean(authoringStageOverride);
+    startOverButton.disabled = !desktopEnabled || !hasProgress;
+  }
+}
+
 function renderWorkflowStatus(status) {
-  const root = document.getElementById("workflow-status");
-  if (!root) {
+  workflowStatus = status;
+  const root = document.getElementById("authoring-flow");
+  const summary = document.getElementById("authoring-flow-summary");
+  const readyBadge = document.getElementById("authoring-flow-ready");
+  if (!root || !summary || !readyBadge) {
     return;
   }
   if (!status) {
+    summary.textContent = "Workflow state is only available in the Electron desktop app.";
+    readyBadge.textContent = "Browser Preview";
     root.innerHTML = `
-      <div class="status-summary">
-        <div class="title">Browser Preview Mode</div>
-        <div class="meta">Workflow status becomes available in the packaged desktop app.</div>
+      <div class="flow-step current">
+        <div class="flow-step-head">
+          <div class="flow-step-index">Step 01</div>
+          <div class="flow-step-state">Preview Only</div>
+        </div>
+        <div class="flow-step-title">Desktop Setup</div>
+        <div class="flow-step-detail">Launch the packaged desktop app to save settings, write files, build, deploy, and track workflow progress.</div>
       </div>
     `;
+    updateAuthoringActionState(null);
     return;
   }
-  workflowStatus = status;
-  const readyPill = status.readyToPlay
-    ? '<span class="pill ok">Ready To Play</span>'
-    : '<span class="pill warn">Needs Attention</span>';
-  root.innerHTML = `
-    <div class="status-summary">
-      <div class="title">${status.campaignId}</div>
-      <div class="meta">${readyPill}</div>
-      <div class="meta">${status.recommendation}</div>
-    </div>
-    <div class="status-checklist">
-      ${status.steps.map((step) => `
-        <div class="status-step">
-          <span class="pill ${step.state === "complete" ? "ok" : "warn"}">${step.state === "complete" ? "Done" : "Next"}</span>
-          <div>
-            <div class="status-step-label">${step.label}</div>
-            <div class="status-step-detail">${step.detail}</div>
-          </div>
+
+  const flowSteps = getVisibleAuthoringFlowSteps(status);
+  const currentKey = getAuthoringFlowStepKey(status);
+
+  summary.textContent = authoringStageOverride
+    ? `${status.campaignId}: Start over is active. Follow the highlighted step to rebuild the package flow.`
+    : `${status.campaignId}: ${status.recommendation}`;
+  readyBadge.textContent = status.readyToPlay && !authoringStageOverride ? "Ready To Play" : "In Progress";
+  readyBadge.className = `badge ${status.readyToPlay && !authoringStageOverride ? "" : "alt"}`;
+  root.innerHTML = flowSteps.map((step, index) => {
+    const stateLabel = step.state === "complete" ? "Complete" : currentKey === step.key ? "Current" : "Waiting";
+    const stateClass = step.state === "complete" ? "complete" : currentKey === step.key ? "current" : "locked pending";
+    return `
+      <div class="flow-step ${stateClass}">
+        <div class="flow-step-head">
+          <div class="flow-step-index">Step ${String(index + 1).padStart(2, "0")}</div>
+          <div class="flow-step-state">${stateLabel}</div>
         </div>
-      `).join("")}
-    </div>
-  `;
+        <div class="flow-step-title">${step.label}</div>
+        <div class="flow-step-detail">${step.detail}</div>
+      </div>
+    `;
+  }).join("");
+  updateAuthoringActionState(status);
 }
 
 async function refreshWorkflowStatus() {
@@ -717,7 +806,7 @@ function syncAuthoringDefaults({ preferredCampaignId }, options = {}) {
     wizardTitle.value = campaignIdToTitle(preferredCampaignId) || "Generated Campaign";
   }
   if (options.refreshPreview !== false && document.getElementById("wizard-theater")) {
-    renderWizardPreview(buildCampaignBlueprint(collectWizardSpec()));
+    refreshCurrentWizardBlueprint();
   }
 }
 
@@ -737,43 +826,9 @@ function setSettingsStatus(message) {
   document.getElementById("settings-status").textContent = message;
 }
 
-function renderWizardPreview(blueprint) {
-  currentWizardBlueprint = blueprint;
-  const enemySummary = blueprint.enemies
-    .map((enemy) => `${enemy.name} | ${enemy.faction} ${enemy.platformType}`)
-    .join("<br>");
-  document.getElementById("wizard-summary").innerHTML = `
-    <div class="wizard-block">
-      <strong>${blueprint.title}</strong>
-      <div class="wizard-meta">${blueprint.theaterName} | ${blueprint.toneLabel} | Seed ${blueprint.seed}</div>
-      <div class="muted">${blueprint.description}</div>
-    </div>
-    <div class="wizard-block">
-      <strong>Player</strong>
-      <div class="wizard-meta">${blueprint.player.name} | ${blueprint.player.faction} ${blueprint.player.platformType}</div>
-      <div class="muted">DBID ${blueprint.player.dbid} | Package namespace: ${blueprint.packageNamespace}</div>
-    </div>
-    <div class="wizard-block">
-      <strong>Opposing Force</strong>
-      <div class="wizard-meta">${blueprint.enemies.length} tracked opposing units</div>
-      <div class="muted">${enemySummary}</div>
-    </div>
-    <div class="wizard-block">
-      <strong>Route Logic</strong>
-      <div class="wizard-meta">${blueprint.family} geometry</div>
-      <div class="muted">Player and opposition pathing are seeded from theater corridors, then jittered deterministically from the campaign seed.</div>
-    </div>
-  `;
-  document.getElementById("wizard-scenarios").innerHTML = blueprint.scenarios.map((scenario, index) => `
-    <div class="wizard-block">
-      <strong>Scenario ${index + 1}: ${scenario.name}</strong>
-      <div class="wizard-meta">${scenario.missionId}</div>
-      ${scenario.geometry.routeVariantLabel ? `<div class="wizard-meta">Route Variant: ${scenario.geometry.routeVariantLabel}</div>` : ""}
-      <div class="muted">${scenario.summary}</div>
-      <div class="muted"><code>${scenario.geometry.routeSummary}</code></div>
-      <div class="muted">Enemy Transit: ${scenario.geometry.enemyTransitSummary}</div>
-    </div>
-  `).join("");
+function refreshCurrentWizardBlueprint() {
+  currentWizardBlueprint = buildCampaignBlueprint(collectWizardSpec());
+  return currentWizardBlueprint;
 }
 
 function collectWizardSpec() {
@@ -909,12 +964,28 @@ function syncWizardDefaultsWithTheater() {
 }
 
 function toggleDesktopOnlyButtons(enabled) {
-  ["wizard-generate", "wizard-build", "wizard-deploy", "desktop-export-runtime", "builder-save", "continuation-generate"].forEach((id) => {
+  ["desktop-export-runtime", "builder-save", "continuation-generate"].forEach((id) => {
     const button = document.getElementById(id);
     if (button) {
       button.disabled = !enabled;
     }
   });
+  updateAuthoringActionState(workflowStatus);
+}
+
+function resetAuthoringFlow() {
+  authoringStageOverride = "files";
+  populateWizardSelectors();
+  syncAuthoringDefaults({
+    preferredCampaignId: document.getElementById("settings-campaign-id")?.value.trim() || "generated_campaign"
+  }, {
+    syncTitle: true,
+    refreshPreview: false
+  });
+  syncWizardDefaultsWithTheater();
+  refreshCurrentWizardBlueprint();
+  renderWorkflowStatus(workflowStatus);
+  setWizardStatus("Authoring reset to the first action step. Existing files on disk remain until you overwrite them.");
 }
 
 function initializeGuideLink() {
@@ -937,23 +1008,23 @@ async function initializeWizard() {
   }
   populateWizardSelectors();
   syncWizardDefaultsWithTheater();
-  renderWizardPreview(buildCampaignBlueprint(collectWizardSpec()));
+  refreshCurrentWizardBlueprint();
   document.getElementById("wizard-theater").onchange = () => {
     syncWizardDefaultsWithTheater();
-    renderWizardPreview(buildCampaignBlueprint(collectWizardSpec()));
+    refreshCurrentWizardBlueprint();
   };
   ["wizard-title", "wizard-campaign-id", "wizard-tone", "wizard-year", "wizard-scenario-count", "wizard-player-name"].forEach((id) => {
-    document.getElementById(id).oninput = () => renderWizardPreview(buildCampaignBlueprint(collectWizardSpec()));
+    document.getElementById(id).oninput = () => refreshCurrentWizardBlueprint();
   });
-  document.getElementById("wizard-preview").onclick = () => {
-    renderWizardPreview(buildCampaignBlueprint(collectWizardSpec()));
-    setWizardStatus("Preview updated using the deterministic rule-based generator.");
+  document.getElementById("wizard-start-over").onclick = () => {
+    resetAuthoringFlow();
   };
   document.getElementById("wizard-generate").onclick = async () => {
     if (!desktopApi) {
       setWizardStatus("Desktop app required to write campaign files.");
       return;
     }
+    authoringStageOverride = null;
     const result = await desktopApi.generateCampaign({ spec: collectWizardSpec(), dryRun: false });
     document.getElementById("desktop-package-id").value = result.blueprint.campaignId;
     document.getElementById("desktop-campaign-id").value = result.blueprint.campaignId;
@@ -973,6 +1044,7 @@ async function initializeWizard() {
       setWizardStatus("Desktop app required to build packages.");
       return;
     }
+    authoringStageOverride = null;
     const blueprint = currentWizardBlueprint || buildCampaignBlueprint(collectWizardSpec());
     const result = await desktopApi.buildPackage({
       sourceDir: `${desktopInfo.workspaceRoot}/src/packages/${blueprint.campaignId}`,
@@ -987,6 +1059,7 @@ async function initializeWizard() {
       setWizardStatus("Desktop app required to deploy packages.");
       return;
     }
+    authoringStageOverride = null;
     const blueprint = currentWizardBlueprint || buildCampaignBlueprint(collectWizardSpec());
     const result = await desktopApi.deployPackage({
       packagePath: `${desktopInfo.workspaceRoot}/dist/${blueprint.campaignId}.kyt`
@@ -1024,8 +1097,8 @@ async function initializeDesktopSettings() {
     ...(desktopInfo?.defaults || {}),
     preferredCampaignId: "silent_meridian",
     preferredPackageId: "silent_meridian",
-    preferredPackageSourceDir: desktopInfo ? `${desktopInfo.workspaceRoot}/src/packages/iron_archipelago` : "",
-    preferredPackageOutputPath: desktopInfo ? `${desktopInfo.workspaceRoot}/dist/iron_archipelago.kyt` : "",
+    preferredPackageSourceDir: desktopInfo ? `${desktopInfo.workspaceRoot}/src/packages/silent_meridian` : "",
+    preferredPackageOutputPath: desktopInfo ? `${desktopInfo.workspaceRoot}/dist/silent_meridian.kyt` : "",
     firstLaunchComplete: false
   };
   const settings = desktopApi ? await desktopApi.loadSettings() : fallbackSettings;

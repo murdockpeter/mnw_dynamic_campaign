@@ -3,7 +3,7 @@ import fs from "node:fs/promises";
 
 import { buildPackage } from "./build-package.mjs";
 import { appendContinuationScenario } from "./continue-campaign.mjs";
-import { defaultGamePaths, ensureDir, readJson, repoRoot, writeJson } from "./fs-helpers.mjs";
+import { defaultGamePaths, ensureDir, md5File, readJson, repoRoot, writeJson } from "./fs-helpers.mjs";
 import { deployPackage } from "./deploy-package.mjs";
 import { generateCampaign } from "./generate-campaign.mjs";
 import { exportRuntimePayload, ingestMissionResult, ingestMissionResultPayload } from "./runtime.mjs";
@@ -83,8 +83,19 @@ export async function getWorkflowStatusForDesktop({ campaignId, packageId, setti
   const setupComplete = Boolean(settings.firstLaunchComplete && settings.gameCampaignPath && settings.userCampaignPath);
   const filesWritten = await pathExists(manifestPath) && await pathExists(questPath);
   const builtPackage = await pathExists(outputPath);
-  const deployedToGame = gameDeployPath ? await pathExists(gameDeployPath) : false;
-  const deployedToUser = userDeployPath ? await pathExists(userDeployPath) : false;
+  const builtPackageHash = builtPackage ? await md5File(outputPath) : null;
+  const gameDeploymentExists = gameDeployPath ? await pathExists(gameDeployPath) : false;
+  const userDeploymentExists = userDeployPath ? await pathExists(userDeployPath) : false;
+  const deployedToGame = Boolean(
+    builtPackageHash
+    && gameDeploymentExists
+    && await md5File(gameDeployPath) === builtPackageHash
+  );
+  const deployedToUser = Boolean(
+    builtPackageHash
+    && userDeploymentExists
+    && await md5File(userDeployPath) === builtPackageHash
+  );
   const runtimeSnapshotExported = await pathExists(runtimeSnapshotPath);
   const runtimeStateExists = await pathExists(statePath);
   const missionResults = await safeReadJson(resultPath, []);
@@ -117,7 +128,9 @@ export async function getWorkflowStatusForDesktop({ campaignId, packageId, setti
       state: (deployedToGame || deployedToUser) ? "complete" : "pending",
       detail: (deployedToGame || deployedToUser)
         ? `Deployment found${deployedToGame ? " in game path" : ""}${deployedToGame && deployedToUser ? " and" : ""}${deployedToUser ? " in user path" : ""}.`
-        : "Deploy the package to MNW."
+        : (gameDeploymentExists || userDeploymentExists)
+          ? "A deployed package exists, but it does not match the current build. Deploy again."
+          : "Deploy the package to MNW."
     },
     {
       key: "runtime",

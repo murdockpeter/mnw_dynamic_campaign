@@ -178,12 +178,16 @@ body::after {
 
 .stack-item .title {
   font-weight: 700;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .stack-item .meta {
   color: var(--muted);
   margin-top: 4px;
   font-size: 13px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .status-summary {
@@ -203,30 +207,177 @@ body::after {
   font-size: 13px;
 }
 
-.status-checklist {
-  display: grid;
-  gap: 10px;
+.status-flow-wrap {
   margin-top: 12px;
+  overflow-x: auto;
+  padding-bottom: 4px;
 }
 
-.status-step {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 10px;
-  align-items: start;
+.status-flow {
+  display: inline-flex;
+  align-items: stretch;
+  gap: 8px;
+  min-width: 100%;
+}
+
+.status-node {
+  min-width: 180px;
+  max-width: 180px;
   padding: 10px 12px;
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(111, 212, 255, 0.08);
 }
 
-.status-step-label {
+.status-node.complete {
+  border-color: rgba(79, 224, 179, 0.18);
+}
+
+.status-node.current {
+  border-color: rgba(255, 184, 77, 0.26);
+  box-shadow: 0 0 0 1px rgba(255, 184, 77, 0.08) inset;
+}
+
+.status-arrow {
+  display: inline-flex;
+  align-items: center;
+  color: var(--muted);
+  font-size: 18px;
+  padding: 0 2px;
+}
+
+.status-node-label {
   font-weight: 700;
+  margin-top: 8px;
 }
 
-.status-step-detail {
+.status-node-detail {
   color: var(--muted);
   font-size: 13px;
   margin-top: 2px;
+}
+
+.authoring-flow-card {
+  margin-top: 20px;
+}
+
+.compact-card-head {
+  margin-bottom: 16px;
+}
+
+.compact-card-head .muted {
+  margin-top: 4px;
+}
+
+.authoring-flow {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.flow-step {
+  position: relative;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(111, 212, 255, 0.08);
+  min-height: 126px;
+}
+
+.flow-step::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 6px);
+  width: 12px;
+  height: 1px;
+  background: rgba(155, 188, 204, 0.3);
+}
+
+.flow-step:last-child::after {
+  display: none;
+}
+
+.flow-step.complete {
+  border-color: rgba(79, 224, 179, 0.2);
+  background: linear-gradient(180deg, rgba(16, 57, 63, 0.5), rgba(13, 29, 42, 0.94));
+}
+
+.flow-step.current {
+  border-color: rgba(255, 184, 77, 0.36);
+  box-shadow: 0 0 0 1px rgba(255, 184, 77, 0.14) inset;
+}
+
+.flow-step.locked {
+  opacity: 0.72;
+}
+
+.flow-step.pending {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.flow-step-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.flow-step-index {
+  color: var(--accent);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.flow-step-state {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.flow-step-title {
+  margin-top: 16px;
+  font-size: 18px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.flow-step-detail {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.authoring-flow-actions {
+  margin-top: 18px;
+}
+
+.builder-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+  border-color: rgba(111, 212, 255, 0.08);
+  background: linear-gradient(180deg, rgba(20, 55, 78, 0.44), rgba(16, 38, 55, 0.5));
+}
+
+.builder-actions button:disabled:hover {
+  border-color: rgba(111, 212, 255, 0.08);
+  background: linear-gradient(180deg, rgba(20, 55, 78, 0.44), rgba(16, 38, 55, 0.5));
+}
+
+.ghost-button {
+  background: transparent;
+  border-color: rgba(255, 184, 77, 0.22);
+  color: var(--accent-3);
+}
+
+.ghost-button:hover {
+  border-color: rgba(255, 184, 77, 0.34);
+  background: rgba(255, 184, 77, 0.06);
 }
 
 .future-list {
@@ -697,5 +848,18 @@ code {
   .builder-grid,
   .field-grid {
     grid-template-columns: 1fr;
+  }
+
+  .authoring-flow {
+    grid-template-columns: 1fr;
+  }
+
+  .flow-step::after {
+    top: auto;
+    bottom: -7px;
+    left: 50%;
+    width: 1px;
+    height: 14px;
+    transform: translateX(-50%);
   }
 }
