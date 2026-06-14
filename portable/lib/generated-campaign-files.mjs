@@ -511,34 +511,24 @@ export async function buildGeneratedCampaignFiles({ templateRoot, spec }) {
     current_mission_id: firstMissionId,
     campaign_clock: blueprint.scenarios[0].startIso,
     order_of_battle: {
-      [blueprint.player.unitId]: {
-        unit_id: blueprint.player.unitId,
-        name: blueprint.player.name,
-        faction: blueprint.player.faction,
-        platform_type: blueprint.player.platformType,
-        dbid: blueprint.player.dbid,
-        readiness: 1.0,
-        damage: 0.0,
-        destroyed: false,
-        ammo: { ...blueprint.player.ammo },
-        tags: ["player"],
-        notes: {}
-      },
       ...Object.fromEntries(
-        blueprint.enemies.map((enemy) => [
-          enemy.unitId,
+        blueprint.theaterUnits.map((unit) => [
+          unit.unitId,
           {
-            unit_id: enemy.unitId,
-            name: enemy.name,
-            faction: enemy.faction,
-            platform_type: enemy.platformType,
-            dbid: enemy.dbid,
+            unit_id: unit.unitId,
+            name: unit.name,
+            faction: unit.faction,
+            platform_type: unit.platformType,
+            dbid: unit.dbid,
             readiness: 1.0,
             damage: 0.0,
             destroyed: false,
-            ammo: {},
-            tags: ["enemy"],
-            notes: {}
+            ammo: { ...(unit.ammo || {}) },
+            tags: [...(unit.tags || [])],
+            notes: {
+              ...(unit.notes || {}),
+              ...(blueprint.theaterPicture?.units?.[unit.unitId] || {})
+            }
           }
         ])
       )
@@ -547,7 +537,8 @@ export async function buildGeneratedCampaignFiles({ templateRoot, spec }) {
     world_state: {
       escalation_level: 1,
       tone: blueprint.tone,
-      route_family: blueprint.family
+      route_family: blueprint.family,
+      theater_picture: blueprint.theaterPicture
     },
     module_state: {
       damage: {

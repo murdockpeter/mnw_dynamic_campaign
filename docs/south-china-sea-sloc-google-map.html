@@ -133,6 +133,12 @@
       background: rgba(12, 34, 49, 0.96);
     }
 
+    .button.toggle-active {
+      border-color: rgba(89, 226, 181, 0.46);
+      background: rgba(89, 226, 181, 0.14);
+      color: var(--accent-2);
+    }
+
     .status {
       margin-top: 10px;
       color: var(--muted);
@@ -245,6 +251,7 @@
         <div class="config-row">
           <input id="api-key-input" class="config-input" type="password" placeholder="Paste Google Maps JavaScript API key">
           <button id="load-map-button" class="button" type="button">Load Google Map</button>
+          <button id="toggle-orbat-button" class="button secondary" type="button">Toggle Developer ORBAT</button>
           <button id="clear-key-button" class="button secondary" type="button">Clear Saved Key</button>
         </div>
         <div id="map-status" class="status">Waiting for API key.</div>
@@ -273,6 +280,7 @@
           <span class="legend-item"><span class="swatch" style="background:#ff8d72"></span>Enemy</span>
           <span class="legend-item"><span class="swatch" style="background:#59e2b5"></span>Support</span>
           <span class="legend-item"><span class="swatch" style="background:#ffd06e"></span>Air</span>
+          <span class="legend-item"><span class="swatch" style="background:#ffffff"></span>Developer ORBAT</span>
         </div>
       </div>
       <div id="map" aria-label="Google map showing South China Sea route variants"></div>
@@ -410,10 +418,38 @@
     const mapStatus = document.getElementById("map-status");
     const apiKeyInput = document.getElementById("api-key-input");
     const loadMapButton = document.getElementById("load-map-button");
+    const toggleOrbatButton = document.getElementById("toggle-orbat-button");
     const clearKeyButton = document.getElementById("clear-key-button");
     const queryKey = new URLSearchParams(window.location.search).get("apiKey");
     let googleMapsScriptRequested = false;
     let mapInitialized = false;
+    let mapInstance = null;
+    let developerOrbatEnabled = true;
+    let developerOverlays = [];
+    const sectorCenters = Object.fromEntries(variants.map((variant) => {
+      const points = variant.routes.flatMap((route) => route.points);
+      const lat = points.reduce((sum, point) => sum + point[0], 0) / points.length;
+      const lng = points.reduce((sum, point) => sum + point[1], 0) / points.length;
+      return [variant.id, { lat, lng, label: variant.label }];
+    }));
+    const developerOrbat = [
+      { unitId: "uss_north_dakota", name: "USS North Dakota", side: "US", role: "Player SSN", sector: "reed_bank_gate", status: "On patrol" },
+      { unitId: "uss_spruance", name: "USS Spruance", side: "US", role: "Surface support", sector: "scarborough_sweep", status: "Barrier support" },
+      { unitId: "uss_dewey", name: "USS Dewey", side: "US", role: "Surface support", sector: "palawan_seam", status: "On station" },
+      { unitId: "uss_stockdale", name: "USS Stockdale", side: "US", role: "Surface support", sector: "central_basin_run", status: "Transit reserve" },
+      { unitId: "p8_barrier_one", name: "P-8A Barrier One", side: "US", role: "MPA", sector: "reed_bank_gate", status: "Search cycle" },
+      { unitId: "p8_barrier_two", name: "P-8A Barrier Two", side: "US", role: "MPA", sector: "spratly_arc", status: "Standby tasking" },
+      { unitId: "yasen_severodvinsk", name: "Yasen Severodvinsk", side: "RU", role: "Primary breakout SSN", sector: "reed_bank_gate", status: "Known contact" },
+      { unitId: "yasen_kazan", name: "Yasen Kazan", side: "RU", role: "Secondary breakout SSN", sector: "central_basin_run", status: "Probable contact" },
+      { unitId: "akula_screen", name: "Akula Screen", side: "RU", role: "Escort SSN", sector: "palawan_seam", status: "Likely screen" },
+      { unitId: "akula_pacific_screen", name: "Akula Pacific Screen", side: "RU", role: "Escort SSN", sector: "luzon_western_approach", status: "Possible screen" },
+      { unitId: "support_ddg_alpha", name: "Support DDG Alpha", side: "CN", role: "Surface support", sector: "reed_bank_gate", status: "Regional support" },
+      { unitId: "support_ddg_beta", name: "Support DDG Beta", side: "CN", role: "Surface support", sector: "spratly_arc", status: "Regional support" },
+      { unitId: "support_frigate_alpha", name: "Support Frigate Alpha", side: "CN", role: "Surface support", sector: "palawan_seam", status: "Regional support" },
+      { unitId: "support_frigate_beta", name: "Support Frigate Beta", side: "CN", role: "Surface support", sector: "luzon_western_approach", status: "Regional support" },
+      { unitId: "support_helo_alpha", name: "Support Helo Alpha", side: "CN", role: "Air search", sector: "spratly_arc", status: "Airborne cueing" },
+      { unitId: "support_helo_beta", name: "Support Helo Beta", side: "CN", role: "Air search", sector: "central_basin_run", status: "Airborne cueing" }
+    ];
 
     function setStatus(message) {
       mapStatus.textContent = message;
@@ -439,6 +475,65 @@
       return { lat: point[0], lng: point[1] };
     }
 
+    function sideColor(side) {
+      if (side === "US") return "#74d8ff";
+      if (side === "RU") return "#ff8d72";
+      return "#ffd06e";
+    }
+
+    function clearDeveloperOrbat() {
+      developerOverlays.forEach((overlay) => overlay.setMap(null));
+      developerOverlays = [];
+    }
+
+    function renderDeveloperOrbat(map) {
+      clearDeveloperOrbat();
+      if (!developerOrbatEnabled) {
+        return;
+      }
+
+      developerOrbat.forEach((unit, index) => {
+        const sector = sectorCenters[unit.sector];
+        if (!sector) {
+          return;
+        }
+
+        const offsetLat = ((index % 3) - 1) * 0.05;
+        const offsetLng = ((Math.floor(index / 3) % 3) - 1) * 0.05;
+        const position = {
+          lat: sector.lat + offsetLat,
+          lng: sector.lng + offsetLng
+        };
+
+        const marker = new google.maps.Marker({
+          map,
+          position,
+          title: `${unit.name} | ${unit.role}`,
+          label: {
+            text: `ORB ${unit.name}`,
+            color: "#ffffff",
+            fontSize: "11px",
+            fontWeight: "700"
+          },
+          icon: {
+            path: google.maps.SymbolPath.BACKWARD_CLOSED_ARROW,
+            scale: 7,
+            fillColor: sideColor(unit.side),
+            fillOpacity: 1,
+            strokeColor: "#07131d",
+            strokeWeight: 2
+          },
+          zIndex: 2000
+        });
+
+        const infoWindow = new google.maps.InfoWindow({
+          content: `<div style="min-width:220px"><strong>${unit.name}</strong><br>${unit.side} | ${unit.role}<br>Sector: ${sector.label}<br>Status: ${unit.status}</div>`
+        });
+        marker.addListener("click", () => infoWindow.open({ anchor: marker, map }));
+        developerOverlays.push(marker);
+      });
+    }
+
     function renderGoogleMap() {
       if (mapInitialized || !window.google?.maps) {
         return;
@@ -452,6 +547,7 @@
         fullscreenControl: true,
         mapTypeControl: true
       });
+      mapInstance = map;
 
       const bounds = new google.maps.LatLngBounds();
 
@@ -494,9 +590,10 @@
         });
       }));
 
+      renderDeveloperOrbat(map);
       map.fitBounds(bounds, 50);
       mapInitialized = true;
-      setStatus("Google basemap loaded. All South China Sea route variants are rendered directly from the in-page route listing.");
+      setStatus("Google basemap loaded. South China Sea route variants are rendered directly from the in-page route listing.");
     }
 
     function loadGoogleMaps(apiKey) {
@@ -537,11 +634,23 @@
       loadGoogleMaps(apiKeyInput.value.trim());
     });
 
+    toggleOrbatButton.addEventListener("click", () => {
+      developerOrbatEnabled = !developerOrbatEnabled;
+      toggleOrbatButton.classList.toggle("toggle-active", developerOrbatEnabled);
+      toggleOrbatButton.textContent = developerOrbatEnabled ? "Hide Developer ORBAT" : "Show Developer ORBAT";
+      if (mapInstance && window.google?.maps) {
+        renderDeveloperOrbat(mapInstance);
+      }
+    });
+
     clearKeyButton.addEventListener("click", () => {
       clearApiKey();
       apiKeyInput.value = "";
       setStatus("Saved API key cleared from this browser.");
     });
+
+    toggleOrbatButton.classList.add("toggle-active");
+    toggleOrbatButton.textContent = "Hide Developer ORBAT";
 
     if (apiKeyInput.value.trim()) {
       loadGoogleMaps(apiKeyInput.value.trim());

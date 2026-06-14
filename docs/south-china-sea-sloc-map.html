@@ -180,6 +180,35 @@
       filter: brightness(1.05);
     }
 
+    .toolbar-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .toggle-button {
+      border: 1px solid rgba(87, 224, 183, 0.28);
+      border-radius: 999px;
+      background: rgba(87, 224, 183, 0.08);
+      color: var(--text);
+      padding: 10px 16px;
+      font: 600 13px/1 "Segoe UI", "Aptos", system-ui, sans-serif;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition: transform 120ms ease, border-color 120ms ease, filter 120ms ease, background 120ms ease;
+    }
+
+    .toggle-button.active {
+      border-color: rgba(87, 224, 183, 0.46);
+      background: rgba(87, 224, 183, 0.16);
+      color: var(--accent-2);
+    }
+
+    .toggle-button:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.05);
+    }
+
     svg {
       display: block;
       width: 100%;
@@ -237,6 +266,79 @@
 
     .link-row a {
       color: var(--accent);
+    }
+
+    .developer-panel {
+      margin-top: 14px;
+      display: none;
+    }
+
+    .developer-panel.active {
+      display: block;
+    }
+
+    .developer-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 0.95fr) minmax(280px, 1.05fr);
+      gap: 14px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border: 1px solid rgba(118, 202, 237, 0.16);
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .badge.dev {
+      color: var(--accent-3);
+      border-color: rgba(255, 208, 110, 0.24);
+      background: rgba(255, 208, 110, 0.08);
+    }
+
+    .legend-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .legend-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .legend-mark {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.4);
+      flex: 0 0 auto;
+    }
+
+    .legend-mark.us {
+      background: #74d8ff;
+    }
+
+    .legend-mark.ru {
+      background: #ff8d72;
+    }
+
+    .legend-mark.cn {
+      background: #ffd06e;
+    }
+
+    .legend-mark.grid {
+      background: #57e0b7;
     }
 
     table {
@@ -326,7 +428,10 @@
         <div class="map-subtitle">Derived directly from the current south_china_sea route variants in the generator.</div>
         <div class="map-toolbar">
           <div class="map-toolbar-note">Download the full corridor listing as a Google Earth KML overlay.</div>
-          <button id="download-kml" class="download-button" type="button">Download KML</button>
+          <div class="toolbar-actions">
+            <button id="toggle-developer-overlay" class="toggle-button" type="button">Developer ORBAT Overlay</button>
+            <button id="download-kml" class="download-button" type="button">Download KML</button>
+          </div>
         </div>
         <div class="link-row">Google basemap view: <a href="./south-china-sea-sloc-google-map.html">south-china-sea-sloc-google-map.html</a></div>
         <svg id="route-map" viewBox="0 0 900 640" role="img" aria-label="South China Sea route corridor geometry plot"></svg>
@@ -348,6 +453,52 @@
           Coordinate bounds here are auto-fitted from the operational route cluster with a small padding margin added for readability.
         </p>
       </aside>
+    </section>
+
+    <section id="developer-panel" class="table-wrap developer-panel">
+      <div class="developer-grid">
+        <article>
+          <div class="eyebrow">Developer View</div>
+          <h2>Operational ORBAT Overlay</h2>
+          <p>
+            This view is meant for developer debugging and campaign tuning. It shows the broader code-derived order of battle and the sector/grid where each unit is generally tracked inside the theater model.
+          </p>
+          <div class="legend-list">
+            <div class="legend-row"><span class="legend-mark us"></span> U.S. player and support tracks</div>
+            <div class="legend-row"><span class="legend-mark ru"></span> Russian breakout and escort contacts</div>
+            <div class="legend-row"><span class="legend-mark cn"></span> Chinese support and surveillance contacts</div>
+            <div class="legend-row"><span class="legend-mark grid"></span> Sector centroid / known grid reference</div>
+          </div>
+        </article>
+
+        <article>
+          <div class="eyebrow">Known Positioning</div>
+          <h2>Sector Grid Interpretation</h2>
+          <p>
+            These are not exact tactical positions. They represent the current known or assumed operating grid for a unit inside the broader South China Sea operational picture.
+          </p>
+          <p class="muted">
+            A unit can remain in the theater OOB without appearing in a generated mission file. The scenario should only surface the relevant slice that intersects the immediate avenue of approach.
+          </p>
+        </article>
+      </div>
+      <div style="margin-top:14px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
+        <h2 style="font-size:1rem;">Developer ORBAT</h2>
+        <span class="badge dev">Debug Only</span>
+      </div>
+      <table style="margin-top:12px;">
+        <thead>
+          <tr>
+            <th>Unit</th>
+            <th>Side</th>
+            <th>Role</th>
+            <th>Known Sector</th>
+            <th>Grid</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="developer-orbat-table"></tbody>
+      </table>
     </section>
 
     <section class="table-wrap">
@@ -493,6 +644,9 @@
     const svg = document.getElementById("route-map");
     const table = document.getElementById("route-table");
     const downloadKmlButton = document.getElementById("download-kml");
+    const toggleDeveloperOverlayButton = document.getElementById("toggle-developer-overlay");
+    const developerPanel = document.getElementById("developer-panel");
+    const developerOrbatTable = document.getElementById("developer-orbat-table");
     const width = 900;
     const height = 640;
     const plot = { left: 60, top: 18, right: 850, bottom: 600 };
@@ -503,6 +657,31 @@
     const maxLat = Math.max(...lats) + 0.25;
     const minLon = Math.min(...lons) - 0.25;
     const maxLon = Math.max(...lons) + 0.25;
+    const sectorCenters = Object.fromEntries(variants.map((variant) => {
+      const points = variant.routes.flatMap((route) => route.points);
+      const lat = points.reduce((sum, point) => sum + point[0], 0) / points.length;
+      const lon = points.reduce((sum, point) => sum + point[1], 0) / points.length;
+      return [variant.id, { lat, lon, label: variant.label }];
+    }));
+    const developerOrbat = [
+      { unitId: "uss_north_dakota", name: "USS North Dakota", side: "US", role: "Player SSN", sector: "reed_bank_gate", status: "On patrol" },
+      { unitId: "uss_spruance", name: "USS Spruance", side: "US", role: "Surface support", sector: "scarborough_sweep", status: "Barrier support" },
+      { unitId: "uss_dewey", name: "USS Dewey", side: "US", role: "Surface support", sector: "palawan_seam", status: "On station" },
+      { unitId: "uss_stockdale", name: "USS Stockdale", side: "US", role: "Surface support", sector: "central_basin_run", status: "Transit reserve" },
+      { unitId: "p8_barrier_one", name: "P-8A Barrier One", side: "US", role: "MPA", sector: "reed_bank_gate", status: "Search cycle" },
+      { unitId: "p8_barrier_two", name: "P-8A Barrier Two", side: "US", role: "MPA", sector: "spratly_arc", status: "Standby tasking" },
+      { unitId: "yasen_severodvinsk", name: "Yasen Severodvinsk", side: "RU", role: "Primary breakout SSN", sector: "reed_bank_gate", status: "Known contact" },
+      { unitId: "yasen_kazan", name: "Yasen Kazan", side: "RU", role: "Secondary breakout SSN", sector: "central_basin_run", status: "Probable contact" },
+      { unitId: "akula_screen", name: "Akula Screen", side: "RU", role: "Escort SSN", sector: "palawan_seam", status: "Likely screen" },
+      { unitId: "akula_pacific_screen", name: "Akula Pacific Screen", side: "RU", role: "Escort SSN", sector: "luzon_western_approach", status: "Possible screen" },
+      { unitId: "support_ddg_alpha", name: "Support DDG Alpha", side: "CN", role: "Surface support", sector: "reed_bank_gate", status: "Regional support" },
+      { unitId: "support_ddg_beta", name: "Support DDG Beta", side: "CN", role: "Surface support", sector: "spratly_arc", status: "Regional support" },
+      { unitId: "support_frigate_alpha", name: "Support Frigate Alpha", side: "CN", role: "Surface support", sector: "palawan_seam", status: "Regional support" },
+      { unitId: "support_frigate_beta", name: "Support Frigate Beta", side: "CN", role: "Surface support", sector: "luzon_western_approach", status: "Regional support" },
+      { unitId: "support_helo_alpha", name: "Support Helo Alpha", side: "CN", role: "Air search", sector: "spratly_arc", status: "Airborne cueing" },
+      { unitId: "support_helo_beta", name: "Support Helo Beta", side: "CN", role: "Air search", sector: "central_basin_run", status: "Airborne cueing" }
+    ];
+    let developerOverlayEnabled = false;
 
     function project([lat, lon]) {
       const x = plot.left + ((lon - minLon) / (maxLon - minLon)) * (plot.right - plot.left);
@@ -571,6 +750,14 @@
       }
     }
 
+    function gridLabelForPoint([lat, lon]) {
+      const gridColumns = 4;
+      const gridRows = 4;
+      const xIndex = Math.max(0, Math.min(gridColumns - 1, Math.floor(((lon - minLon) / (maxLon - minLon)) * gridColumns)));
+      const yIndex = Math.max(0, Math.min(gridRows - 1, Math.floor(((maxLat - lat) / (maxLat - minLat)) * gridRows)));
+      return `${String.fromCharCode(65 + xIndex)}${yIndex + 1}`;
+    }
+
     function drawRoutes() {
       variants.forEach((variant) => variant.routes.forEach((route) => {
         const coords = route.points.map(project);
@@ -606,6 +793,66 @@
       }));
     }
 
+    function sideColor(side) {
+      if (side === "US") return "#74d8ff";
+      if (side === "RU") return "#ff8d72";
+      return "#ffd06e";
+    }
+
+    function drawDeveloperOverlay() {
+      if (!developerOverlayEnabled) {
+        return;
+      }
+
+      Object.entries(sectorCenters).forEach(([sectorId, center]) => {
+        const [x, y] = project([center.lat, center.lon]);
+        svg.appendChild(el("circle", {
+          cx: x,
+          cy: y,
+          r: 8,
+          fill: "rgba(87, 224, 183, 0.14)",
+          stroke: "rgba(87, 224, 183, 0.65)",
+          "stroke-width": 1.2
+        }));
+        svg.appendChild(el("text", {
+          x: x + 10,
+          y: y + 4,
+          fill: "#57e0b7",
+          "font-size": 11,
+          "font-weight": 700
+        }, `${gridLabelForPoint([center.lat, center.lon])} ${center.label}`));
+      });
+
+      developerOrbat.forEach((unit, index) => {
+        const center = sectorCenters[unit.sector];
+        if (!center) {
+          return;
+        }
+        const jitterX = ((index % 3) - 1) * 10;
+        const jitterY = ((Math.floor(index / 3) % 3) - 1) * 10;
+        const [baseX, baseY] = project([center.lat, center.lon]);
+        const x = baseX + jitterX;
+        const y = baseY + jitterY;
+        const color = sideColor(unit.side);
+
+        svg.appendChild(el("circle", {
+          cx: x,
+          cy: y,
+          r: 5,
+          fill: color,
+          stroke: "#07131d",
+          "stroke-width": 1.4
+        }));
+        svg.appendChild(el("text", {
+          x: x + 8,
+          y: y - 7,
+          fill: color,
+          "font-size": 10,
+          "font-weight": 700
+        }, unit.name));
+      });
+    }
+
     function buildTable() {
       const rows = [];
       variants.forEach((variant) => variant.routes.forEach((route) => {
@@ -622,6 +869,25 @@
         });
       }));
       table.innerHTML = rows.join("");
+    }
+
+    function buildDeveloperOrbatTable() {
+      const rows = developerOrbat.map((unit) => {
+        const center = sectorCenters[unit.sector];
+        const grid = center ? gridLabelForPoint([center.lat, center.lon]) : "-";
+        const sectorLabel = center ? center.label : unit.sector;
+        return `
+          <tr>
+            <td>${unit.name}</td>
+            <td><span class="swatch" style="background:${sideColor(unit.side)};"></span>${unit.side}</td>
+            <td>${unit.role}</td>
+            <td>${sectorLabel}</td>
+            <td>${grid}</td>
+            <td>${unit.status}</td>
+          </tr>
+        `;
+      });
+      developerOrbatTable.innerHTML = rows.join("");
     }
 
     function escapeXml(value) {
@@ -646,7 +912,10 @@
     }
 
     function buildKml() {
-      const placemarks = [];
+      const styles = [];
+      const routePlacemarks = [];
+      const orbatPlacemarks = [];
+      const registeredStyles = new Set();
 
       variants.forEach((variant) => variant.routes.forEach((route) => {
         const styleId = `${variant.id}_${route.key}_style`;
@@ -654,7 +923,9 @@
           .map(([lat, lon]) => `${lon.toFixed(6)},${lat.toFixed(6)},0`)
           .join(" ");
 
-        placemarks.push(`
+        if (!registeredStyles.has(styleId)) {
+          registeredStyles.add(styleId);
+          styles.push(`
     <Style id="${escapeXml(styleId)}">
       <LineStyle>
         <color>${kmlColorFromHex(route.color)}</color>
@@ -668,7 +939,10 @@
         <color>${kmlColorFromHex(route.color)}</color>
         <scale>0.8</scale>
       </LabelStyle>
-    </Style>
+    </Style>`);
+        }
+
+        routePlacemarks.push(`
     <Placemark>
       <name>${escapeXml(`${variant.label} | ${route.key}`)}</name>
       <description>${escapeXml(`Route variant ${variant.id}, ${route.key} corridor from the MNW South China Sea generator.`)}</description>
@@ -680,7 +954,7 @@
     </Placemark>`);
 
         route.points.forEach(([lat, lon], index) => {
-          placemarks.push(`
+          routePlacemarks.push(`
     <Placemark>
       <name>${escapeXml(`${route.key.toUpperCase()}-${index + 1}`)}</name>
       <description>${escapeXml(`${variant.label} ${route.key} waypoint ${index + 1}`)}</description>
@@ -692,12 +966,47 @@
         });
       }));
 
+      developerOrbat.forEach((unit) => {
+        const center = sectorCenters[unit.sector];
+        if (!center) {
+          return;
+        }
+        const color = sideColor(unit.side);
+        const styleId = `orbat_${unit.side.toLowerCase()}_style`;
+        const grid = gridLabelForPoint([center.lat, center.lon]);
+        if (!registeredStyles.has(styleId)) {
+          registeredStyles.add(styleId);
+          styles.push(`
+    <Style id="${escapeXml(styleId)}">
+      <IconStyle>
+        <color>${kmlColorFromHex(color)}</color>
+        <scale>1.1</scale>
+      </IconStyle>
+      <LabelStyle>
+        <color>${kmlColorFromHex(color)}</color>
+        <scale>1.0</scale>
+      </LabelStyle>
+    </Style>`);
+        }
+        orbatPlacemarks.push(`
+    <Placemark>
+      <name>${escapeXml(`ORBAT | ${unit.side} | ${unit.name}`)}</name>
+      <description>${escapeXml(`Developer ORBAT contact. Side: ${unit.side}. Role: ${unit.role}. Sector: ${center.label}. Grid: ${grid}. Status: ${unit.status}.`)}</description>
+      <styleUrl>#${escapeXml(styleId)}</styleUrl>
+      <Point>
+        <coordinates>${center.lon.toFixed(6)},${center.lat.toFixed(6)},0</coordinates>
+      </Point>
+    </Placemark>`);
+      });
+
       return `<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
   <Document>
     <name>south-china-sea-sloc-map</name>
-    <description>South China Sea SLOC-style corridor geometry derived from shared/campaign-generator.mjs.</description>
-${placemarks.join("\n")}
+    <description>South China Sea SLOC-style corridor geometry plus developer ORBAT overlay derived from shared/campaign-generator.mjs.</description>
+${styles.join("\n")}
+${routePlacemarks.join("\n")}
+${orbatPlacemarks.join("\n")}
   </Document>
 </kml>
 `;
@@ -716,10 +1025,23 @@ ${placemarks.join("\n")}
       URL.revokeObjectURL(url);
     }
 
-    drawGrid();
-    drawRoutes();
+    function renderMap() {
+      svg.innerHTML = "";
+      drawGrid();
+      drawRoutes();
+      drawDeveloperOverlay();
+    }
+
+    renderMap();
     buildTable();
+    buildDeveloperOrbatTable();
     downloadKmlButton.addEventListener("click", downloadKml);
+    toggleDeveloperOverlayButton.addEventListener("click", () => {
+      developerOverlayEnabled = !developerOverlayEnabled;
+      toggleDeveloperOverlayButton.classList.toggle("active", developerOverlayEnabled);
+      developerPanel.classList.toggle("active", developerOverlayEnabled);
+      renderMap();
+    });
   </script>
 </body>
 </html>

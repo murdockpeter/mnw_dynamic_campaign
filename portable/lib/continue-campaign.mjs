@@ -64,7 +64,8 @@ export async function appendContinuationScenario({
     riskPosture,
     operationalTempo,
     priorMissionCount: missionChain.length,
-    lastOutcome: latestResult?.outcome || "success"
+    lastOutcome: latestResult?.outcome || "success",
+    theaterPicture: state.world_state?.theater_picture || null
   });
 
   const blueprint = {
@@ -88,6 +89,7 @@ export async function appendContinuationScenario({
   await writeText(localePath, appendCsvRows(existingLocale, artifacts.localeRows));
 
   state.world_state = state.world_state || {};
+  state.world_state.theater_picture = scenario.theaterPicture || state.world_state.theater_picture || {};
   state.world_state.continuation_count = Number(state.world_state.continuation_count || 0) + 1;
   state.world_state.last_extension_choice = {
     objective,

@@ -313,6 +313,72 @@ const THEATER_TEMPLATES = {
   }
 };
 
+const THEATER_FORCE_POOLS = {
+  luzon_strait: {
+    sectors: [
+      { id: "bashi_channel", label: "Bashi Channel" },
+      { id: "balintang_approach", label: "Balintang Approach" },
+      { id: "philippine_sea_screen", label: "Philippine Sea Screen" },
+      { id: "taiwan_east", label: "East of Taiwan" }
+    ],
+    friendlySurface: [
+      { unitId: "uss_spruance", name: "USS Spruance", faction: "US", platformType: "surface_combatant", dbid: 294, sectors: ["balintang_approach", "philippine_sea_screen"] },
+      { unitId: "uss_milius", name: "USS Milius", faction: "US", platformType: "surface_combatant", dbid: 294, sectors: ["bashi_channel", "taiwan_east"] },
+      { unitId: "uss_rafael_peralta", name: "USS Rafael Peralta", faction: "US", platformType: "surface_combatant", dbid: 294, sectors: ["philippine_sea_screen", "balintang_approach"] }
+    ],
+    friendlyAir: [
+      { unitId: "p8_triton_watch", name: "P-8A Triton Watch", faction: "US", platformType: "maritime_patrol_aircraft", dbid: 2705, sectors: ["bashi_channel", "balintang_approach", "philippine_sea_screen"] },
+      { unitId: "p8_seaborne_cue", name: "P-8A Seaborne Cue", faction: "US", platformType: "maritime_patrol_aircraft", dbid: 2705, sectors: ["taiwan_east", "philippine_sea_screen"] }
+    ],
+    enemySurface: [
+      { unitId: "plan_lead_ddg", name: "PLAN Lead DDG", faction: "CN", platformType: "surface_combatant", dbid: 3883, sectors: ["bashi_channel", "taiwan_east"] },
+      { unitId: "plan_escort_ffg", name: "PLAN Escort FFG", faction: "CN", platformType: "surface_combatant", dbid: 1965, sectors: ["bashi_channel", "balintang_approach"] },
+      { unitId: "plan_screen_ddg", name: "PLAN Screen DDG", faction: "CN", platformType: "surface_combatant", dbid: 3883, sectors: ["philippine_sea_screen", "balintang_approach"] },
+      { unitId: "plan_barrier_ffg", name: "PLAN Barrier FFG", faction: "CN", platformType: "surface_combatant", dbid: 1965, sectors: ["philippine_sea_screen", "bashi_channel"] },
+      { unitId: "plan_reserve_ffg", name: "PLAN Reserve FFG", faction: "CN", platformType: "surface_combatant", dbid: 1965, sectors: ["taiwan_east", "bashi_channel"] }
+    ],
+    enemyAir: [
+      { unitId: "plan_z9_screen", name: "PLAN Z-9 Screen", faction: "CN", platformType: "helicopter", dbid: 60, sectors: ["bashi_channel", "balintang_approach"] },
+      { unitId: "plan_z9_barrier", name: "PLAN Z-9 Barrier", faction: "CN", platformType: "helicopter", dbid: 60, sectors: ["philippine_sea_screen", "taiwan_east"] }
+    ]
+  },
+  south_china_sea: {
+    sectors: [
+      { id: "reed_bank_gate", label: "Reed Bank Gate" },
+      { id: "palawan_seam", label: "Palawan Seam" },
+      { id: "spratly_arc", label: "Spratly Arc" },
+      { id: "luzon_western_approach", label: "Luzon Western Approach" },
+      { id: "scarborough_sweep", label: "Scarborough Sweep" },
+      { id: "central_basin_run", label: "Central Basin Run" }
+    ],
+    friendlySurface: [
+      { unitId: "uss_spruance", name: "USS Spruance", faction: "US", platformType: "surface_combatant", dbid: 294, sectors: ["reed_bank_gate", "scarborough_sweep"] },
+      { unitId: "uss_dewey", name: "USS Dewey", faction: "US", platformType: "surface_combatant", dbid: 294, sectors: ["palawan_seam", "central_basin_run"] },
+      { unitId: "uss_stockdale", name: "USS Stockdale", faction: "US", platformType: "surface_combatant", dbid: 294, sectors: ["spratly_arc", "luzon_western_approach"] }
+    ],
+    friendlyAir: [
+      { unitId: "p8_barrier_one", name: "P-8A Barrier One", faction: "US", platformType: "maritime_patrol_aircraft", dbid: 2705, sectors: ["reed_bank_gate", "scarborough_sweep", "luzon_western_approach"] },
+      { unitId: "p8_barrier_two", name: "P-8A Barrier Two", faction: "US", platformType: "maritime_patrol_aircraft", dbid: 2705, sectors: ["palawan_seam", "spratly_arc", "central_basin_run"] }
+    ],
+    enemySubsurface: [
+      { unitId: "yasen_severodvinsk", name: "Yasen Severodvinsk", faction: "RU", platformType: "submarine", dbid: 667, sectors: ["reed_bank_gate", "scarborough_sweep"], role: "target" },
+      { unitId: "akula_screen", name: "Akula Screen", faction: "RU", platformType: "submarine", dbid: 34, sectors: ["reed_bank_gate", "palawan_seam"], role: "screen" },
+      { unitId: "akula_pacific_screen", name: "Akula Pacific Screen", faction: "RU", platformType: "submarine", dbid: 34, sectors: ["luzon_western_approach", "scarborough_sweep"], role: "screen" },
+      { unitId: "yasen_kazan", name: "Yasen Kazan", faction: "RU", platformType: "submarine", dbid: 667, sectors: ["central_basin_run", "spratly_arc"], role: "target" }
+    ],
+    enemySurfaceSupport: [
+      { unitId: "support_ddg_alpha", name: "Support DDG Alpha", faction: "CN", platformType: "surface_combatant", dbid: 3883, sectors: ["reed_bank_gate", "scarborough_sweep"] },
+      { unitId: "support_ddg_beta", name: "Support DDG Beta", faction: "CN", platformType: "surface_combatant", dbid: 3883, sectors: ["spratly_arc", "central_basin_run"] },
+      { unitId: "support_frigate_alpha", name: "Support Frigate Alpha", faction: "CN", platformType: "surface_combatant", dbid: 1965, sectors: ["palawan_seam", "central_basin_run"] },
+      { unitId: "support_frigate_beta", name: "Support Frigate Beta", faction: "CN", platformType: "surface_combatant", dbid: 1965, sectors: ["luzon_western_approach", "reed_bank_gate"] }
+    ],
+    enemyAir: [
+      { unitId: "support_helo_alpha", name: "Support Helo Alpha", faction: "CN", platformType: "helicopter", dbid: 60, sectors: ["reed_bank_gate", "spratly_arc"] },
+      { unitId: "support_helo_beta", name: "Support Helo Beta", faction: "CN", platformType: "helicopter", dbid: 60, sectors: ["palawan_seam", "central_basin_run"] }
+    ]
+  }
+};
+
 const LAND_CLEARANCE_DEGREES = 0.12;
 const MAX_POINT_RETRIES = 48;
 const MAX_ROUTE_REPAIRS = 28;
@@ -724,6 +790,202 @@ function getRouteVariantSet(template, index, rng) {
   };
 }
 
+function getTheaterSectorCatalog(template) {
+  const configured = THEATER_FORCE_POOLS[template.id]?.sectors;
+  if (Array.isArray(configured) && configured.length) {
+    return configured;
+  }
+  if (Array.isArray(template.route?.variants) && template.route.variants.length) {
+    return template.route.variants.map((variant) => ({ id: variant.id, label: variant.label }));
+  }
+  return [{ id: "main_axis", label: "Main Axis" }];
+}
+
+function buildTheaterUnitCatalog(template, playerName) {
+  const pools = THEATER_FORCE_POOLS[template.id] || {};
+  const catalog = [];
+
+  const addUnit = (unit, tags = [], notes = {}) => {
+    if (!unit?.unitId || catalog.some((item) => item.unitId === unit.unitId)) {
+      return;
+    }
+    catalog.push({
+      unitId: unit.unitId,
+      name: unit.name,
+      faction: unit.faction,
+      platformType: unit.platformType,
+      dbid: unit.dbid,
+      ammo: { ...(unit.ammo || {}) },
+      tags,
+      notes: {
+        sectors: Array.isArray(unit.sectors) ? [...unit.sectors] : [],
+        theater_role: notes.theater_role || "theater_contact",
+        role: unit.role || notes.role || null
+      }
+    });
+  };
+
+  addUnit({
+    ...template.player,
+    name: playerName
+  }, ["player"], { theater_role: "player" });
+
+  template.enemies.forEach((enemy) => {
+    addUnit(enemy, ["enemy"], { theater_role: "core_enemy" });
+  });
+
+  ["friendlySurface", "friendlyAir", "enemySurface", "enemyAir", "enemySubsurface", "enemySurfaceSupport"].forEach((key) => {
+    (pools[key] || []).forEach((unit) => {
+      const tags = unit.faction === "US" ? ["friendly_support"] : ["enemy"];
+      addUnit(unit, tags, { theater_role: key });
+    });
+  });
+
+  return catalog;
+}
+
+function initializeTheaterPicture(template, unitCatalog, rng, previous = null) {
+  const sectors = getTheaterSectorCatalog(template);
+  const priorUnits = previous?.units || {};
+  const units = {};
+
+  unitCatalog.forEach((unit, index) => {
+    const sectorChoices = unit.notes?.sectors?.length ? unit.notes.sectors : sectors.map((sector) => sector.id);
+    const fallbackSector = sectorChoices[Math.floor((rng() * sectorChoices.length) || 0)] || sectors[index % sectors.length]?.id || "main_axis";
+    const prior = priorUnits[unit.unitId] || {};
+    units[unit.unitId] = {
+      current_sector: prior.current_sector || fallbackSector,
+      availability: prior.availability || "available",
+      last_mission_id: prior.last_mission_id || null,
+      last_assigned_index: Number.isFinite(prior.last_assigned_index) ? prior.last_assigned_index : -1,
+      on_stage: false
+    };
+  });
+
+  return {
+    theater_id: template.id,
+    sectors,
+    units
+  };
+}
+
+function pickScenarioSector(template, geometry, index) {
+  if (geometry?.routeVariantId) {
+    return geometry.routeVariantId;
+  }
+  const sectors = getTheaterSectorCatalog(template);
+  return sectors[index % sectors.length]?.id || sectors[0]?.id || "main_axis";
+}
+
+function selectUnitsForMission(pool = [], theaterPicture, scenarioSector, desiredCount, missionIndex) {
+  if (!Array.isArray(pool) || !pool.length || desiredCount <= 0) {
+    return [];
+  }
+
+  const ranked = [...pool].sort((left, right) => {
+    const leftTrack = theaterPicture.units[left.unitId] || {};
+    const rightTrack = theaterPicture.units[right.unitId] || {};
+    const leftSector = leftTrack.current_sector === scenarioSector ? 1 : 0;
+    const rightSector = rightTrack.current_sector === scenarioSector ? 1 : 0;
+    if (leftSector !== rightSector) {
+      return rightSector - leftSector;
+    }
+    const leftRecent = Number.isFinite(leftTrack.last_assigned_index) ? leftTrack.last_assigned_index : -1;
+    const rightRecent = Number.isFinite(rightTrack.last_assigned_index) ? rightTrack.last_assigned_index : -1;
+    if (leftRecent !== rightRecent) {
+      return leftRecent - rightRecent;
+    }
+    return left.name.localeCompare(right.name);
+  });
+
+  const selected = ranked.slice(0, Math.min(desiredCount, ranked.length)).map((unit) => ({ ...unit }));
+  selected.forEach((unit) => {
+    theaterPicture.units[unit.unitId] = {
+      ...(theaterPicture.units[unit.unitId] || {}),
+      current_sector: scenarioSector,
+      availability: "committed",
+      last_assigned_index: missionIndex,
+      on_stage: true
+    };
+  });
+  return selected;
+}
+
+function summarizeOffstageUnits(pool = [], selected = []) {
+  const selectedIds = new Set(selected.map((unit) => unit.unitId));
+  return pool.filter((unit) => !selectedIds.has(unit.unitId)).map((unit) => unit.name);
+}
+
+function buildScenarioForces(template, geometry, index, theaterPicture, rng) {
+  const pools = THEATER_FORCE_POOLS[template.id] || {};
+  const scenarioSector = pickScenarioSector(template, geometry, index);
+  const density = Number(geometry?.density || 1);
+
+  if (template.family === "surface_shadow") {
+    const enemyPrimary = selectUnitsForMission(
+      [...(pools.enemySurface || [])],
+      theaterPicture,
+      scenarioSector,
+      2,
+      index
+    );
+    const usedEnemyIds = new Set(enemyPrimary.map((unit) => unit.unitId));
+    const barrierCandidates = (pools.enemySurface || []).filter((unit) => !usedEnemyIds.has(unit.unitId));
+    const enemySecondary = density >= 2
+      ? selectUnitsForMission(barrierCandidates, theaterPicture, scenarioSector, 1, index)
+      : [];
+    const enemyAir = selectUnitsForMission(pools.enemyAir || [], theaterPicture, scenarioSector, 1, index);
+    const friendlySurface = selectUnitsForMission(pools.friendlySurface || [], theaterPicture, scenarioSector, 1, index);
+    const friendlyAir = selectUnitsForMission(pools.friendlyAir || [], theaterPicture, scenarioSector, 1, index);
+    return {
+      sector: scenarioSector,
+      friendlySurface,
+      friendlyAir,
+      enemyPrimary,
+      enemySecondary,
+      enemyAir,
+      ambientMerchantCount: Math.max(3, density + 2 + Math.floor(rng() * 2)),
+      ambientBiologicCount: 3 + Math.floor(rng() * 2),
+      offstageEnemy: summarizeOffstageUnits([...(pools.enemySurface || []), ...(pools.enemyAir || [])], [...enemyPrimary, ...enemySecondary, ...enemyAir]),
+      offstageFriendly: summarizeOffstageUnits([...(pools.friendlySurface || []), ...(pools.friendlyAir || [])], [...friendlySurface, ...friendlyAir])
+    };
+  }
+
+  const targetPool = (pools.enemySubsurface || []).filter((unit) => unit.role === "target");
+  const screenPool = (pools.enemySubsurface || []).filter((unit) => unit.role !== "target");
+  const enemyPrimary = [
+    ...selectUnitsForMission(targetPool, theaterPicture, scenarioSector, 1, index),
+    ...selectUnitsForMission(screenPool, theaterPicture, scenarioSector, 1, index)
+  ];
+  const enemySurfaceSupport = selectUnitsForMission(
+    pools.enemySurfaceSupport || [],
+    theaterPicture,
+    scenarioSector,
+    density >= 3 ? 2 : 1,
+    index
+  );
+  const enemyAir = density >= 2
+    ? selectUnitsForMission(pools.enemyAir || [], theaterPicture, scenarioSector, 1, index)
+    : [];
+  const friendlySurface = selectUnitsForMission(pools.friendlySurface || [], theaterPicture, scenarioSector, 1, index);
+  const friendlyAir = selectUnitsForMission(pools.friendlyAir || [], theaterPicture, scenarioSector, 1, index);
+  return {
+    sector: scenarioSector,
+    friendlySurface,
+    friendlyAir,
+    enemyPrimary,
+    enemySurfaceSupport,
+    enemyAir,
+    ambientMerchantCount: Math.max(3, density + 2 + Math.floor(rng() * 2)),
+    ambientBiologicCount: 4 + Math.floor(rng() * 2),
+    offstageEnemy: summarizeOffstageUnits(
+      [...(pools.enemySubsurface || []), ...(pools.enemySurfaceSupport || []), ...(pools.enemyAir || [])],
+      [...enemyPrimary, ...enemySurfaceSupport, ...enemyAir]
+    ),
+    offstageFriendly: summarizeOffstageUnits([...(pools.friendlySurface || []), ...(pools.friendlyAir || [])], [...friendlySurface, ...friendlyAir])
+  };
+}
+
 function buildSurfaceShadowGeometry(template, index, count, rng) {
   const enemyBase = template.route.enemyCorridor;
   const playerBase = template.route.playerCorridor;
@@ -804,7 +1066,7 @@ function buildSubHuntGeometry(template, index, count, rng) {
   };
 }
 
-function buildScenarioRecord(template, campaignId, missionDef, index, count, year, rng) {
+function buildScenarioRecord(template, campaignId, missionDef, index, count, year, rng, theaterPicture) {
   const startBase = template.id === "luzon_strait"
     ? `${year}-04-02T04:20:00Z`
     : `${year}-03-14T02:30:00Z`;
@@ -813,6 +1075,7 @@ function buildScenarioRecord(template, campaignId, missionDef, index, count, yea
     ? buildSurfaceShadowGeometry(template, index, count, rng)
     : buildSubHuntGeometry(template, index, count, rng);
   const geometry = applyGeometrySafety(template.id, template.family, rawGeometry, rng);
+  const forces = buildScenarioForces(template, geometry, index, theaterPicture, rng);
   const missionKey = `${campaignId}.${campaignId}.${missionDef.slug}`;
 
   return {
@@ -826,6 +1089,7 @@ function buildScenarioRecord(template, campaignId, missionDef, index, count, yea
     startIso: startTime.iso,
     startMnw: startTime.mnw,
     geometry,
+    forces,
     description: `${missionDef.summary} ${missionDef.cue}`,
     objectiveText: "Keep your submarine combat effective and raise antennas to conclude the mission.",
     successText: `${missionDef.name} surveillance is complete. Higher command has the refined route picture and can posture the next move using your report.`
@@ -863,7 +1127,8 @@ export function buildContinuationScenario({
   riskPosture = "balanced",
   operationalTempo = "deliberate",
   priorMissionCount = 0,
-  lastOutcome = "success"
+  lastOutcome = "success",
+  theaterPicture: previousTheaterPicture = null
 } = {}) {
   const theater = THEATER_TEMPLATES[theaterId] || THEATER_TEMPLATES.luzon_strait;
   const family = theater.family;
@@ -885,10 +1150,13 @@ export function buildContinuationScenario({
     lastOutcome
   ].join(":")));
   const densityCount = Math.max(4, priorMissionCount + 2);
+  const theaterCatalog = buildTheaterUnitCatalog(theater, playerName);
+  const theaterPicture = initializeTheaterPicture(theater, theaterCatalog, rng, previousTheaterPicture);
   const rawGeometry = family === "surface_shadow"
     ? buildSurfaceShadowGeometry(theater, missionIndex, densityCount, rng)
     : buildSubHuntGeometry(theater, missionIndex, densityCount, rng);
   const geometry = applyGeometrySafety(theater.id, family, rawGeometry, rng);
+  const forces = buildScenarioForces(theater, geometry, missionIndex, theaterPicture, rng);
   const outcomeLine = lastOutcome === "failure"
     ? "The previous mission ended badly, so the next operation is framed around regaining control without losing the boat."
     : lastOutcome === "partial_success"
@@ -915,9 +1183,11 @@ export function buildContinuationScenario({
     startIso,
     startMnw: formatMnwFromIso(startIso),
     geometry,
+    forces,
     description,
     objectiveText,
     successText,
+    theaterPicture,
     continuation: {
       objective,
       objectiveLabel: objectiveDef.label,
@@ -941,8 +1211,10 @@ export function buildCampaignBlueprint(spec = {}) {
   const seed = hashSeed(`${campaignId}:${theater.id}:${tone}:${year}:${scenarioCount}:${playerName}`);
   const rng = mulberry32(seed);
   const archetypes = pickArchetypes(tone, scenarioCount);
+  const theaterUnits = buildTheaterUnitCatalog(theater, playerName);
+  const theaterPicture = initializeTheaterPicture(theater, theaterUnits, rng);
   const scenarios = archetypes.map((missionDef, index) => {
-    return buildScenarioRecord(theater, campaignId, missionDef, index, scenarioCount, year, rng);
+    return buildScenarioRecord(theater, campaignId, missionDef, index, scenarioCount, year, rng, theaterPicture);
   });
 
   return {
@@ -962,6 +1234,8 @@ export function buildCampaignBlueprint(spec = {}) {
       name: playerName
     },
     enemies: theater.enemies.map((enemy) => ({ ...enemy })),
+    theaterUnits,
+    theaterPicture,
     scenarios,
     packageNamespace: `${campaignId}.${campaignId}`
   };
