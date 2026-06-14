@@ -214,6 +214,10 @@
       color: var(--accent);
     }
 
+    .hidden-input {
+      display: none;
+    }
+
     @media (max-width: 980px) {
       .top-grid {
         grid-template-columns: 1fr;
@@ -255,6 +259,12 @@
           <button id="clear-key-button" class="button secondary" type="button">Clear Saved Key</button>
         </div>
         <div id="map-status" class="status">Waiting for API key.</div>
+        <div class="config-row">
+          <button id="runtime-reload-button" class="button secondary" type="button">Load Runtime Snapshot</button>
+          <label class="button secondary" for="runtime-file-input">Import Snapshot JSON</label>
+          <input id="runtime-file-input" class="hidden-input" type="file" accept=".json,application/json">
+        </div>
+        <div id="runtime-status" class="status">Using seed ORBAT until a matching runtime snapshot is loaded.</div>
         <div class="link-row">
           SVG view: <a href="./south-china-sea-sloc-map.html">south-china-sea-sloc-map.html</a>
         </div>
@@ -290,6 +300,7 @@
     </section>
   </div>
 
+  <script src="./theater-debug-runtime.js"></script>
   <script>
     const STORAGE_KEY = "mnw_google_maps_api_key";
     const variants = [
@@ -420,6 +431,9 @@
     const loadMapButton = document.getElementById("load-map-button");
     const toggleOrbatButton = document.getElementById("toggle-orbat-button");
     const clearKeyButton = document.getElementById("clear-key-button");
+    const runtimeStatus = document.getElementById("runtime-status");
+    const runtimeReloadButton = document.getElementById("runtime-reload-button");
+    const runtimeFileInput = document.getElementById("runtime-file-input");
     const queryKey = new URLSearchParams(window.location.search).get("apiKey");
     let googleMapsScriptRequested = false;
     let mapInitialized = false;
@@ -432,7 +446,7 @@
       const lng = points.reduce((sum, point) => sum + point[1], 0) / points.length;
       return [variant.id, { lat, lng, label: variant.label }];
     }));
-    const developerOrbat = [
+    let developerOrbat = [
       { unitId: "uss_north_dakota", name: "USS North Dakota", side: "US", role: "Player SSN", sector: "reed_bank_gate", status: "On patrol" },
       { unitId: "uss_spruance", name: "USS Spruance", side: "US", role: "Surface support", sector: "scarborough_sweep", status: "Barrier support" },
       { unitId: "uss_dewey", name: "USS Dewey", side: "US", role: "Surface support", sector: "palawan_seam", status: "On station" },
@@ -479,6 +493,20 @@
       if (side === "US") return "#74d8ff";
       if (side === "RU") return "#ff8d72";
       return "#ffd06e";
+    }
+
+    function applyRuntimeSnapshot(snapshot) {
+      developerOrbat = snapshot.units.map((unit) => ({
+        unitId: unit.unitId,
+        name: unit.name,
+        side: unit.side,
+        role: unit.role,
+        sector: unit.currentSector,
+        status: unit.status
+      })).filter((unit) => unit.sector && sectorCenters[unit.sector]);
+      if (mapInstance && window.google?.maps) {
+        renderDeveloperOrbat(mapInstance);
+      }
     }
 
     function clearDeveloperOrbat() {
@@ -655,6 +683,13 @@
     if (apiKeyInput.value.trim()) {
       loadGoogleMaps(apiKeyInput.value.trim());
     }
+    window.MNWTheaterDebugRuntime?.attachRuntimeLoader({
+      theaterId: "south_china_sea",
+      statusElement: runtimeStatus,
+      reloadButton: runtimeReloadButton,
+      fileInput: runtimeFileInput,
+      onSnapshot: applyRuntimeSnapshot
+    });
   </script>
 </body>
 </html>

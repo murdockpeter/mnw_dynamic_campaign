@@ -186,6 +186,24 @@
       gap: 10px;
     }
 
+    .config-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+
+    .status {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .hidden-input {
+      display: none;
+    }
+
     .toggle-button {
       border: 1px solid rgba(87, 224, 183, 0.28);
       border-radius: 999px;
@@ -400,6 +418,12 @@
         <p>
           These corridors drive the sub-hunt campaign geometry used by the generator when it builds scenarios in this theater.
         </p>
+        <div class="config-row">
+          <button id="runtime-reload-button" class="download-button" type="button">Load Runtime Snapshot</button>
+          <label class="download-button" for="runtime-file-input">Import Snapshot JSON</label>
+          <input id="runtime-file-input" class="hidden-input" type="file" accept=".json,application/json">
+        </div>
+        <div id="runtime-status" class="status">Using seed ORBAT until a matching runtime snapshot is loaded.</div>
       </article>
 
       <div class="stats">
@@ -517,6 +541,7 @@
     </section>
   </div>
 
+  <script src="./theater-debug-runtime.js"></script>
   <script>
     const variants = [
       {
@@ -647,6 +672,9 @@
     const toggleDeveloperOverlayButton = document.getElementById("toggle-developer-overlay");
     const developerPanel = document.getElementById("developer-panel");
     const developerOrbatTable = document.getElementById("developer-orbat-table");
+    const runtimeStatus = document.getElementById("runtime-status");
+    const runtimeReloadButton = document.getElementById("runtime-reload-button");
+    const runtimeFileInput = document.getElementById("runtime-file-input");
     const width = 900;
     const height = 640;
     const plot = { left: 60, top: 18, right: 850, bottom: 600 };
@@ -663,7 +691,7 @@
       const lon = points.reduce((sum, point) => sum + point[1], 0) / points.length;
       return [variant.id, { lat, lon, label: variant.label }];
     }));
-    const developerOrbat = [
+    let developerOrbat = [
       { unitId: "uss_north_dakota", name: "USS North Dakota", side: "US", role: "Player SSN", sector: "reed_bank_gate", status: "On patrol" },
       { unitId: "uss_spruance", name: "USS Spruance", side: "US", role: "Surface support", sector: "scarborough_sweep", status: "Barrier support" },
       { unitId: "uss_dewey", name: "USS Dewey", side: "US", role: "Surface support", sector: "palawan_seam", status: "On station" },
@@ -797,6 +825,19 @@
       if (side === "US") return "#74d8ff";
       if (side === "RU") return "#ff8d72";
       return "#ffd06e";
+    }
+
+    function applyRuntimeSnapshot(snapshot) {
+      developerOrbat = snapshot.units.map((unit) => ({
+        unitId: unit.unitId,
+        name: unit.name,
+        side: unit.side,
+        role: unit.role,
+        sector: unit.currentSector,
+        status: unit.status
+      })).filter((unit) => unit.sector && sectorCenters[unit.sector]);
+      renderMap();
+      buildDeveloperOrbatTable();
     }
 
     function drawDeveloperOverlay() {
@@ -1041,6 +1082,13 @@ ${orbatPlacemarks.join("\n")}
       toggleDeveloperOverlayButton.classList.toggle("active", developerOverlayEnabled);
       developerPanel.classList.toggle("active", developerOverlayEnabled);
       renderMap();
+    });
+    window.MNWTheaterDebugRuntime?.attachRuntimeLoader({
+      theaterId: "south_china_sea",
+      statusElement: runtimeStatus,
+      reloadButton: runtimeReloadButton,
+      fileInput: runtimeFileInput,
+      onSnapshot: applyRuntimeSnapshot
     });
   </script>
 </body>

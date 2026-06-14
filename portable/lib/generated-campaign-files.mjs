@@ -43,6 +43,16 @@ function formatGc([lat, lon]) {
   return `GC(${lat.toFixed(6)}, ${lon.toFixed(6)})`;
 }
 
+function factionRuntimeId(faction) {
+  if (faction === "RU") {
+    return 183;
+  }
+  if (faction === "CN") {
+    return 46;
+  }
+  return 236;
+}
+
 function buildSurfaceMissionScript(blueprint, scenario) {
   const g = scenario.geometry;
   const additionalBarrier = scenario.index >= 1;
@@ -223,6 +233,58 @@ end_transmission_process = _P.Element.Radio(end_message_process, sat_element, en
 function buildSubHuntMissionScript(blueprint, scenario) {
   const g = scenario.geometry;
   const supportUnits = Math.max(1, scenario.geometry.density);
+  const friendlySurface = scenario.forces?.friendlySurface?.[0] || {
+    name: "USS Spruance",
+    dbid: 294,
+    faction: "US"
+  };
+  const friendlyAir = scenario.forces?.friendlyAir?.[0] || {
+    name: "P-8A Poseidon",
+    dbid: 2705,
+    faction: "US"
+  };
+  const primaryTarget = scenario.forces?.enemyPrimary?.find((unit) => unit.notes?.role === "target")
+    || scenario.forces?.enemyPrimary?.[0]
+    || {
+      name: "Yasen Severodvinsk",
+      dbid: 667,
+      faction: "RU"
+    };
+  const escortUnit = scenario.forces?.enemyPrimary?.find((unit) => unit.unitId !== primaryTarget.unitId)
+    || scenario.forces?.enemyPrimary?.find((unit) => unit.notes?.role === "screen")
+    || {
+      name: "Akula Screen",
+      dbid: 34,
+      faction: "RU"
+    };
+  const enemySupportSurface = scenario.forces?.enemySurfaceSupport || [];
+  const enemySupportAir = scenario.forces?.enemyAir || [];
+  const supportFaction = enemySupportSurface[0]?.faction || enemySupportAir[0]?.faction || "RU";
+  const supportFactionId = factionRuntimeId(supportFaction);
+  const supportGroupBlock = enemySupportSurface.length || enemySupportAir.length
+    ? `
+support_zone = _Z.Circular("Support Group Zone", support_group_pos, 10000)
+support_plot_anchor = russian_plot
+${enemySupportSurface.map((unit, index) => {
+  const variable = `support_surface_${index}`;
+  const spawnAnchor = index === 0 ? "support_plot_anchor" : `support_surface_${index - 1}_plot`;
+  return `${variable}_props = Element.Props.FromDatabaseID(${supportFactionId}, "${unit.name}", ElementCategory.Ship, ${unit.dbid}, support_zone.RandomPosition())
+${variable}_element = Element(${variable}_props).SetElevation(0).SetHeading(225)
+${variable}_spawn = _P.Element.Spawn(${spawnAnchor}, ${variable}_element, ${variable}_element.Position)
+${variable}_plot = _P.Element.Plot(${variable}_spawn, ${variable}_element, Waypoint(support_group_dest))`;
+}).join("\n")}
+${enemySupportAir.map((unit, index) => {
+  const variable = `support_air_${index}`;
+  const spawnAnchor = enemySupportSurface.length
+    ? `support_surface_${enemySupportSurface.length - 1}_plot`
+    : "support_plot_anchor";
+  return `${variable}_props = Element.Props.FromDatabaseID(${supportFactionId}, "${unit.name}", ElementCategory.Aircraft, ${unit.dbid}, support_zone.RandomPosition())
+${variable}_element = Element(${variable}_props).SetElevation(600).SetHeading(225)
+${variable}_spawn = _P.Element.Spawn(${spawnAnchor}, ${variable}_element, ${variable}_element.Position)
+${variable}_plot = _P.Element.Plot(${variable}_spawn, ${variable}_element, Waypoint(${index === 0 ? formatGc(g.center) : "support_group_dest"}))`;
+}).join("\n")}
+`
+    : "";
   return `import random
 
 ##
@@ -240,15 +302,6 @@ civ_fact = 0
 us_fact = 236
 rus_fact = 183
 ch_fact = 46
-
-virginia_id = 1015
-arleigh_id = 294
-p8_id = 2705
-yasen_id = 667
-akula_id = 34
-t054a_id = 1965
-t055_id = 3883
-harbin_id = 60
 
 cargo_ids = [
 99992101, 99992105, 99992106, 99992107, 99992108,
@@ -326,12 +379,12 @@ sat_spawn_process = _P.Element.Spawn(player_spawn_process, sat_element, sat_elem
 transmission = Transmission.Create(EMFTools.Protocol.Link_16, _date_time, 60, 10, 500, EMFTools.MicroWaveBands.UHF)
 transmission_process = _P.Element.Radio(sat_spawn_process, sat_element, transmission)
 
-ddg_props = Element.Props.FromDatabaseID(us_fact, "USS Spruance", ElementCategory.Ship, arleigh_id, ddg_spawn_pos)
+ddg_props = Element.Props.FromDatabaseID(${factionRuntimeId(friendlySurface.faction)}, "${friendlySurface.name}", ElementCategory.Ship, ${friendlySurface.dbid}, ddg_spawn_pos)
 ddg_element = Element(ddg_props).SetElevation(0).SetHeading(45).SetHVU(True)
 ddg_spawn = _P.Element.Spawn(player_spawn_process, ddg_element, ddg_element.Position)
 ddg_plot = _P.Element.Plot(ddg_spawn, ddg_element, Waypoint(ddg_screen_pos))
 
-p8_props = Element.Props.FromDatabaseID(us_fact, "P-8A Poseidon", ElementCategory.Aircraft, p8_id, p8_spawn_pos)
+p8_props = Element.Props.FromDatabaseID(${factionRuntimeId(friendlyAir.faction)}, "${friendlyAir.name}", ElementCategory.Aircraft, ${friendlyAir.dbid}, p8_spawn_pos)
 p8_element = Element(p8_props).SetElevation(5000).SetHeading(220)
 p8_spawn = _P.Element.Spawn(ddg_plot, p8_element, p8_element.Position)
 
@@ -348,12 +401,12 @@ for idx in range(${supportUnits + 2}):
     _P.Element.Spawn(p8_spawn, cargo_element, cargo_element.Position)
 
 yasen_spawn_zone = _Z.Circular("Yasen Spawn Zone", yasen_spawn_pos, 12000)
-yasen_props = Element.Props.FromDatabaseID(rus_fact, "Yasen Severodvinsk", ElementCategory.Submarine, yasen_id, yasen_spawn_zone.RandomPosition())
+yasen_props = Element.Props.FromDatabaseID(${factionRuntimeId(primaryTarget.faction)}, "${primaryTarget.name}", ElementCategory.Submarine, ${primaryTarget.dbid}, yasen_spawn_zone.RandomPosition())
 yasen_element = Element(yasen_props).SetElevation(-140).SetHeading(245)
 yasen_spawn = _P.Element.Spawn(p8_spawn, yasen_element, yasen_element.Position)
 
 escort_spawn_zone = _Z.Circular("Escort Spawn Zone", escort_spawn_pos, 10000)
-escort_props = Element.Props.FromDatabaseID(rus_fact, "Akula Screen", ElementCategory.Submarine, akula_id, escort_spawn_zone.RandomPosition())
+escort_props = Element.Props.FromDatabaseID(${factionRuntimeId(escortUnit.faction)}, "${escortUnit.name}", ElementCategory.Submarine, ${escortUnit.dbid}, escort_spawn_zone.RandomPosition())
 escort_element = Element(escort_props).SetElevation(-160).SetHeading(245).SetHVU(True)
 escort_spawn = _P.Element.Spawn(yasen_spawn, escort_element, escort_element.Position)
 
@@ -362,19 +415,7 @@ asw_formation_subs.SetCourse(245.0)
 russian_squad = Squadron(rus_fact, "Russian Breakout Group", [yasen_element, escort_element], yasen_spawn_pos, asw_formation_subs)
 russian_plot = _P.Squadron.Plot(escort_spawn, russian_squad, Waypoint(egress_pos))
 
-support_zone = _Z.Circular("Support Group Zone", support_group_pos, 10000)
-t055_props = Element.Props.FromDatabaseID(ch_fact, "Support DDG", ElementCategory.Ship, t055_id, support_zone.RandomPosition())
-t055_element = Element(t055_props).SetElevation(0).SetHeading(225)
-t055_spawn = _P.Element.Spawn(russian_plot, t055_element, t055_element.Position)
-t054a_props = Element.Props.FromDatabaseID(ch_fact, "Support Frigate", ElementCategory.Ship, t054a_id, support_zone.RandomPosition())
-t054a_element = Element(t054a_props).SetElevation(0).SetHeading(225)
-t054a_spawn = _P.Element.Spawn(t055_spawn, t054a_element, t054a_element.Position)
-harbin_props = Element.Props.FromDatabaseID(ch_fact, "Support Helo", ElementCategory.Aircraft, harbin_id, support_zone.RandomPosition())
-harbin_element = Element(harbin_props).SetElevation(600).SetHeading(225)
-harbin_spawn = _P.Element.Spawn(t054a_spawn, harbin_element, harbin_element.Position)
-t055_plot = _P.Element.Plot(harbin_spawn, t055_element, Waypoint(support_group_dest))
-t054a_plot = _P.Element.Plot(t055_plot, t054a_element, Waypoint(support_group_dest))
-harbin_plot = _P.Element.Plot(t054a_plot, harbin_element, Waypoint(${formatGc(g.center)}))
+${supportGroupBlock}
 
 withdrawal_antenna_trigger = _T.AntennasRaised(True)
 player_element.NotifyOnAntennaRaised(withdrawal_antenna_trigger)

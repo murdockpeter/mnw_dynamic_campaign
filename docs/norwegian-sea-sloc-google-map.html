@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Norwegian Sea SLOC Google Map | MNW Campaign Console</title>
+  <style>
+    :root {
+      --bg: #07131d;
+      --panel: rgba(14, 33, 47, 0.94);
+      --panel-2: rgba(17, 39, 55, 0.96);
+      --line: rgba(118, 202, 237, 0.14);
+      --text: #ecf7fb;
+      --muted: #9ebccc;
+      --accent: #74d8ff;
+      --accent-2: #59e2b5;
+      --accent-3: #ffd06e;
+      --enemy: #ff8d72;
+      --shadow: 0 28px 72px rgba(0, 0, 0, 0.34);
+      --radius: 22px;
+      --content-width: 1180px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(87, 224, 183, 0.12), transparent 24%),
+        radial-gradient(circle at top right, rgba(116, 216, 255, 0.14), transparent 24%),
+        linear-gradient(180deg, #07131d 0%, #091a25 48%, #07131d 100%);
+      font: 16px/1.55 "Segoe UI", "Aptos", system-ui, sans-serif;
+    }
+
+    code {
+      font-family: "Cascadia Code", Consolas, monospace;
+      color: var(--accent);
+    }
+
+    .page {
+      width: min(calc(100% - 28px), var(--content-width));
+      margin: 0 auto;
+      padding: 10px 0 28px;
+    }
+
+    .hero,
+    .panel,
+    .map-shell {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .hero,
+    .panel {
+      padding: 18px;
+    }
+
+    h1, h2, h3, p { margin: 0; }
+
+    h1 {
+      font-size: clamp(2.4rem, 4.8vw, 3.8rem);
+      line-height: 1.02;
+      max-width: 9ch;
+      margin-bottom: 12px;
+    }
+
+    .hero p {
+      color: var(--muted);
+      max-width: 980px;
+    }
+
+    .eyebrow {
+      color: var(--accent);
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      font-weight: 700;
+    }
+
+    .top-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    .panel p + p {
+      margin-top: 10px;
+    }
+
+    .config-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .config-input {
+      flex: 1 1 260px;
+      min-width: 220px;
+      border-radius: 14px;
+      border: 1px solid rgba(116, 216, 255, 0.2);
+      background: rgba(9, 26, 38, 0.94);
+      color: var(--text);
+      padding: 11px 14px;
+      font: 14px/1.2 "Segoe UI", "Aptos", system-ui, sans-serif;
+    }
+
+    .button {
+      border: 1px solid rgba(116, 216, 255, 0.28);
+      border-radius: 999px;
+      background: linear-gradient(180deg, rgba(23, 76, 108, 0.96), rgba(15, 56, 83, 0.96));
+      color: var(--text);
+      padding: 10px 16px;
+      font: 600 13px/1 "Segoe UI", "Aptos", system-ui, sans-serif;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+    }
+
+    .button.secondary {
+      background: rgba(12, 34, 49, 0.96);
+    }
+
+    .button.toggle-active {
+      border-color: rgba(89, 226, 181, 0.46);
+      background: rgba(89, 226, 181, 0.14);
+      color: var(--accent-2);
+    }
+
+    .status {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .map-shell {
+      margin-top: 14px;
+      overflow: hidden;
+      background: var(--panel-2);
+    }
+
+    .map-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 16px 18px 12px;
+      border-bottom: 1px solid rgba(118, 202, 237, 0.12);
+    }
+
+    .map-title {
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .map-subtitle {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 2px;
+    }
+
+    .legend {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .swatch {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+    }
+
+    #map {
+      width: 100%;
+      height: 760px;
+      background: linear-gradient(180deg, rgba(11, 34, 50, 0.98), rgba(10, 28, 42, 0.98));
+    }
+
+    .footer-note {
+      padding: 12px 18px 18px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .link-row {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .link-row a {
+      color: var(--accent);
+    }
+
+    .hidden-input {
+      display: none;
+    }
+
+    @media (max-width: 980px) {
+      .top-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .map-header {
+        flex-direction: column;
+      }
+
+      #map {
+        height: 620px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <section class="hero">
+      <div class="eyebrow">Google Basemap View</div>
+      <h1>Norwegian Sea SLOC Google Map</h1>
+      <p>
+        This page renders the Norwegian Sea route variants from <code>shared/campaign-generator.mjs</code> directly as Google
+        Maps polylines and overlays the same developer ORBAT view used by the SVG/KML debug page.
+      </p>
+    </section>
+
+    <section class="top-grid">
+      <article class="panel">
+        <div class="eyebrow">Setup</div>
+        <h2>Load Your Google Maps API Key</h2>
+        <p>
+          Enter a browser-safe Google Maps JavaScript API key, or pass it in the URL as <code>?apiKey=YOUR_KEY</code>.
+          The page stores the key in local browser storage so you do not have to re-enter it every time.
+        </p>
+        <div class="config-row">
+          <input id="api-key-input" class="config-input" type="password" placeholder="Paste Google Maps JavaScript API key">
+          <button id="load-map-button" class="button" type="button">Load Google Map</button>
+          <button id="toggle-orbat-button" class="button secondary toggle-active" type="button">Hide Developer ORBAT</button>
+          <button id="clear-key-button" class="button secondary" type="button">Clear Saved Key</button>
+        </div>
+        <div id="map-status" class="status">Waiting for API key.</div>
+        <div class="config-row">
+          <button id="runtime-reload-button" class="button secondary" type="button">Load Runtime Snapshot</button>
+          <label class="button secondary" for="runtime-file-input">Import Snapshot JSON</label>
+          <input id="runtime-file-input" class="hidden-input" type="file" accept=".json,application/json">
+        </div>
+        <div id="runtime-status" class="status">Using seed ORBAT until a matching runtime snapshot is loaded.</div>
+        <div class="link-row">
+          SVG view: <a href="./norwegian-sea-sloc-map.html">norwegian-sea-sloc-map.html</a>
+        </div>
+      </article>
+
+      <article class="panel">
+        <div class="eyebrow">Behavior</div>
+        <h2>What This Page Draws</h2>
+        <p>Each route variant gets four corridor layers: player, enemy, support, and air.</p>
+        <p>Developer ORBAT markers show the assumed sector locations for the persistent theater cross section.</p>
+        <p>The map auto-fits to the Norway theater after load.</p>
+      </article>
+    </section>
+
+    <section class="map-shell">
+      <div class="map-header">
+        <div>
+          <div class="map-title">Operational Route Overlay</div>
+          <div class="map-subtitle">Direct polyline rendering on a Google basemap.</div>
+        </div>
+        <div class="legend">
+          <span class="legend-item"><span class="swatch" style="background:#74d8ff"></span>Player</span>
+          <span class="legend-item"><span class="swatch" style="background:#ff8d72"></span>Enemy</span>
+          <span class="legend-item"><span class="swatch" style="background:#57e0b7"></span>Support</span>
+          <span class="legend-item"><span class="swatch" style="background:#ffd06e"></span>Air</span>
+          <span class="legend-item"><span class="swatch" style="background:#ffffff"></span>Developer ORBAT</span>
+        </div>
+      </div>
+      <div id="map" aria-label="Google map showing Norwegian Sea route variants"></div>
+      <div class="footer-note">ORBAT markers are developer-focused theater-sector references, not exact tactical positions.</div>
+    </section>
+  </div>
+
+  <script src="./theater-debug-runtime.js"></script>
+  <script>
+    const routeVariants = [
+      {
+        id: "bear_island_gap",
+        label: "Bear Island Gap",
+        playerCorridor: [[71.26, 12.84], [71.58, 14.68], [71.92, 16.54], [72.28, 18.46]],
+        enemyCorridor: [[74.18, 28.62], [73.74, 26.08], [73.26, 23.48], [72.78, 20.82]],
+        supportCorridor: [[70.82, 10.84], [71.18, 12.48], [71.46, 14.24]],
+        airCorridor: [[72.36, 18.06], [72.82, 20.02], [73.18, 22.18]]
+      },
+      {
+        id: "lofoten_wall",
+        label: "Lofoten Wall",
+        playerCorridor: [[68.82, 9.86], [69.16, 11.24], [69.52, 12.78], [69.96, 14.32]],
+        enemyCorridor: [[71.18, 19.42], [70.82, 17.54], [70.4, 15.76], [69.92, 13.84]],
+        supportCorridor: [[68.12, 8.42], [68.48, 9.72], [68.86, 11.08]],
+        airCorridor: [[69.84, 13.56], [70.28, 15.1], [70.72, 16.76]]
+      },
+      {
+        id: "nordkapp_seam",
+        label: "Nordkapp Seam",
+        playerCorridor: [[70.94, 18.22], [71.26, 20.04], [71.58, 21.98], [71.92, 23.86]],
+        enemyCorridor: [[73.16, 31.22], [72.82, 28.88], [72.42, 26.44], [71.98, 24.16]],
+        supportCorridor: [[70.18, 16.02], [70.48, 17.66], [70.82, 19.24]],
+        airCorridor: [[71.84, 23.32], [72.24, 25.02], [72.66, 26.88]]
+      },
+      {
+        id: "faroe_shetland_exit",
+        label: "Faroe-Shetland Exit",
+        playerCorridor: [[61.06, -3.62], [61.44, -1.88], [61.92, -0.22], [62.38, 1.52]],
+        enemyCorridor: [[64.24, 4.62], [63.76, 2.88], [63.22, 1.02], [62.68, -0.74]],
+        supportCorridor: [[60.42, -5.24], [60.86, -3.44], [61.28, -1.78]],
+        airCorridor: [[62.14, 1.18], [62.62, 2.92], [63.02, 4.54]]
+      },
+      {
+        id: "jan_mayen_arc",
+        label: "Jan Mayen Arc",
+        playerCorridor: [[68.26, -5.82], [68.72, -3.92], [69.16, -1.88], [69.58, 0.24]],
+        enemyCorridor: [[71.12, 6.82], [70.72, 4.86], [70.22, 2.72], [69.72, 0.62]],
+        supportCorridor: [[67.56, -7.12], [67.98, -5.12], [68.42, -3.18]],
+        airCorridor: [[69.46, 0.08], [69.96, 2.08], [70.34, 4.04]]
+      },
+      {
+        id: "barents_bastion_edge",
+        label: "Barents Bastion Edge",
+        playerCorridor: [[72.24, 24.12], [72.56, 26.24], [72.88, 28.42], [73.22, 30.58]],
+        enemyCorridor: [[74.86, 36.84], [74.42, 34.26], [73.96, 31.72], [73.48, 29.18]],
+        supportCorridor: [[71.48, 22.04], [71.82, 24.04], [72.12, 26.08]],
+        airCorridor: [[73.04, 30.16], [73.44, 32.38], [73.88, 34.62]]
+      }
+    ];
+
+    const sectorCenters = {
+      bear_island_gap: { label: "Bear Island Gap", lat: 72.16, lon: 18.0 },
+      lofoten_wall: { label: "Lofoten Wall", lat: 69.64, lon: 13.84 },
+      nordkapp_seam: { label: "Nordkapp Seam", lat: 71.56, lon: 23.54 },
+      faroe_shetland_exit: { label: "Faroe-Shetland Exit", lat: 62.04, lon: 0.42 },
+      jan_mayen_arc: { label: "Jan Mayen Arc", lat: 69.34, lon: 0.24 },
+      barents_bastion_edge: { label: "Barents Bastion Edge", lat: 73.14, lon: 30.42 }
+    };
+
+    let developerOrbat = [
+      { side: "US", name: "USS North Dakota", sector: "bear_island_gap" },
+      { side: "US", name: "USS Truxtun", sector: "nordkapp_seam" },
+      { side: "US", name: "USS Laboon", sector: "lofoten_wall" },
+      { side: "US", name: "USS Ross", sector: "faroe_shetland_exit" },
+      { side: "US", name: "P-8A Nord Watch", sector: "barents_bastion_edge" },
+      { side: "US", name: "P-8A GIUK Scout", sector: "jan_mayen_arc" },
+      { side: "RU", name: "Yasen Severodvinsk", sector: "bear_island_gap" },
+      { side: "RU", name: "Yasen Kazan", sector: "barents_bastion_edge" },
+      { side: "RU", name: "Akula Screen", sector: "lofoten_wall" },
+      { side: "RU", name: "Akula Gatekeeper", sector: "jan_mayen_arc" }
+    ];
+
+    const corridorStyles = {
+      playerCorridor: { color: "#74d8ff" },
+      enemyCorridor: { color: "#ff8d72" },
+      supportCorridor: { color: "#57e0b7" },
+      airCorridor: { color: "#ffd06e" }
+    };
+
+    const apiKeyInput = document.getElementById("api-key-input");
+    const loadMapButton = document.getElementById("load-map-button");
+    const toggleOrbatButton = document.getElementById("toggle-orbat-button");
+    const clearKeyButton = document.getElementById("clear-key-button");
+    const mapStatus = document.getElementById("map-status");
+    const runtimeStatus = document.getElementById("runtime-status");
+    const runtimeReloadButton = document.getElementById("runtime-reload-button");
+    const runtimeFileInput = document.getElementById("runtime-file-input");
+
+    let map;
+    let developerOrbatEnabled = true;
+    let orbatMarkers = [];
+    let routeLayers = [];
+
+    function setStatus(text) {
+      mapStatus.textContent = text;
+    }
+
+    function getApiKey() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get("apiKey") || window.localStorage.getItem("mnwGoogleMapsApiKey") || "";
+    }
+
+    function setApiKey(key) {
+      if (key) {
+        window.localStorage.setItem("mnwGoogleMapsApiKey", key);
+      }
+    }
+
+    function clearApiKey() {
+      window.localStorage.removeItem("mnwGoogleMapsApiKey");
+    }
+
+    function applyRuntimeSnapshot(snapshot) {
+      developerOrbat = snapshot.units.map((unit) => ({
+        side: unit.side,
+        name: unit.name,
+        sector: unit.currentSector,
+        status: unit.status,
+        role: unit.role
+      })).filter((unit) => unit.sector && sectorCenters[unit.sector]);
+      if (map) {
+        renderOrbat();
+      }
+    }
+
+    function loadGoogleMapsScript(apiKey) {
+      return new Promise((resolve, reject) => {
+        if (window.google && window.google.maps) {
+          resolve(window.google.maps);
+          return;
+        }
+
+        const callbackName = `mnwGoogleMapsInit_${Date.now()}`;
+        window[callbackName] = () => {
+          resolve(window.google.maps);
+          delete window[callbackName];
+        };
+
+        const script = document.createElement("script");
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&callback=${callbackName}`;
+        script.async = true;
+        script.defer = true;
+        script.onerror = () => reject(new Error("Failed to load Google Maps script."));
+        document.head.appendChild(script);
+      });
+    }
+
+    function clearMapLayers() {
+      routeLayers.forEach((layer) => layer.setMap(null));
+      orbatMarkers.forEach((marker) => marker.setMap(null));
+      routeLayers = [];
+      orbatMarkers = [];
+    }
+
+    function renderRoutes() {
+      Object.entries(corridorStyles).forEach(([key, style]) => {
+        routeVariants.forEach((variant) => {
+          const layer = new google.maps.Polyline({
+            map,
+            path: variant[key].map(([lat, lng]) => ({ lat, lng })),
+            strokeColor: style.color,
+            strokeOpacity: 0.95,
+            strokeWeight: 3
+          });
+          routeLayers.push(layer);
+        });
+      });
+    }
+
+    function renderOrbat() {
+      orbatMarkers.forEach((marker) => marker.setMap(null));
+      orbatMarkers = [];
+
+      if (!developerOrbatEnabled) {
+        return;
+      }
+
+      developerOrbat.forEach((unit, index) => {
+        const sector = sectorCenters[unit.sector];
+        const offsetLat = ((index % 3) - 1) * 0.08;
+        const offsetLng = ((Math.floor(index / 3) % 3) - 1) * 0.12;
+        const marker = new google.maps.Marker({
+          map,
+          position: { lat: sector.lat + offsetLat, lng: sector.lon + offsetLng },
+          title: `${unit.side} | ${unit.name} | ${sector.label}`,
+          icon: {
+            path: google.maps.SymbolPath.BACKWARD_CLOSED_ARROW,
+            scale: 5.5,
+            fillColor: "#ffffff",
+            fillOpacity: 1,
+            strokeColor: "#0b1721",
+            strokeWeight: 1.2
+          },
+          label: {
+            text: `ORB ${unit.name}`,
+            color: "#ffffff",
+            fontSize: "11px",
+            fontWeight: "600"
+          },
+          zIndex: 1000
+        });
+        orbatMarkers.push(marker);
+      });
+    }
+
+    function fitMap() {
+      const bounds = new google.maps.LatLngBounds();
+      routeVariants.forEach((variant) => {
+        ["playerCorridor", "enemyCorridor", "supportCorridor", "airCorridor"].forEach((key) => {
+          variant[key].forEach(([lat, lng]) => bounds.extend({ lat, lng }));
+        });
+      });
+      map.fitBounds(bounds, 80);
+    }
+
+    async function initializeMap() {
+      const apiKey = apiKeyInput.value.trim();
+      if (!apiKey) {
+        setStatus("Enter a Google Maps API key first.");
+        return;
+      }
+
+      setStatus("Loading Google Maps...");
+      setApiKey(apiKey);
+
+      try {
+        await loadGoogleMapsScript(apiKey);
+        if (!map) {
+          map = new google.maps.Map(document.getElementById("map"), {
+            mapTypeId: "satellite",
+            disableDefaultUI: false,
+            streetViewControl: false,
+            fullscreenControl: true
+          });
+        }
+        clearMapLayers();
+        renderRoutes();
+        renderOrbat();
+        fitMap();
+        setStatus("Google basemap loaded. Norwegian Sea route variants are rendered directly from the in-page route listing.");
+      } catch (error) {
+        setStatus(error.message || "Failed to initialize Google Maps.");
+      }
+    }
+
+    loadMapButton.addEventListener("click", () => {
+      initializeMap();
+    });
+
+    toggleOrbatButton.addEventListener("click", () => {
+      developerOrbatEnabled = !developerOrbatEnabled;
+      toggleOrbatButton.classList.toggle("toggle-active", developerOrbatEnabled);
+      toggleOrbatButton.textContent = developerOrbatEnabled ? "Hide Developer ORBAT" : "Show Developer ORBAT";
+      if (map) {
+        renderOrbat();
+      }
+    });
+
+    clearKeyButton.addEventListener("click", () => {
+      clearApiKey();
+      apiKeyInput.value = "";
+      setStatus("Saved API key cleared.");
+    });
+
+    apiKeyInput.value = getApiKey();
+    if (apiKeyInput.value) {
+      setStatus("Saved API key detected. Click Load Google Map to render the Norway theater.");
+    }
+    window.MNWTheaterDebugRuntime?.attachRuntimeLoader({
+      theaterId: "norwegian_sea",
+      statusElement: runtimeStatus,
+      reloadButton: runtimeReloadButton,
+      fileInput: runtimeFileInput,
+      onSnapshot: applyRuntimeSnapshot
+    });
+  </script>
+</body>
+</html>

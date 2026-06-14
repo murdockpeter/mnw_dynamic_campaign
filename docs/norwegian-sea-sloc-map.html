@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Norwegian Sea SLOC Map | MNW Campaign Console</title>
+  <style>
+    :root {
+      --bg: #07131d;
+      --panel: rgba(14, 33, 47, 0.94);
+      --panel-2: rgba(17, 39, 55, 0.96);
+      --line: rgba(118, 202, 237, 0.14);
+      --text: #ecf7fb;
+      --muted: #9ebccc;
+      --accent: #74d8ff;
+      --accent-2: #57e0b7;
+      --accent-3: #ffd06e;
+      --enemy: #ff8d72;
+      --orbat: #ffffff;
+      --shadow: 0 28px 72px rgba(0, 0, 0, 0.34);
+      --radius: 22px;
+      --content-width: 1080px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(87, 224, 183, 0.12), transparent 24%),
+        radial-gradient(circle at top right, rgba(116, 216, 255, 0.14), transparent 24%),
+        linear-gradient(180deg, #07131d 0%, #091a25 48%, #07131d 100%);
+      font: 16px/1.55 "Segoe UI", "Aptos", system-ui, sans-serif;
+    }
+
+    code {
+      font-family: "Cascadia Code", Consolas, monospace;
+      color: var(--accent);
+    }
+
+    .page {
+      width: min(calc(100% - 28px), var(--content-width));
+      margin: 0 auto;
+      padding: 8px 0 28px;
+    }
+
+    h1, h2, h3, p { margin: 0; }
+
+    .hero,
+    .panel,
+    .map-panel,
+    .table-wrap {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .hero,
+    .panel,
+    .map-panel,
+    .table-wrap {
+      padding: 18px;
+    }
+
+    .hero {
+      margin-top: 10px;
+    }
+
+    .eyebrow {
+      color: var(--accent);
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      font-weight: 700;
+    }
+
+    h1 {
+      font-size: clamp(2.4rem, 5vw, 3.9rem);
+      line-height: 1.02;
+      max-width: 9ch;
+      margin-bottom: 12px;
+    }
+
+    .hero p,
+    .panel p {
+      color: var(--muted);
+    }
+
+    .top-grid,
+    .middle-grid {
+      display: grid;
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    .top-grid {
+      grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+    }
+
+    .middle-grid {
+      grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.75fr);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .stat {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--panel-2);
+      padding: 16px;
+    }
+
+    .stat-label {
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .stat-value {
+      margin-top: 8px;
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .map-panel {
+      background: var(--panel-2);
+    }
+
+    .map-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .map-title {
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .map-subtitle {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 2px;
+    }
+
+    .toolbar-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .button {
+      border: 1px solid rgba(116, 216, 255, 0.28);
+      border-radius: 999px;
+      background: linear-gradient(180deg, rgba(23, 76, 108, 0.96), rgba(15, 56, 83, 0.96));
+      color: var(--text);
+      padding: 10px 16px;
+      font: 600 13px/1 "Segoe UI", "Aptos", system-ui, sans-serif;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+    }
+
+    .button.toggle-active {
+      border-color: rgba(87, 224, 183, 0.46);
+      background: rgba(87, 224, 183, 0.14);
+      color: var(--accent-2);
+    }
+
+    svg {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: 14px;
+      border: 1px solid rgba(118, 202, 237, 0.14);
+      background: linear-gradient(180deg, rgba(9, 28, 42, 0.98), rgba(8, 22, 34, 0.98));
+    }
+
+    .legend {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .swatch {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      display: inline-block;
+    }
+
+    .table-wrap {
+      margin-top: 14px;
+      overflow: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 700px;
+    }
+
+    th,
+    td {
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(118, 202, 237, 0.1);
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--accent);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    td {
+      color: var(--muted);
+    }
+
+    .link-row {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .link-row a {
+      color: var(--accent);
+    }
+
+    .config-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .status {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .hidden-input {
+      display: none;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    @media (max-width: 980px) {
+      .top-grid,
+      .middle-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <section class="hero">
+      <div class="eyebrow">Developer Theater View</div>
+      <h1>Norwegian Sea SLOC Map</h1>
+      <p>
+        This page visualizes the current Norwegian Sea route corridors defined in <code>shared/campaign-generator.mjs</code>,
+        along with a developer-facing ORBAT overlay that shows assumed sector occupancy for the broader theater picture.
+      </p>
+    </section>
+
+    <section class="top-grid">
+      <article class="panel">
+        <div class="eyebrow">Scope</div>
+        <h2>What This Debug View Is For</h2>
+        <p>
+          The Norway theater is not meant to place every unit into every mission. This page shows the larger operational
+          cross section so you can sanity-check corridor geometry, sector ownership, and where persistent forces are generally
+          assumed to be operating.
+        </p>
+        <p>
+          The ORBAT markers represent developer-level theater bookkeeping, not exact tactical truth. Scenario generation can
+          still pull only a subset of this picture into a mission package.
+        </p>
+        <div class="config-row">
+          <button id="runtime-reload-button" class="button" type="button">Load Runtime Snapshot</button>
+          <label class="button" for="runtime-file-input">Import Snapshot JSON</label>
+          <input id="runtime-file-input" class="hidden-input" type="file" accept=".json,application/json">
+        </div>
+        <div id="runtime-status" class="status">Using seed ORBAT until a matching runtime snapshot is loaded.</div>
+      </article>
+      <article class="panel">
+        <div class="eyebrow">At A Glance</div>
+        <div class="stats">
+          <div class="stat">
+            <div class="stat-label">Route Variants</div>
+            <div class="stat-value">6</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Sectors</div>
+            <div class="stat-value">6</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Player Boat</div>
+            <div class="stat-value">USS North Dakota</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Operational Focus</div>
+            <div class="stat-value">Barents / GIUK Approaches</div>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <section class="middle-grid">
+      <article class="map-panel">
+        <div class="map-toolbar">
+          <div>
+            <div class="map-title">Norwegian Sea Corridor Geometry</div>
+            <div class="map-subtitle">Player, enemy, support, and air corridors with developer ORBAT sector markers.</div>
+          </div>
+          <div class="toolbar-actions">
+            <button id="toggle-orbat-button" class="button toggle-active" type="button">Hide Developer ORBAT</button>
+            <button id="download-kml-button" class="button" type="button">Download Flattened KML</button>
+          </div>
+        </div>
+        <div class="link-row">Google basemap view: <a href="./norwegian-sea-sloc-google-map.html">norwegian-sea-sloc-google-map.html</a></div>
+        <svg id="route-map" viewBox="0 0 900 640" role="img" aria-label="Norwegian Sea route corridor geometry plot"></svg>
+        <div class="legend">
+          <span class="legend-item"><span class="swatch" style="background:#74d8ff"></span>Player</span>
+          <span class="legend-item"><span class="swatch" style="background:#ff8d72"></span>Enemy</span>
+          <span class="legend-item"><span class="swatch" style="background:#57e0b7"></span>Support</span>
+          <span class="legend-item"><span class="swatch" style="background:#ffd06e"></span>Air</span>
+          <span class="legend-item"><span class="swatch" style="background:#ffffff"></span>Developer ORBAT</span>
+        </div>
+      </article>
+
+      <article class="panel">
+        <div class="eyebrow">Interpretation</div>
+        <h2>Operational ORBAT Overlay</h2>
+        <p>
+          Each ORBAT marker sits on a sector center, not on a literal tracked contact. The intent is to expose the assumed
+          theater distribution for debugging continuation logic, persistence, and force-selection behavior.
+        </p>
+        <p>
+          The flattened KML export includes both route geometry and ORBAT placemarks so the same debugging picture can move
+          into Google Earth or any other KML-capable viewer without relying on nested folders.
+        </p>
+      </article>
+    </section>
+
+    <section id="orbat-table-wrap" class="table-wrap">
+      <div class="eyebrow">Developer ORBAT</div>
+      <h2 style="font-size:1rem; margin-bottom:12px;">Theater Unit Distribution</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Side</th>
+            <th>Unit</th>
+            <th>Role</th>
+            <th>Sector</th>
+            <th>Grid</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="developer-orbat-table"></tbody>
+      </table>
+    </section>
+  </div>
+
+  <script src="./theater-debug-runtime.js"></script>
+  <script>
+    const routeVariants = [
+      {
+        id: "bear_island_gap",
+        label: "Bear Island Gap",
+        playerCorridor: [[71.26, 12.84], [71.58, 14.68], [71.92, 16.54], [72.28, 18.46]],
+        enemyCorridor: [[74.18, 28.62], [73.74, 26.08], [73.26, 23.48], [72.78, 20.82]],
+        supportCorridor: [[70.82, 10.84], [71.18, 12.48], [71.46, 14.24]],
+        airCorridor: [[72.36, 18.06], [72.82, 20.02], [73.18, 22.18]]
+      },
+      {
+        id: "lofoten_wall",
+        label: "Lofoten Wall",
+        playerCorridor: [[68.82, 9.86], [69.16, 11.24], [69.52, 12.78], [69.96, 14.32]],
+        enemyCorridor: [[71.18, 19.42], [70.82, 17.54], [70.4, 15.76], [69.92, 13.84]],
+        supportCorridor: [[68.12, 8.42], [68.48, 9.72], [68.86, 11.08]],
+        airCorridor: [[69.84, 13.56], [70.28, 15.1], [70.72, 16.76]]
+      },
+      {
+        id: "nordkapp_seam",
+        label: "Nordkapp Seam",
+        playerCorridor: [[70.94, 18.22], [71.26, 20.04], [71.58, 21.98], [71.92, 23.86]],
+        enemyCorridor: [[73.16, 31.22], [72.82, 28.88], [72.42, 26.44], [71.98, 24.16]],
+        supportCorridor: [[70.18, 16.02], [70.48, 17.66], [70.82, 19.24]],
+        airCorridor: [[71.84, 23.32], [72.24, 25.02], [72.66, 26.88]]
+      },
+      {
+        id: "faroe_shetland_exit",
+        label: "Faroe-Shetland Exit",
+        playerCorridor: [[61.06, -3.62], [61.44, -1.88], [61.92, -0.22], [62.38, 1.52]],
+        enemyCorridor: [[64.24, 4.62], [63.76, 2.88], [63.22, 1.02], [62.68, -0.74]],
+        supportCorridor: [[60.42, -5.24], [60.86, -3.44], [61.28, -1.78]],
+        airCorridor: [[62.14, 1.18], [62.62, 2.92], [63.02, 4.54]]
+      },
+      {
+        id: "jan_mayen_arc",
+        label: "Jan Mayen Arc",
+        playerCorridor: [[68.26, -5.82], [68.72, -3.92], [69.16, -1.88], [69.58, 0.24]],
+        enemyCorridor: [[71.12, 6.82], [70.72, 4.86], [70.22, 2.72], [69.72, 0.62]],
+        supportCorridor: [[67.56, -7.12], [67.98, -5.12], [68.42, -3.18]],
+        airCorridor: [[69.46, 0.08], [69.96, 2.08], [70.34, 4.04]]
+      },
+      {
+        id: "barents_bastion_edge",
+        label: "Barents Bastion Edge",
+        playerCorridor: [[72.24, 24.12], [72.56, 26.24], [72.88, 28.42], [73.22, 30.58]],
+        enemyCorridor: [[74.86, 36.84], [74.42, 34.26], [73.96, 31.72], [73.48, 29.18]],
+        supportCorridor: [[71.48, 22.04], [71.82, 24.04], [72.12, 26.08]],
+        airCorridor: [[73.04, 30.16], [73.44, 32.38], [73.88, 34.62]]
+      }
+    ];
+
+    const sectorCenters = {
+      bear_island_gap: { label: "Bear Island Gap", lat: 72.16, lon: 18.0, grid: "BG-42" },
+      lofoten_wall: { label: "Lofoten Wall", lat: 69.64, lon: 13.84, grid: "LW-31" },
+      nordkapp_seam: { label: "Nordkapp Seam", lat: 71.56, lon: 23.54, grid: "NS-57" },
+      faroe_shetland_exit: { label: "Faroe-Shetland Exit", lat: 62.04, lon: 0.42, grid: "FS-14" },
+      jan_mayen_arc: { label: "Jan Mayen Arc", lat: 69.34, lon: 0.24, grid: "JM-26" },
+      barents_bastion_edge: { label: "Barents Bastion Edge", lat: 73.14, lon: 30.42, grid: "BB-68" }
+    };
+
+    let developerOrbat = [
+      { side: "US", name: "USS North Dakota", role: "Player SSN", sector: "bear_island_gap", status: "On patrol" },
+      { side: "US", name: "USS Truxtun", role: "Surface support", sector: "nordkapp_seam", status: "Holding screen" },
+      { side: "US", name: "USS Laboon", role: "Surface support", sector: "lofoten_wall", status: "Barrier duty" },
+      { side: "US", name: "USS Ross", role: "Surface support", sector: "faroe_shetland_exit", status: "Escort / cueing" },
+      { side: "US", name: "P-8A Nord Watch", role: "MPA", sector: "barents_bastion_edge", status: "Search pattern" },
+      { side: "US", name: "P-8A GIUK Scout", role: "MPA", sector: "jan_mayen_arc", status: "Transit / prosecute" },
+      { side: "RU", name: "Yasen Severodvinsk", role: "Primary target", sector: "bear_island_gap", status: "Outbound" },
+      { side: "RU", name: "Yasen Kazan", role: "Primary target", sector: "barents_bastion_edge", status: "Bastion screen" },
+      { side: "RU", name: "Akula Screen", role: "Escort SSN", sector: "lofoten_wall", status: "Counter-shadowing" },
+      { side: "RU", name: "Akula Gatekeeper", role: "Escort SSN", sector: "jan_mayen_arc", status: "Western guard" }
+    ];
+
+    const mapSvg = document.getElementById("route-map");
+    const developerOrbatTable = document.getElementById("developer-orbat-table");
+    const toggleOrbatButton = document.getElementById("toggle-orbat-button");
+    const orbatTableWrap = document.getElementById("orbat-table-wrap");
+    const downloadKmlButton = document.getElementById("download-kml-button");
+    const runtimeStatus = document.getElementById("runtime-status");
+    const runtimeReloadButton = document.getElementById("runtime-reload-button");
+    const runtimeFileInput = document.getElementById("runtime-file-input");
+
+    let developerOrbatVisible = true;
+
+    const corridorStyles = {
+      playerCorridor: { color: "#74d8ff", dash: "" },
+      enemyCorridor: { color: "#ff8d72", dash: "" },
+      supportCorridor: { color: "#57e0b7", dash: "7 6" },
+      airCorridor: { color: "#ffd06e", dash: "4 5" }
+    };
+
+    function flattenRoutePoints() {
+      return routeVariants.flatMap((variant) => [
+        ...variant.playerCorridor,
+        ...variant.enemyCorridor,
+        ...variant.supportCorridor,
+        ...variant.airCorridor
+      ]);
+    }
+
+    function projectPoint([lat, lon], bounds) {
+      const left = 48;
+      const top = 32;
+      const width = 804;
+      const height = 576;
+      const x = left + (((lon - bounds.minLon) / (bounds.maxLon - bounds.minLon || 1)) * width);
+      const y = top + ((1 - ((lat - bounds.minLat) / (bounds.maxLat - bounds.minLat || 1))) * height);
+      return [x, y];
+    }
+
+    function polylinePath(points, bounds) {
+      return points.map((point, index) => {
+        const [x, y] = projectPoint(point, bounds);
+        return `${index === 0 ? "M" : "L"}${x.toFixed(2)},${y.toFixed(2)}`;
+      }).join(" ");
+    }
+
+    function createSvgElement(tag, attributes) {
+      const element = document.createElementNS("http://www.w3.org/2000/svg", tag);
+      Object.entries(attributes).forEach(([name, value]) => {
+        element.setAttribute(name, value);
+      });
+      return element;
+    }
+
+    function escapeXml(value) {
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&apos;");
+    }
+
+    function getOrbatOffset(index) {
+      const xPattern = [-12, 0, 12, -18, 18, -6, 6];
+      const yPattern = [-10, 10, -16, 16, 0, -22, 22];
+      return {
+        x: xPattern[index % xPattern.length],
+        y: yPattern[index % yPattern.length]
+      };
+    }
+
+    function applyRuntimeSnapshot(snapshot) {
+      developerOrbat = snapshot.units.map((unit) => ({
+        unitId: unit.unitId,
+        side: unit.side,
+        name: unit.name,
+        role: unit.role,
+        sector: unit.currentSector,
+        status: unit.status
+      })).filter((unit) => unit.sector && sectorCenters[unit.sector]);
+      renderMap();
+      renderOrbatTable();
+    }
+
+    function renderMap() {
+      mapSvg.innerHTML = "";
+      const points = flattenRoutePoints();
+      const lats = points.map(([lat]) => lat);
+      const lons = points.map(([, lon]) => lon);
+      const bounds = {
+        minLat: Math.min(...lats) - 1.8,
+        maxLat: Math.max(...lats) + 1.2,
+        minLon: Math.min(...lons) - 2.8,
+        maxLon: Math.max(...lons) + 2.8
+      };
+
+      for (let row = 0; row <= 8; row += 1) {
+        const y = 32 + (row * (576 / 8));
+        mapSvg.appendChild(createSvgElement("line", {
+          x1: "48",
+          y1: y.toFixed(2),
+          x2: "852",
+          y2: y.toFixed(2),
+          stroke: "rgba(158, 188, 204, 0.16)",
+          "stroke-width": "1"
+        }));
+      }
+
+      for (let column = 0; column <= 8; column += 1) {
+        const x = 48 + (column * (804 / 8));
+        mapSvg.appendChild(createSvgElement("line", {
+          x1: x.toFixed(2),
+          y1: "32",
+          x2: x.toFixed(2),
+          y2: "608",
+          stroke: "rgba(158, 188, 204, 0.16)",
+          "stroke-width": "1"
+        }));
+      }
+
+      routeVariants.forEach((variant) => {
+        Object.entries(corridorStyles).forEach(([key, style]) => {
+          mapSvg.appendChild(createSvgElement("path", {
+            d: polylinePath(variant[key], bounds),
+            fill: "none",
+            stroke: style.color,
+            "stroke-width": "2.5",
+            "stroke-dasharray": style.dash
+          }));
+
+          variant[key].forEach((point, index) => {
+            const [x, y] = projectPoint(point, bounds);
+            mapSvg.appendChild(createSvgElement("circle", {
+              cx: x.toFixed(2),
+              cy: y.toFixed(2),
+              r: "3.4",
+              fill: style.color
+            }));
+            mapSvg.appendChild(createSvgElement("text", {
+              x: (x + 7).toFixed(2),
+              y: (y - 7).toFixed(2),
+              fill: style.color,
+              "font-size": "10",
+              "font-family": "Segoe UI, sans-serif"
+            })).textContent = `${variant.id.toUpperCase()}-${index + 1}`;
+          });
+        });
+      });
+
+      Object.values(sectorCenters).forEach((sector) => {
+        const [x, y] = projectPoint([sector.lat, sector.lon], bounds);
+        mapSvg.appendChild(createSvgElement("circle", {
+          cx: x.toFixed(2),
+          cy: y.toFixed(2),
+          r: "18",
+          fill: "rgba(255,255,255,0.02)",
+          stroke: "rgba(255,255,255,0.28)",
+          "stroke-width": "1.2"
+        }));
+        const label = createSvgElement("text", {
+          x: x.toFixed(2),
+          y: (y + 32).toFixed(2),
+          fill: "#c6dce8",
+          "font-size": "11",
+          "font-family": "Segoe UI, sans-serif",
+          "text-anchor": "middle"
+        });
+        label.textContent = sector.label;
+        mapSvg.appendChild(label);
+      });
+
+      if (developerOrbatVisible) {
+        developerOrbat.forEach((unit, index) => {
+          const sector = sectorCenters[unit.sector];
+          const [x, y] = projectPoint([sector.lat, sector.lon], bounds);
+          const offset = getOrbatOffset(index);
+          mapSvg.appendChild(createSvgElement("rect", {
+            x: (x - 4 + offset.x).toFixed(2),
+            y: (y - 4 + offset.y).toFixed(2),
+            width: "8",
+            height: "8",
+            fill: "#ffffff",
+            rx: "2"
+          }));
+          const label = createSvgElement("text", {
+            x: (x + 8 + offset.x).toFixed(2),
+            y: (y + 4 + offset.y).toFixed(2),
+            fill: "#ffffff",
+            "font-size": "10",
+            "font-family": "Segoe UI, sans-serif"
+          });
+          label.textContent = `ORB ${unit.name}`;
+          mapSvg.appendChild(label);
+        });
+      }
+    }
+
+    function renderOrbatTable() {
+      developerOrbatTable.innerHTML = developerOrbat.map((unit) => {
+        const sector = sectorCenters[unit.sector];
+        return `
+          <tr>
+            <td>${unit.side}</td>
+            <td>${unit.name}</td>
+            <td>${unit.role}</td>
+            <td>${sector.label}</td>
+            <td>${sector.grid}</td>
+            <td>${unit.status}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function kmlCoordinateList(points) {
+      return points.map(([lat, lon]) => `${lon},${lat},0`).join(" ");
+    }
+
+    function buildKml() {
+      const routePlacemarks = routeVariants.flatMap((variant) => {
+        return [
+          { key: "playerCorridor", color: "ffFFD874", label: "Player" },
+          { key: "enemyCorridor", color: "ff728dff", label: "Enemy" },
+          { key: "supportCorridor", color: "ffb7e057", label: "Support" },
+          { key: "airCorridor", color: "ff6ed0ff", label: "Air" }
+        ].map((route) => `
+    <Placemark>
+      <name>${escapeXml(`${variant.label} | ${route.label}`)}</name>
+      <description>${escapeXml(`Route variant ${variant.id}, ${route.key} corridor from the MNW Norwegian Sea generator.`)}</description>
+      <styleUrl>#${route.key}</styleUrl>
+      <LineString>
+        <tessellate>1</tessellate>
+        <coordinates>${kmlCoordinateList(variant[route.key])}</coordinates>
+      </LineString>
+    </Placemark>`);
+      }).join("");
+
+      const orbatPlacemarks = developerOrbat.map((unit) => {
+        const sector = sectorCenters[unit.sector];
+        return `
+    <Placemark>
+      <name>${escapeXml(`ORBAT | ${unit.side} | ${unit.name}`)}</name>
+      <description>${escapeXml(`Developer ORBAT contact. Side: ${unit.side}. Role: ${unit.role}. Sector: ${sector.label}. Grid: ${sector.grid}. Status: ${unit.status}.`)}</description>
+      <styleUrl>#orbatPoint</styleUrl>
+      <Point>
+        <coordinates>${sector.lon},${sector.lat},0</coordinates>
+      </Point>
+    </Placemark>`;
+      }).join("");
+
+      return `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>norwegian-sea-sloc-map</name>
+    <description>Norwegian Sea corridor geometry plus developer ORBAT overlay derived from shared/campaign-generator.mjs.</description>
+    <Style id="playerCorridor"><LineStyle><color>ffFFD874</color><width>3</width></LineStyle></Style>
+    <Style id="enemyCorridor"><LineStyle><color>ff728dff</color><width>3</width></LineStyle></Style>
+    <Style id="supportCorridor"><LineStyle><color>ffb7e057</color><width>3</width></LineStyle></Style>
+    <Style id="airCorridor"><LineStyle><color>ff6ed0ff</color><width>3</width></LineStyle></Style>
+    <Style id="orbatPoint">
+      <IconStyle><scale>0.9</scale></IconStyle>
+      <LabelStyle><color>ffffffff</color><scale>0.9</scale></LabelStyle>
+    </Style>${routePlacemarks}${orbatPlacemarks}
+  </Document>
+</kml>`;
+    }
+
+    toggleOrbatButton.addEventListener("click", () => {
+      developerOrbatVisible = !developerOrbatVisible;
+      toggleOrbatButton.classList.toggle("toggle-active", developerOrbatVisible);
+      toggleOrbatButton.textContent = developerOrbatVisible ? "Hide Developer ORBAT" : "Show Developer ORBAT";
+      orbatTableWrap.classList.toggle("hidden", !developerOrbatVisible);
+      renderMap();
+    });
+
+    downloadKmlButton.addEventListener("click", () => {
+      const blob = new Blob([buildKml()], { type: "application/vnd.google-earth.kml+xml" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "norwegian-sea-sloc-map.kml";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    });
+
+    renderMap();
+    renderOrbatTable();
+    window.MNWTheaterDebugRuntime?.attachRuntimeLoader({
+      theaterId: "norwegian_sea",
+      statusElement: runtimeStatus,
+      reloadButton: runtimeReloadButton,
+      fileInput: runtimeFileInput,
+      onSnapshot: applyRuntimeSnapshot
+    });
+  </script>
+</body>
+</html>

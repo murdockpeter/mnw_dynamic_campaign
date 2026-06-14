@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 import { readJson, writeJson } from "./fs-helpers.mjs";
+import { findTheaterTemplateByName } from "../../shared/campaign-generator.mjs";
 
 async function pathExists(targetPath) {
   try {
@@ -27,6 +28,87 @@ function initializeModules(state, modulesConfig) {
   }
 
   return state;
+}
+
+function titleizeToken(value) {
+  return String(value || "")
+    .split(/[_\s]+/g)
+    .filter(Boolean)
+    .map((token) => token.charAt(0).toUpperCase() + token.slice(1))
+    .join(" ");
+}
+
+function summarizeTheaterRole(unit) {
+  if (Array.isArray(unit.tags) && unit.tags.includes("player")) {
+    return `Player ${titleizeToken(unit.platform_type)}`;
+  }
+  if (unit.notes?.role) {
+    return titleizeToken(unit.notes.role);
+  }
+  if (unit.notes?.theater_role) {
+    return titleizeToken(unit.notes.theater_role);
+  }
+  return titleizeToken(unit.platform_type);
+}
+
+function summarizeTheaterStatus(unit, track) {
+  if (unit.destroyed) {
+    return "Destroyed";
+  }
+  if (track?.on_stage) {
+    return "On stage";
+  }
+  if (track?.availability === "committed") {
+    return "Committed";
+  }
+  const damage = Number(unit.damage || 0);
+  if (damage > 0) {
+    return `Damaged ${Math.round(damage * 100)}%`;
+  }
+  return track?.availability === "available" ? "Available" : titleizeToken(track?.availability || "available");
+}
+
+function buildTheaterDebugPayload(campaignConfig, state) {
+  const theater = findTheaterTemplateByName(campaignConfig?.theater);
+  if (!theater) {
+    return null;
+  }
+
+  const picture = state.world_state?.theater_picture || {};
+  const pictureUnits = picture.units || {};
+  const sectors = Array.isArray(picture.sectors) ? picture.sectors : [];
+  const units = Object.values(state.order_of_battle || {}).map((unit) => {
+    const track = pictureUnits[unit.unit_id] || {};
+    const allowedSectors = Array.isArray(unit.notes?.sectors) ? unit.notes.sectors : [];
+    return {
+      unitId: unit.unit_id,
+      name: unit.name,
+      side: unit.faction,
+      role: summarizeTheaterRole(unit),
+      theaterRole: unit.notes?.theater_role || null,
+      platformType: unit.platform_type,
+      currentSector: track.current_sector || unit.notes?.current_sector || allowedSectors[0] || null,
+      allowedSectors,
+      availability: track.availability || unit.notes?.availability || "available",
+      onStage: Boolean(track.on_stage),
+      lastMissionId: track.last_mission_id || null,
+      lastAssignedIndex: Number.isFinite(track.last_assigned_index) ? track.last_assigned_index : null,
+      destroyed: Boolean(unit.destroyed),
+      damage: Number(unit.damage || 0),
+      readiness: Number(unit.readiness ?? 1),
+      status: summarizeTheaterStatus(unit, track)
+    };
+  });
+
+  return {
+    theaterId: theater.id,
+    theaterLabel: theater.label,
+    theaterName: theater.theaterName,
+    family: theater.family,
+    source: picture.units ? "runtime" : "seed",
+    sectors,
+    units
+  };
 }
 
 function ingestResult(state, result, modulesConfig) {
@@ -237,7 +319,10 @@ export async function exportRuntimePayload({ repoRoot, campaignId, stateDir }) {
     modules: modulesConfig,
     state,
     result,
-    plan: buildGenerationPlan(state, nextMissionId)
+    plan: buildGenerationPlan(state, nextMissionId),
+    debug: {
+      theater: buildTheaterDebugPayload(campaignConfig, state)
+    }
   };
 }
 

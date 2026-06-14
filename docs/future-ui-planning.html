@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MNW Future UI Planning</title>
+  <style>
+    :root {
+      --bg: #07131d;
+      --panel: rgba(14, 33, 47, 0.94);
+      --panel-2: rgba(17, 39, 55, 0.96);
+      --line: rgba(118, 202, 237, 0.14);
+      --text: #ecf7fb;
+      --muted: #9ebccc;
+      --accent: #74d8ff;
+      --accent-2: #59e2b5;
+      --accent-3: #ffd06e;
+      --danger: #ff8d72;
+      --shadow: 0 28px 72px rgba(0, 0, 0, 0.34);
+      --radius: 22px;
+      --content-width: 1180px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(87, 224, 183, 0.12), transparent 24%),
+        radial-gradient(circle at top right, rgba(116, 216, 255, 0.14), transparent 24%),
+        linear-gradient(180deg, #07131d 0%, #091a25 48%, #07131d 100%);
+      font: 16px/1.58 "Segoe UI", "Aptos", system-ui, sans-serif;
+    }
+
+    code {
+      color: var(--accent);
+      font-family: "Cascadia Code", Consolas, monospace;
+      font-size: 0.95em;
+    }
+
+    .page {
+      width: min(calc(100% - 28px), var(--content-width));
+      margin: 0 auto;
+      padding: 18px 0 34px;
+    }
+
+    .hero,
+    .panel,
+    .milestone,
+    .step-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .hero {
+      padding: 24px;
+      background:
+        linear-gradient(135deg, rgba(15, 34, 49, 0.96), rgba(10, 24, 35, 0.98)),
+        radial-gradient(circle at top right, rgba(116, 216, 255, 0.08), transparent 30%);
+    }
+
+    h1, h2, h3, h4, p { margin: 0; }
+
+    h1 {
+      font-size: clamp(2.5rem, 5vw, 4.2rem);
+      line-height: 0.98;
+      max-width: 10ch;
+      margin-bottom: 14px;
+    }
+
+    .hero p {
+      color: var(--muted);
+      max-width: 960px;
+      font-size: 1.03rem;
+    }
+
+    .eyebrow {
+      color: var(--accent);
+      font-size: 12px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+      font-weight: 700;
+    }
+
+    .hero-grid,
+    .top-grid,
+    .milestone-grid,
+    .cross-grid {
+      display: grid;
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    .hero-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .stat {
+      padding: 16px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(116, 216, 255, 0.1);
+    }
+
+    .stat-label {
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .stat-value {
+      margin-top: 8px;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--accent-2);
+    }
+
+    .top-grid {
+      grid-template-columns: minmax(0, 1.2fr) minmax(330px, 0.8fr);
+    }
+
+    .panel {
+      padding: 20px;
+    }
+
+    .panel h2 {
+      font-size: 1.12rem;
+      margin-bottom: 14px;
+    }
+
+    .panel p + p,
+    .panel ul + p,
+    .panel ul + ul {
+      margin-top: 10px;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .badge-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 7px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(89, 226, 181, 0.24);
+      background: rgba(89, 226, 181, 0.1);
+      color: var(--accent-2);
+      font-size: 12px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .step-list {
+      display: grid;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .step-card {
+      padding: 16px 18px;
+      background: var(--panel-2);
+    }
+
+    .step-index {
+      color: var(--accent);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+
+    .step-card h3 {
+      font-size: 1.2rem;
+      margin-bottom: 8px;
+    }
+
+    .step-card p {
+      color: var(--muted);
+    }
+
+    .section-title {
+      margin: 26px 0 14px;
+      font-size: 1.45rem;
+    }
+
+    .milestone-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .milestone {
+      padding: 20px;
+      background:
+        linear-gradient(180deg, rgba(17, 39, 55, 0.96), rgba(12, 30, 44, 0.98));
+    }
+
+    .milestone h3 {
+      font-size: 1.15rem;
+      margin-bottom: 12px;
+    }
+
+    .milestone .meta {
+      color: var(--accent-3);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      font-weight: 700;
+    }
+
+    .milestone ul,
+    .panel ul {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--muted);
+    }
+
+    .milestone li + li,
+    .panel li + li {
+      margin-top: 6px;
+    }
+
+    .cross-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .note-strip {
+      margin-top: 18px;
+      padding: 16px 18px;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 208, 110, 0.18);
+      background: rgba(255, 208, 110, 0.08);
+      color: var(--text);
+    }
+
+    .note-strip strong {
+      color: var(--accent-3);
+    }
+
+    @media (max-width: 980px) {
+      .hero-grid,
+      .top-grid,
+      .milestone-grid,
+      .cross-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <section class="hero">
+      <div class="eyebrow">Code Planning Analysis</div>
+      <h1>Future UI Build Plan</h1>
+      <p>
+        This planning document translates the five future UI areas into a concrete coding roadmap aligned with the current
+        architecture: <code>ui/</code> for frontend, <code>electron/</code> for IPC, <code>portable/lib/</code> for desktop-safe workflows,
+        <code>engine/</code> and <code>state/</code> for persistence, and <code>shared/campaign-generator.mjs</code> for deterministic campaign authoring.
+      </p>
+
+      <div class="hero-grid">
+        <div class="stat">
+          <div class="stat-label">Build Areas</div>
+          <div class="stat-value">5 Major Features</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Recommended Order</div>
+          <div class="stat-value">Modules → State → Results → DB → Packaging</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Primary Constraint</div>
+          <div class="stat-value">Preserve Existing Desktop Split</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Delivery Shape</div>
+          <div class="stat-value">Milestone-Based</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="top-grid">
+      <article class="panel">
+        <div class="eyebrow">Architecture Intent</div>
+        <h2>Design Rules</h2>
+        <p>
+          The current repo already has the right separation for this work. The goal is to deepen it, not replace it.
+        </p>
+        <ul>
+          <li><code>ui/</code> stays the single visual frontend surface.</li>
+          <li><code>electron/</code> remains a thin wrapper around app-safe desktop APIs.</li>
+          <li><code>portable/lib/*.mjs</code> continues to own file writes, packaging, ingest, and persistence operations.</li>
+          <li><code>engine/</code> and <code>state/*</code> remain the campaign runtime model.</li>
+          <li><code>shared/campaign-generator.mjs</code> remains the deterministic generator and theater model.</li>
+        </ul>
+        <div class="note-strip">
+          <strong>Key principle:</strong> new UI controls should not bypass the runtime and write raw files directly unless explicitly operating in a guarded advanced-repair mode.
+        </div>
+      </article>
+
+      <aside class="panel">
+        <div class="eyebrow">Implementation Order</div>
+        <h2>Recommended Sequence</h2>
+        <div class="step-list">
+          <div class="step-card">
+            <div class="step-index">Step 01</div>
+            <h3>Module enable/disable controls</h3>
+            <p>Stabilize runtime/module configuration first.</p>
+          </div>
+          <div class="step-card">
+            <div class="step-index">Step 02</div>
+            <h3>Campaign-state editor</h3>
+            <p>Build controlled persistence editing on top of known module behavior.</p>
+          </div>
+          <div class="step-card">
+            <div class="step-index">Step 03</div>
+            <h3>Manual mission-result entry</h3>
+            <p>Refine ingest once the state model is safer and more inspectable.</p>
+          </div>
+          <div class="step-card">
+            <div class="step-index">Step 04</div>
+            <h3>DB-informed force selection</h3>
+            <p>Expand authoring realism only after state/runtime workflows are solid.</p>
+          </div>
+          <div class="step-card">
+            <div class="step-index">Step 05</div>
+            <h3>Installer-first desktop packaging</h3>
+            <p>Package a stable operator workflow, not a moving target.</p>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <h2 class="section-title">Feature Plans</h2>
+    <section class="milestone-grid">
+      <article class="milestone">
+        <div class="meta">Feature 01</div>
+        <h3>Manual Mission-Result Entry</h3>
+        <ul>
+          <li>Split the current flow into <code>Quick Result</code> and <code>Advanced Result</code>.</li>
+          <li><code>Quick Result</code> should cover outcome, elapsed time, player damage, key kills, and key ammo expenditure.</li>
+          <li><code>Advanced Result</code> should allow arbitrary event rows mapped onto runtime ingest events.</li>
+          <li>Add validation before save and a state-delta preview showing what changes in <code>order_of_battle</code>, <code>mission_history</code>, and <code>world_state</code>.</li>
+          <li>Add options for <code>save without advancing time</code> and <code>save + advance X hours</code>.</li>
+          <li>Create a backup of <code>campaign_state.json</code> before each write and preserve append-only mission result history.</li>
+        </ul>
+        <div class="badge-row">
+          <span class="badge">UI Work</span>
+          <span class="badge">Validation Layer</span>
+          <span class="badge">Backup Support</span>
+        </div>
+      </article>
+
+      <article class="milestone">
+        <div class="meta">Feature 02</div>
+        <h3>Campaign-State Editor</h3>
+        <ul>
+          <li>Add a structured editor inside <code>Campaign Tracking</code> for metadata, mission pointer, clock, unit state, world state, and module state.</li>
+          <li>Start with safe structured forms, then optionally expose a guarded <code>Raw JSON</code> tab for advanced repair.</li>
+          <li>Add diff preview before commit and schema normalization on save.</li>
+          <li>Prevent overwrite if the state file changed on disk since the last load.</li>
+          <li>Write a timestamped backup on every commit.</li>
+        </ul>
+        <div class="badge-row">
+          <span class="badge">Structured Forms</span>
+          <span class="badge">Diff Preview</span>
+          <span class="badge">Conflict Checks</span>
+        </div>
+      </article>
+
+      <article class="milestone">
+        <div class="meta">Feature 03</div>
+        <h3>Module Enable/Disable Controls</h3>
+        <ul>
+          <li>Add a module registry so the UI can discover available modules instead of hardcoding them.</li>
+          <li>Expose enable toggles and editable module config fields in <code>Setup</code> or <code>Campaign Tracking</code>.</li>
+          <li>Support both default module settings and campaign-specific overrides.</li>
+          <li>Warn before disabling a module that already has meaningful state on the current campaign.</li>
+        </ul>
+        <div class="badge-row">
+          <span class="badge">Registry</span>
+          <span class="badge">Config UI</span>
+          <span class="badge">Campaign Overrides</span>
+        </div>
+      </article>
+
+      <article class="milestone">
+        <div class="meta">Feature 04</div>
+        <h3>DB-Informed Force Selection</h3>
+        <ul>
+          <li>Add force pools filtered by theater, year, faction, role, and doctrinal availability.</li>
+          <li>Separate theater OOB from mission OOB so the whole theater can feel alive without putting every unit into every scenario.</li>
+          <li>Expose player platform, support pool, enemy pool, and doctrine mode inside authoring.</li>
+          <li>Persist theater-picture state so force availability survives across campaign steps.</li>
+          <li>Use DB-indexed metadata as the source for realistic unit selection and role weighting.</li>
+        </ul>
+        <div class="badge-row">
+          <span class="badge">Theater OOB</span>
+          <span class="badge">Mission Slice</span>
+          <span class="badge">DB Filters</span>
+        </div>
+      </article>
+
+      <article class="milestone">
+        <div class="meta">Feature 05</div>
+        <h3>Installer-First Desktop Packaging</h3>
+        <ul>
+          <li>Make the installer the primary product shape, not just a convenience wrapper.</li>
+          <li>Polish first-launch setup, saved-path validation, and settings migration.</li>
+          <li>Bundle the desktop guide, sample content, debug docs, and a support-bundle export.</li>
+          <li>Expose app versioning and upgrade-safe settings migration.</li>
+          <li>Add a support bundle containing settings, version, workflow state, recent payloads, and redacted logs.</li>
+        </ul>
+        <div class="badge-row">
+          <span class="badge">Migrations</span>
+          <span class="badge">Support Bundle</span>
+          <span class="badge">First-Launch UX</span>
+        </div>
+      </article>
+
+      <article class="milestone">
+        <div class="meta">Cross-Cutting</div>
+        <h3>Shared Platform Work</h3>
+        <ul>
+          <li>Add schema validation for settings, mission-result payloads, campaign state, and module config.</li>
+          <li>Add reusable backup/restore helpers before any high-risk write.</li>
+          <li>Add toasts or notifications for success, validation errors, and irreversible edits.</li>
+          <li>Add a lightweight audit log of operator actions.</li>
+          <li>Add regression checklists for generate, build, deploy, export, ingest, and continue flows.</li>
+        </ul>
+        <div class="badge-row">
+          <span class="badge">Validation</span>
+          <span class="badge">Backups</span>
+          <span class="badge">Auditability</span>
+        </div>
+      </article>
+    </section>
+
+    <h2 class="section-title">Milestone Roadmap</h2>
+    <section class="cross-grid">
+      <article class="panel">
+        <div class="eyebrow">M1</div>
+        <h2>Module Controls</h2>
+        <p class="muted">Deliver module registry, module toggles, editable config fields, and config persistence.</p>
+      </article>
+
+      <article class="panel">
+        <div class="eyebrow">M2</div>
+        <h2>State Editor</h2>
+        <p class="muted">Deliver structured campaign-state editing, backup creation, and diff preview.</p>
+      </article>
+
+      <article class="panel">
+        <div class="eyebrow">M3</div>
+        <h2>Result Entry Overhaul</h2>
+        <p class="muted">Deliver quick/advanced result entry, validation, and pre-save delta previews.</p>
+      </article>
+
+      <article class="panel">
+        <div class="eyebrow">M4</div>
+        <h2>DB-Informed Forces</h2>
+        <p class="muted">Deliver theater force pools, mission force selection, and persistent theater-picture support.</p>
+      </article>
+
+      <article class="panel">
+        <div class="eyebrow">M5</div>
+        <h2>Installer-First Finish</h2>
+        <p class="muted">Deliver migrations, support bundle export, and a fully polished first-launch workflow.</p>
+      </article>
+
+      <article class="panel">
+        <div class="eyebrow">Exit Criteria</div>
+        <h2>Definition Of Ready</h2>
+        <p class="muted">Each milestone should close with a packaged-app smoke pass, regression notes, and updated operator documentation.</p>
+      </article>
+    </section>
+  </div>
+</body>
+</html>

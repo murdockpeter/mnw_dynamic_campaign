@@ -310,6 +310,82 @@ const THEATER_TEMPLATES = {
         }
       ]
     }
+  },
+  norwegian_sea: {
+    id: "norwegian_sea",
+    label: "Norwegian Sea",
+    family: "sub_hunt",
+    theaterName: "Norwegian Sea",
+    defaultYear: 2028,
+    description: "A U.S. submarine campaign shadowing and containing Russian submarine movements from the Barents and Norwegian Sea approaches.",
+    player: {
+      unitId: "uss_north_dakota",
+      name: "USS North Dakota",
+      faction: "US",
+      platformType: "submarine",
+      dbid: 1015,
+      ammo: {
+        mk48_mod7: 12,
+        decoy_mk3: 8,
+        decoy_2458: 8
+      }
+    },
+    enemies: [
+      { unitId: "yasen_severodvinsk", name: "Yasen Severodvinsk", faction: "RU", platformType: "submarine", dbid: 667 },
+      { unitId: "akula_screen", name: "Akula Screen", faction: "RU", platformType: "submarine", dbid: 34 }
+    ],
+    route: {
+      variants: [
+        {
+          id: "bear_island_gap",
+          label: "Bear Island Gap",
+          playerCorridor: [[71.26, 12.84], [71.58, 14.68], [71.92, 16.54], [72.28, 18.46]],
+          enemyCorridor: [[74.18, 28.62], [73.74, 26.08], [73.26, 23.48], [72.78, 20.82]],
+          supportCorridor: [[70.82, 10.84], [71.18, 12.48], [71.46, 14.24]],
+          airCorridor: [[72.36, 18.06], [72.82, 20.02], [73.18, 22.18]]
+        },
+        {
+          id: "lofoten_wall",
+          label: "Lofoten Wall",
+          playerCorridor: [[68.82, 9.86], [69.16, 11.24], [69.52, 12.78], [69.96, 14.32]],
+          enemyCorridor: [[71.18, 19.42], [70.82, 17.54], [70.4, 15.76], [69.92, 13.84]],
+          supportCorridor: [[68.12, 8.42], [68.48, 9.72], [68.86, 11.08]],
+          airCorridor: [[69.84, 13.56], [70.28, 15.1], [70.72, 16.76]]
+        },
+        {
+          id: "nordkapp_seam",
+          label: "Nordkapp Seam",
+          playerCorridor: [[70.94, 18.22], [71.26, 20.04], [71.58, 21.98], [71.92, 23.86]],
+          enemyCorridor: [[73.16, 31.22], [72.82, 28.88], [72.42, 26.44], [71.98, 24.16]],
+          supportCorridor: [[70.18, 16.02], [70.48, 17.66], [70.82, 19.24]],
+          airCorridor: [[71.84, 23.32], [72.24, 25.02], [72.66, 26.88]]
+        },
+        {
+          id: "faroe_shetland_exit",
+          label: "Faroe-Shetland Exit",
+          playerCorridor: [[61.06, -3.62], [61.44, -1.88], [61.92, -0.22], [62.38, 1.52]],
+          enemyCorridor: [[64.24, 4.62], [63.76, 2.88], [63.22, 1.02], [62.68, -0.74]],
+          supportCorridor: [[60.42, -5.24], [60.86, -3.44], [61.28, -1.78]],
+          airCorridor: [[62.14, 1.18], [62.62, 2.92], [63.02, 4.54]]
+        },
+        {
+          id: "jan_mayen_arc",
+          label: "Jan Mayen Arc",
+          playerCorridor: [[68.26, -5.82], [68.72, -3.92], [69.16, -1.88], [69.58, 0.24]],
+          enemyCorridor: [[71.12, 6.82], [70.72, 4.86], [70.22, 2.72], [69.72, 0.62]],
+          supportCorridor: [[67.56, -7.12], [67.98, -5.12], [68.42, -3.18]],
+          airCorridor: [[69.46, 0.08], [69.96, 2.08], [70.34, 4.04]]
+        },
+        {
+          id: "barents_bastion_edge",
+          label: "Barents Bastion Edge",
+          playerCorridor: [[72.24, 24.12], [72.56, 26.24], [72.88, 28.42], [73.22, 30.58]],
+          enemyCorridor: [[74.86, 36.84], [74.42, 34.26], [73.96, 31.72], [73.48, 29.18]],
+          supportCorridor: [[71.48, 22.04], [71.82, 24.04], [72.12, 26.08]],
+          airCorridor: [[73.04, 30.16], [73.44, 32.38], [73.88, 34.62]]
+        }
+      ]
+    }
   }
 };
 
@@ -376,6 +452,31 @@ const THEATER_FORCE_POOLS = {
       { unitId: "support_helo_alpha", name: "Support Helo Alpha", faction: "CN", platformType: "helicopter", dbid: 60, sectors: ["reed_bank_gate", "spratly_arc"] },
       { unitId: "support_helo_beta", name: "Support Helo Beta", faction: "CN", platformType: "helicopter", dbid: 60, sectors: ["palawan_seam", "central_basin_run"] }
     ]
+  },
+  norwegian_sea: {
+    sectors: [
+      { id: "bear_island_gap", label: "Bear Island Gap" },
+      { id: "lofoten_wall", label: "Lofoten Wall" },
+      { id: "nordkapp_seam", label: "Nordkapp Seam" },
+      { id: "faroe_shetland_exit", label: "Faroe-Shetland Exit" },
+      { id: "jan_mayen_arc", label: "Jan Mayen Arc" },
+      { id: "barents_bastion_edge", label: "Barents Bastion Edge" }
+    ],
+    friendlySurface: [
+      { unitId: "uss_truxtun", name: "USS Truxtun", faction: "US", platformType: "surface_combatant", dbid: 294, sectors: ["bear_island_gap", "nordkapp_seam"] },
+      { unitId: "uss_laboon", name: "USS Laboon", faction: "US", platformType: "surface_combatant", dbid: 294, sectors: ["lofoten_wall", "jan_mayen_arc"] },
+      { unitId: "uss_ross", name: "USS Ross", faction: "US", platformType: "surface_combatant", dbid: 294, sectors: ["faroe_shetland_exit", "jan_mayen_arc"] }
+    ],
+    friendlyAir: [
+      { unitId: "p8_nord_watch", name: "P-8A Nord Watch", faction: "US", platformType: "maritime_patrol_aircraft", dbid: 2705, sectors: ["bear_island_gap", "nordkapp_seam", "barents_bastion_edge"] },
+      { unitId: "p8_giuk_scout", name: "P-8A GIUK Scout", faction: "US", platformType: "maritime_patrol_aircraft", dbid: 2705, sectors: ["faroe_shetland_exit", "jan_mayen_arc", "lofoten_wall"] }
+    ],
+    enemySubsurface: [
+      { unitId: "yasen_severodvinsk", name: "Yasen Severodvinsk", faction: "RU", platformType: "submarine", dbid: 667, sectors: ["bear_island_gap", "barents_bastion_edge"], role: "target" },
+      { unitId: "yasen_kazan", name: "Yasen Kazan", faction: "RU", platformType: "submarine", dbid: 667, sectors: ["nordkapp_seam", "barents_bastion_edge"], role: "target" },
+      { unitId: "akula_screen", name: "Akula Screen", faction: "RU", platformType: "submarine", dbid: 34, sectors: ["bear_island_gap", "lofoten_wall"], role: "screen" },
+      { unitId: "akula_gatekeeper", name: "Akula Gatekeeper", faction: "RU", platformType: "submarine", dbid: 34, sectors: ["faroe_shetland_exit", "jan_mayen_arc"], role: "screen" }
+    ]
   }
 };
 
@@ -418,6 +519,28 @@ const THEATER_LAND_MASKS = {
     {
       id: "vietnam_shelf",
       polygon: [[16.88, 109.64], [16.32, 110.54], [15.42, 111.48], [14.54, 112.22], [13.54, 112.92], [12.46, 113.48], [11.34, 114.12], [10.06, 114.76], [8.86, 115.12], [8.48, 114.54], [9.04, 113.44], [10.14, 112.18], [11.26, 111.0], [12.42, 109.98], [13.76, 109.18], [15.2, 108.82], [16.48, 108.94]]
+    }
+  ],
+  norwegian_sea: [
+    {
+      id: "norway_coast",
+      polygon: [[58.02, 4.64], [60.02, 5.22], [62.04, 6.18], [64.12, 8.66], [66.34, 11.62], [68.46, 14.72], [70.48, 18.66], [71.84, 22.18], [72.42, 25.64], [71.98, 28.26], [69.82, 25.84], [67.46, 20.92], [64.94, 14.46], [62.68, 9.16], [60.48, 6.12]]
+    },
+    {
+      id: "faroe_islands",
+      polygon: [[61.22, -7.92], [62.0, -6.24], [62.08, -5.48], [61.56, -5.1], [61.12, -5.64], [61.0, -6.72]]
+    },
+    {
+      id: "shetland",
+      polygon: [[59.88, -1.92], [60.72, -1.68], [60.86, -0.78], [60.24, -0.52], [59.8, -0.96], [59.72, -1.64]]
+    },
+    {
+      id: "jan_mayen",
+      polygon: [[70.98, -9.82], [71.22, -9.28], [71.06, -8.48], [70.72, -8.64], [70.64, -9.34]]
+    },
+    {
+      id: "bear_island",
+      polygon: [[74.62, 18.86], [74.76, 19.24], [74.62, 19.54], [74.42, 19.36], [74.44, 18.96]]
     }
   ]
 };
