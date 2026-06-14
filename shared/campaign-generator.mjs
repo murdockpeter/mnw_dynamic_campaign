@@ -1162,8 +1162,8 @@ function buildSubHuntGeometry(template, index, count, rng) {
   const egress = jitterPoint(enemyBase[3], rng, scale, scale);
   const supportGroup = jitterPoint(supportBase[0], rng, scale, scale);
   const supportDest = jitterPoint(supportBase[2], rng, scale, scale);
-  const ddg = jitterPoint([16.18, 117.96], rng, scale, scale);
-  const ddgScreen = jitterPoint([16.5, 118.16], rng, scale, scale);
+  const ddg = jitterPoint(supportBase[1] || supportBase[0], rng, scale, scale);
+  const ddgScreen = jitterPoint(supportBase[2] || supportBase[1] || supportBase[0], rng, scale, scale);
   const p8 = jitterPoint(airBase[0], rng, scale, scale);
   const center = jitterPoint(enemyBase[2], rng, scale, scale);
   const withdrawal = jitterPoint([playerSpawn[0], playerSpawn[1] - 1.35], rng, scale, scale);
