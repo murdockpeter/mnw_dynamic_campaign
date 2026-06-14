@@ -303,6 +303,12 @@ us_fact = 236
 rus_fact = 183
 ch_fact = 46
 
+virginia_id = 1015
+arleigh_id = 294
+p8_id = 2705
+yasen_id = ${primaryTarget.dbid}
+escort_id = ${escortUnit.dbid}
+
 cargo_ids = [
 99992101, 99992105, 99992106, 99992107, 99992108,
 99992109, 99992110, 99992111, 99992201, 99992202,
@@ -379,12 +385,12 @@ sat_spawn_process = _P.Element.Spawn(player_spawn_process, sat_element, sat_elem
 transmission = Transmission.Create(EMFTools.Protocol.Link_16, _date_time, 60, 10, 500, EMFTools.MicroWaveBands.UHF)
 transmission_process = _P.Element.Radio(sat_spawn_process, sat_element, transmission)
 
-ddg_props = Element.Props.FromDatabaseID(${factionRuntimeId(friendlySurface.faction)}, "${friendlySurface.name}", ElementCategory.Ship, ${friendlySurface.dbid}, ddg_spawn_pos)
+ddg_props = Element.Props.FromDatabaseID(${factionRuntimeId(friendlySurface.faction)}, "${friendlySurface.name}", ElementCategory.Ship, arleigh_id if ${friendlySurface.dbid} == 294 else ${friendlySurface.dbid}, ddg_spawn_pos)
 ddg_element = Element(ddg_props).SetElevation(0).SetHeading(45).SetHVU(True)
 ddg_spawn = _P.Element.Spawn(player_spawn_process, ddg_element, ddg_element.Position)
 ddg_plot = _P.Element.Plot(ddg_spawn, ddg_element, Waypoint(ddg_screen_pos))
 
-p8_props = Element.Props.FromDatabaseID(${factionRuntimeId(friendlyAir.faction)}, "${friendlyAir.name}", ElementCategory.Aircraft, ${friendlyAir.dbid}, p8_spawn_pos)
+p8_props = Element.Props.FromDatabaseID(${factionRuntimeId(friendlyAir.faction)}, "${friendlyAir.name}", ElementCategory.Aircraft, p8_id if ${friendlyAir.dbid} == 2705 else ${friendlyAir.dbid}, p8_spawn_pos)
 p8_element = Element(p8_props).SetElevation(5000).SetHeading(220)
 p8_spawn = _P.Element.Spawn(ddg_plot, p8_element, p8_element.Position)
 
@@ -401,12 +407,12 @@ for idx in range(${supportUnits + 2}):
     _P.Element.Spawn(p8_spawn, cargo_element, cargo_element.Position)
 
 yasen_spawn_zone = _Z.Circular("Yasen Spawn Zone", yasen_spawn_pos, 12000)
-yasen_props = Element.Props.FromDatabaseID(${factionRuntimeId(primaryTarget.faction)}, "${primaryTarget.name}", ElementCategory.Submarine, ${primaryTarget.dbid}, yasen_spawn_zone.RandomPosition())
+yasen_props = Element.Props.FromDatabaseID(${factionRuntimeId(primaryTarget.faction)}, "${primaryTarget.name}", ElementCategory.Submarine, yasen_id, yasen_spawn_zone.RandomPosition())
 yasen_element = Element(yasen_props).SetElevation(-140).SetHeading(245)
 yasen_spawn = _P.Element.Spawn(p8_spawn, yasen_element, yasen_element.Position)
 
 escort_spawn_zone = _Z.Circular("Escort Spawn Zone", escort_spawn_pos, 10000)
-escort_props = Element.Props.FromDatabaseID(${factionRuntimeId(escortUnit.faction)}, "${escortUnit.name}", ElementCategory.Submarine, ${escortUnit.dbid}, escort_spawn_zone.RandomPosition())
+escort_props = Element.Props.FromDatabaseID(${factionRuntimeId(escortUnit.faction)}, "${escortUnit.name}", ElementCategory.Submarine, escort_id, escort_spawn_zone.RandomPosition())
 escort_element = Element(escort_props).SetElevation(-160).SetHeading(245).SetHVU(True)
 escort_spawn = _P.Element.Spawn(yasen_spawn, escort_element, escort_element.Position)
 
