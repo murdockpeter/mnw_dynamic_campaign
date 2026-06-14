@@ -159,55 +159,71 @@
             <h3>Campaign Wizard</h3>
             <span class="badge">Deterministic Authoring</span>
           </div>
-          <div class="wizard-grid">
-            <div class="wizard-form builder-form">
-              <div class="field-grid">
-                <label>
-                  <span>Campaign Title</span>
-                  <input id="wizard-title" type="text" value="Iron Archipelago">
-                </label>
-                <label>
-                  <span>Campaign ID</span>
-                  <input id="wizard-campaign-id" type="text" value="iron_archipelago">
-                </label>
-                <label>
-                  <span>Theater</span>
-                  <select id="wizard-theater"></select>
-                </label>
-                <label>
-                  <span>Tone</span>
-                  <select id="wizard-tone"></select>
-                </label>
-                <label>
-                  <span>Start Year</span>
-                  <input id="wizard-year" type="number" min="1980" max="2100" step="1" value="2028">
-                </label>
-                <label>
-                  <span>Scenario Count</span>
-                  <input id="wizard-scenario-count" type="number" min="1" max="8" step="1" value="1">
-                </label>
-              </div>
-              <label class="full-width">
-                <span>Player Unit Name</span>
-                <input id="wizard-player-name" type="text" value="USS Annapolis">
+          <div class="wizard-form builder-form">
+            <div class="field-grid">
+              <label>
+                <span>Campaign Title</span>
+                <input id="wizard-title" type="text" value="Iron Archipelago">
               </label>
-              <div class="builder-actions">
-                <button id="wizard-preview" type="button">Preview Blueprint</button>
-                <button id="wizard-generate" type="button">Write Campaign Files</button>
-                <button id="wizard-build" type="button">Build Package</button>
-                <button id="wizard-deploy" type="button">Deploy Package</button>
-              </div>
-              <p id="wizard-status" class="muted builder-help">
-                Preview uses the local deterministic generator. Writing files, building, and deploying require the desktop app.
-              </p>
+              <label>
+                <span>Campaign ID</span>
+                <input id="wizard-campaign-id" type="text" value="iron_archipelago">
+              </label>
+              <label>
+                <span>Theater</span>
+                <select id="wizard-theater"></select>
+              </label>
+              <label>
+                <span>Tone</span>
+                <select id="wizard-tone"></select>
+              </label>
+              <label>
+                <span>Start Year</span>
+                <input id="wizard-year" type="number" min="1980" max="2100" step="1" value="2028">
+              </label>
+              <label>
+                <span>Scenario Count</span>
+                <input id="wizard-scenario-count" type="number" min="1" max="8" step="1" value="1">
+              </label>
             </div>
-            <div class="wizard-preview">
-              <div class="preview-head">Blueprint Summary</div>
-              <div id="wizard-summary" class="wizard-summary"></div>
-              <div class="preview-head">Scenario Flow</div>
-              <div id="wizard-scenarios" class="wizard-scenarios"></div>
+            <label class="full-width">
+              <span>Player Unit Name</span>
+              <input id="wizard-player-name" type="text" value="USS Annapolis">
+            </label>
+            <div class="builder-actions">
+              <button id="wizard-generate" type="button">Write Campaign Files</button>
+              <button id="wizard-build" type="button">Build Package</button>
+              <button id="wizard-deploy" type="button">Deploy Package</button>
             </div>
+            <p id="wizard-status" class="muted builder-help">
+              Write campaign files first, then build and deploy. The desktop app also initializes Campaign Tracking for the first mission.
+            </p>
           </div>
+
+          <details class="card collapsible-card authoring-advanced-card">
+            <summary class="collapsible-summary">
+              <div>
+                <strong>Blueprint Preview</strong>
+                <div class="muted">Optional: open this only if you want to inspect the generated route logic and scenario flow.</div>
+              </div>
+              <span class="badge alt">Optional</span>
+            </summary>
+            <div class="collapsible-content">
+              <div class="builder-actions compact-actions">
+                <button id="wizard-preview" type="button">Refresh Blueprint Preview</button>
+              </div>
+              <div class="wizard-grid">
+                <div class="wizard-preview">
+                  <div class="preview-head">Blueprint Summary</div>
+                  <div id="wizard-summary" class="wizard-summary"></div>
+                </div>
+                <div class="wizard-preview">
+                  <div class="preview-head">Scenario Flow</div>
+                  <div id="wizard-scenarios" class="wizard-scenarios"></div>
+                </div>
+              </div>
+            </div>
+          </details>
         </section>
 
         <section class="grid two-up">

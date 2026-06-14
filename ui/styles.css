@@ -365,6 +365,11 @@ body::after {
   overflow: hidden;
 }
 
+.authoring-advanced-card {
+  background: rgba(255, 255, 255, 0.02);
+  box-shadow: none;
+}
+
 .collapsible-summary {
   list-style: none;
   display: flex;
@@ -585,6 +590,11 @@ td {
   gap: 10px;
   flex-wrap: wrap;
   margin-top: 16px;
+}
+
+.compact-actions {
+  margin-top: 0;
+  margin-bottom: 16px;
 }
 
 .builder-actions button {
