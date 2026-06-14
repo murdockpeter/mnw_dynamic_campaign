@@ -1261,6 +1261,8 @@ function buildScenarioRecord(template, campaignId, missionDef, index, count, yea
   const forces = buildScenarioForces(template, geometry, index, theaterPicture, rng);
   const intel = buildScenarioIntel(template, geometry, forces, index, rng);
   const missionKey = `${campaignId}.${campaignId}.${missionDef.slug}`;
+  const description = `${missionDef.summary} ${missionDef.cue} Intel cue: ${intel.prose}`;
+  const objectiveText = `Keep your submarine combat effective and raise antennas to conclude the mission. ${intel.prose}`;
 
   return {
     slug: missionDef.slug,
@@ -1275,8 +1277,8 @@ function buildScenarioRecord(template, campaignId, missionDef, index, count, yea
     geometry,
     forces,
     intel,
-    description: `${missionDef.summary} ${missionDef.cue}`,
-    objectiveText: "Keep your submarine combat effective and raise antennas to conclude the mission.",
+    description,
+    objectiveText,
     successText: `${missionDef.name} surveillance is complete. Higher command has the refined route picture and can posture the next move using your report.`
   };
 }
@@ -1351,11 +1353,11 @@ export function buildContinuationScenario({
   const name = `${objectiveDef.baseName} ${ordinal}`;
   const summary = objectiveDef.summaries[family] || objectiveDef.summaries.surface_shadow;
   const cue = `${riskDef.cue} ${outcomeLine}`;
-  const description = `${summary} ${cue}`;
+  const description = `${summary} ${cue} Intel cue: ${intel.prose}`;
   const missionId = `${campaignId}.${campaignId}.${slug}`;
   const objectiveText = family === "surface_shadow"
-    ? "Keep your submarine combat effective, preserve the track picture, and raise antennas when you are ready to conclude the mission."
-    : "Keep your submarine combat effective, contain the breakout geometry, and raise antennas when you are ready to conclude the mission.";
+    ? `Keep your submarine combat effective, preserve the track picture, and raise antennas when you are ready to conclude the mission. ${intel.prose}`
+    : `Keep your submarine combat effective, contain the breakout geometry, and raise antennas when you are ready to conclude the mission. ${intel.prose}`;
   const successText = `${name} is complete. Higher command can roll your updated track, damage, and readiness picture into the next decision cycle.`;
 
   return {
