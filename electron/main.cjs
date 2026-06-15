@@ -24,6 +24,12 @@ function getDesktopGuidePath() {
     : path.join(__dirname, "..", "DESKTOP_APP_GUIDE.md");
 }
 
+function getDocsPath(relativeName) {
+  return app.isPackaged
+    ? path.join(process.resourcesPath, "docs", relativeName)
+    : path.join(__dirname, "..", "docs", relativeName);
+}
+
 async function loadPortableModule(modulePath) {
   return import(pathToFileURL(path.join(__dirname, "..", modulePath)).href);
 }
@@ -86,6 +92,15 @@ ipcMain.handle("mnw:loadRuntimeSnapshot", async (_event, payload) => {
 ipcMain.handle("mnw:openDesktopGuide", async () => {
   const guidePath = getDesktopGuidePath();
   return shell.openPath(guidePath);
+});
+
+ipcMain.handle("mnw:openOperationalMap", async (_event, payload) => {
+  const relativeName = payload?.relativeName;
+  if (!relativeName) {
+    return "No operational map path was provided.";
+  }
+  const targetPath = getDocsPath(relativeName);
+  return shell.openPath(targetPath);
 });
 
 ipcMain.handle("mnw:exportRuntime", async (_event, payload) => {

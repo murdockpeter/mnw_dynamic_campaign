@@ -870,13 +870,15 @@ function resolveOperationalMapForTheater(theaterNameOrLabel) {
   if (theaterEntry.id === "south_china_sea") {
     return {
       title: "South China Sea SLOC Map",
-      src: "../docs/south-china-sea-sloc-map.html"
+      src: "../docs/south-china-sea-sloc-map.html",
+      relativeName: "south-china-sea-sloc-map.html"
     };
   }
   if (theaterEntry.id === "norwegian_sea") {
     return {
       title: "Norwegian Sea SLOC Map",
-      src: "../docs/norwegian-sea-sloc-map.html"
+      src: "../docs/norwegian-sea-sloc-map.html",
+      relativeName: "norwegian-sea-sloc-map.html"
     };
   }
   return null;
@@ -903,6 +905,7 @@ function renderOperationalMapForTracking(theaterNameOrLabel) {
   title.textContent = map.title;
   copy.textContent = "Open the existing operational SLOC page for the current campaign theater.";
   link.href = map.src;
+  link.dataset.relativeName = map.relativeName;
   badge.textContent = "Theater Linked";
 }
 
@@ -1055,6 +1058,20 @@ function initializeGuideLink() {
       return;
     }
     window.open("../DESKTOP_APP_GUIDE.md", "_blank", "noopener,noreferrer");
+  };
+}
+
+function initializeOperationalMapLink() {
+  const link = document.getElementById("tracking-map-link");
+  if (!link) {
+    return;
+  }
+  link.onclick = async (event) => {
+    const relativeName = link.dataset.relativeName;
+    if (desktopApi?.openOperationalMap && relativeName) {
+      event.preventDefault();
+      await desktopApi.openOperationalMap({ relativeName });
+    }
   };
 }
 
@@ -1275,6 +1292,7 @@ async function main() {
     renderRuntimeUnavailable("No runtime snapshot exists yet. Generate a campaign first to initialize tracking, or refresh from current campaign state after MNW has loaded the campaign.");
   }
   initializeGuideLink();
+  initializeOperationalMapLink();
   await initializeDesktopSettings();
   await initializeWizard();
   await initializeDesktopOps();
