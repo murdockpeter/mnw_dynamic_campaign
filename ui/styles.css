@@ -475,6 +475,11 @@ body::after {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.one-up {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+
 .card {
   background: linear-gradient(180deg, rgba(17, 39, 55, 0.94), rgba(13, 29, 42, 0.96));
   padding: 20px;

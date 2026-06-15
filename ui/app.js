@@ -860,8 +860,57 @@ function setBuilderStatus(message) {
   }
 }
 
+function resolveOperationalMapForTheater(theaterNameOrLabel) {
+  const theaterEntry = Object.values(getTheaterTemplates()).find((theater) => (
+    theater.theaterName === theaterNameOrLabel || theater.label === theaterNameOrLabel || theater.id === theaterNameOrLabel
+  ));
+  if (!theaterEntry) {
+    return null;
+  }
+  if (theaterEntry.id === "south_china_sea") {
+    return {
+      title: "South China Sea SLOC Map",
+      src: "../docs/south-china-sea-sloc-map.html"
+    };
+  }
+  if (theaterEntry.id === "norwegian_sea") {
+    return {
+      title: "Norwegian Sea SLOC Map",
+      src: "../docs/norwegian-sea-sloc-map.html"
+    };
+  }
+  return null;
+}
+
+function renderOperationalMapForTracking(theaterNameOrLabel) {
+  const title = document.getElementById("tracking-map-title");
+  const copy = document.getElementById("tracking-map-copy");
+  const link = document.getElementById("tracking-map-link");
+  const badge = document.getElementById("tracking-map-badge");
+  if (!title || !copy || !link || !badge) {
+    return;
+  }
+
+  const map = resolveOperationalMapForTheater(theaterNameOrLabel);
+  if (!map) {
+    title.textContent = "No theater map loaded";
+    copy.textContent = "This campaign theater does not have an embedded operational SLOC page yet.";
+    link.href = "#";
+    badge.textContent = "Unavailable";
+    return;
+  }
+
+  title.textContent = map.title;
+  copy.textContent = "Open the existing operational SLOC page for the current campaign theater.";
+  link.href = map.src;
+  badge.textContent = "Theater Linked";
+}
+
 function setDesktopOutput(value) {
-  document.getElementById("desktop-output").textContent = JSON.stringify(value, null, 2);
+  const output = document.getElementById("desktop-output");
+  if (output) {
+    output.textContent = JSON.stringify(value, null, 2);
+  }
 }
 
 function setContinuationStatus(message) {
@@ -1191,6 +1240,7 @@ function hydrateRuntime(data) {
   renderModuleSummary(data);
   renderHeroStats(data);
   renderContinuationPlanner(data);
+  renderOperationalMapForTracking(data.state?.metadata?.theater || data.campaign?.theater);
   renderOob(data);
   renderMissionResult(data);
   renderGenerationPlan(data);
