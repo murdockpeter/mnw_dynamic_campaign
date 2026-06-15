@@ -43,6 +43,28 @@ function formatGc([lat, lon]) {
   return `GC(${lat.toFixed(6)}, ${lon.toFixed(6)})`;
 }
 
+function buildAnnotationPoiList(annotations = []) {
+  return annotations
+    .slice(0, 4)
+    .map((annotation, index) => {
+      const variable = `annotation_poi_${index}`;
+      return `${variable} = PointOfInterest("${annotation.label}", Waypoint(${formatGc(annotation.point)}))`;
+    })
+    .join("\n");
+}
+
+function buildAnnotationPoiAttachList(annotations = []) {
+  const variables = annotations.slice(0, 4).map((_, index) => `annotation_poi_${index}`);
+  return variables.length ? `, ${variables.join(", ")}` : "";
+}
+
+function buildAnnotationBriefLines(annotations = []) {
+  return annotations
+    .slice(0, 4)
+    .map((annotation, index) => `${index + 1}. ${annotation.label}: ${annotation.detail}`)
+    .join("\n");
+}
+
 function factionRuntimeId(faction) {
   if (faction === "RU") {
     return 183;
@@ -56,6 +78,8 @@ function factionRuntimeId(faction) {
 function buildSurfaceMissionScript(blueprint, scenario) {
   const g = scenario.geometry;
   const additionalBarrier = scenario.index >= 1;
+  const annotationPoiLines = buildAnnotationPoiList(scenario.tasking?.annotations || []);
+  const annotationPoiAttachList = buildAnnotationPoiAttachList(scenario.tasking?.annotations || []);
   return `import random
 
 ##
@@ -146,7 +170,8 @@ messageModel = MessageModel(
 datum_poi = PointOfInterest("Enemy Datum", Waypoint(datum_pos))
 support_poi = PointOfInterest("Support Station", Waypoint(friendly_ddg_dest))
 withdrawal_poi = PointOfInterest("Withdrawal Box", Waypoint(withdrawal_poi_pos))
-messageModel.AttachPOIs([datum_poi, support_poi, withdrawal_poi])
+${annotationPoiLines}
+messageModel.AttachPOIs([datum_poi, support_poi, withdrawal_poi${annotationPoiAttachList}])
 message_process = _P.Message(player_spawn_process, messageModel)
 
 sat_spawn_zone = _Z.Circular("Sat Spawn Zone", player_spawn_pos, 10000)
@@ -233,6 +258,8 @@ end_transmission_process = _P.Element.Radio(end_message_process, sat_element, en
 function buildSubHuntMissionScript(blueprint, scenario) {
   const g = scenario.geometry;
   const supportUnits = Math.max(1, scenario.geometry.density);
+  const annotationPoiLines = buildAnnotationPoiList(scenario.tasking?.annotations || []);
+  const annotationPoiAttachList = buildAnnotationPoiAttachList(scenario.tasking?.annotations || []);
   const friendlySurface = scenario.forces?.friendlySurface?.[0] || {
     name: "USS Spruance",
     dbid: 294,
@@ -375,7 +402,8 @@ messageModel = MessageModel(
 datum_poi = PointOfInterest("Breakout Datum", Waypoint(datum_pos))
 barrier_poi = PointOfInterest("Likely Egress", Waypoint(egress_pos))
 withdrawal_poi = PointOfInterest("Withdrawal Box", Waypoint(withdrawal_zone_pos))
-messageModel.AttachPOIs([datum_poi, barrier_poi, withdrawal_poi])
+${annotationPoiLines}
+messageModel.AttachPOIs([datum_poi, barrier_poi, withdrawal_poi${annotationPoiAttachList}])
 message_process = _P.Message(player_spawn_process, messageModel)
 
 sat_spawn_zone = _Z.Circular("Sat Spawn Zone", player_spawn_pos, 10000)
@@ -485,10 +513,14 @@ export function buildQuestScript(campaignMissionIds) {
 
 export function buildScenarioPackageArtifacts({ blueprint, scenario }) {
   const intelLine = scenario.intel?.prose || "Enemy activity is assessed along the current route family, but cueing remains imprecise.";
+  const taskLine = scenario.tasking?.primaryTask?.objectiveLine || "Build the tactical picture and preserve the boat.";
+  const mapIntentLine = scenario.tasking?.primaryTask?.mapIntent || "Use the marked cues as geometry aids rather than exact truth.";
+  const postureLine = scenario.tasking?.posture?.cue || "Command expects you to use the available route and contact cues with judgment.";
+  const annotationLines = buildAnnotationBriefLines(scenario.tasking?.annotations || []);
   const messages = {
     mission_from: blueprint.theaterId === "luzon_strait" ? "COMSUBPAC" : "COMSUBLANT",
     mission_to: blueprint.player.name.toUpperCase(),
-    mission_objectives: `BT\nSUBJ: ${scenario.name.toUpperCase()}\n\n1. ${scenario.summary}\n\n2. ${scenario.cue}\n\n3. Intel Cue:\n   ${intelLine}\n\n4. Route Summary:\n   ${scenario.geometry.routeSummary}\n\n5. Enemy Transit:\n   ${scenario.geometry.enemyTransitSummary}\n\n6. Keep your submarine combat effective and raise antennas when you are ready to conclude the mission.`,
+    mission_objectives: `BT\nSUBJ: ${scenario.name.toUpperCase()}\n\n1. ${scenario.summary}\n\n2. Primary Task:\n   ${taskLine}\n\n3. Posture:\n   ${postureLine}\n\n4. Intel Cue:\n   ${intelLine}\n\n5. Marked Cues:\n   ${annotationLines || "No additional marked cues."}\n\n6. Player Guidance:\n   ${mapIntentLine}\n\n7. Route Summary:\n   ${scenario.geometry.routeSummary}\n\n8. Enemy Transit:\n   ${scenario.geometry.enemyTransitSummary}\n\n9. Keep your submarine combat effective and raise antennas when you are ready to conclude the mission.`,
     mission_success: `BT\nSUBJ: MISSION STATUS - SUCCESS\n\n${scenario.successText}`
   };
   const metadata = missionMetadataRecord(
@@ -585,6 +617,7 @@ export async function buildGeneratedCampaignFiles({ templateRoot, spec }) {
     world_state: {
       escalation_level: 1,
       tone: blueprint.tone,
+      posture: blueprint.posture,
       route_family: blueprint.family,
       theater_picture: blueprint.theaterPicture
     },

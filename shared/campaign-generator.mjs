@@ -15,66 +15,135 @@ const TONE_CATALOG = {
   }
 };
 
+const AUTHORING_POSTURES = {
+  aggressive_intercept: {
+    label: "Aggressive Intercept",
+    cue: "Bias the boat forward, compress the intercept geometry, and accept higher exposure for sharper contact quality."
+  },
+  quiet_shadow: {
+    label: "Quiet Shadow",
+    cue: "Favor offset positions, preserve stealth, and work the contact picture from the edge of certainty."
+  },
+  wide_area_search: {
+    label: "Wide-Area Search",
+    cue: "Trade immediacy for broader search coverage and more room to re-orient when the first cue is wrong."
+  },
+  barrier_support: {
+    label: "Barrier Support",
+    cue: "Lean on support geometry and hold the likely seam instead of chasing every ambiguous contact."
+  }
+};
+
+const TASK_CATALOG = {
+  classify_trail: {
+    label: "Classify And Trail",
+    objectiveLine: "Classify the likely main contact and trail without forcing a premature attack.",
+    mapIntent: "Use the marked probable contact area and support cueing to build a clean track."
+  },
+  reacquire_contact: {
+    label: "Re-Acquire Contact",
+    objectiveLine: "Rebuild the contact picture inside the marked search area and restore a usable trail.",
+    mapIntent: "Work the search area first, then pivot to the likely egress line only if the picture firms up."
+  },
+  hold_barrier: {
+    label: "Hold Barrier",
+    objectiveLine: "Hold the marked barrier line and prevent a clean transit through the seam.",
+    mapIntent: "Treat the intercept gate and barrier station as decision points rather than exact target positions."
+  },
+  intercept_gate: {
+    label: "Intercept Gate",
+    objectiveLine: "Cut ahead of the marked route and challenge the transit at the likely gate.",
+    mapIntent: "Use the likely egress marker to get in front of the movement instead of chasing the datum."
+  },
+  confirm_route: {
+    label: "Confirm Route",
+    objectiveLine: "Confirm which corridor is real and leave a clean handoff for follow-on forces.",
+    mapIntent: "Compare the likely contact area against the marked route decision point before committing."
+  },
+  classify_screen: {
+    label: "Classify The Screen",
+    objectiveLine: "Probe the screen edges, identify escorts, and avoid getting sucked into the wrong layer.",
+    mapIntent: "Use the support and barrier markers to understand where the screen is strongest."
+  },
+  trail_handoff: {
+    label: "Trail To Handoff",
+    objectiveLine: "Carry contact into the terminal phase and preserve a clean handoff for support forces.",
+    mapIntent: "Stay connected to the marked route and barrier cues long enough to hand the picture forward."
+  }
+};
+
 const MISSION_LIBRARY = {
   initial_scout: {
     name: "Initial Scout",
     summary: "Build the first tactical picture on the enemy movement and withdraw cleanly.",
-    cue: "Initial contacts are thin and ambiguous. Preserve stealth and establish the route picture."
+    cue: "Initial contacts are thin and ambiguous. Preserve stealth and establish the route picture.",
+    taskType: "classify_trail"
   },
   crosscurrent: {
     name: "Crosscurrent",
     summary: "The enemy adjusts course and screening posture. Re-establish contact and refine the route estimate.",
-    cue: "Expect a tighter helo pattern and more disciplined maneuver around the lead unit."
+    cue: "Expect a tighter helo pattern and more disciplined maneuver around the lead unit.",
+    taskType: "reacquire_contact"
   },
   barrier_tide: {
     name: "Barrier Tide",
     summary: "The battlespace thickens into a barrier problem. Track the turn and stay ahead of the containment line.",
-    cue: "The route is bending toward a constricted approach. Escorts will favor layered search arcs."
+    cue: "The route is bending toward a constricted approach. Escorts will favor layered search arcs.",
+    taskType: "hold_barrier"
   },
   closing_arc: {
     name: "Closing Arc",
     summary: "The operation reaches its containment phase. Confirm the decisive route and survive the endgame.",
-    cue: "Support is forward, but the player submarine still has to hold the decisive geometry."
+    cue: "Support is forward, but the player submarine still has to hold the decisive geometry.",
+    taskType: "confirm_route"
   },
   first_vector: {
     name: "First Vector",
     summary: "Intercept the opening move and classify the breakout axis before it widens.",
-    cue: "Expect sparse reporting and a narrow early prosecution window."
+    cue: "Expect sparse reporting and a narrow early prosecution window.",
+    taskType: "intercept_gate"
   },
   datum_shift: {
     name: "Datum Shift",
     summary: "The contact picture breaks and reforms. Push back in and restore the track.",
-    cue: "Search cues are intermittent and the opposing force is exploiting clutter."
+    cue: "Search cues are intermittent and the opposing force is exploiting clutter.",
+    taskType: "reacquire_contact"
   },
   containment_run: {
     name: "Containment Run",
     summary: "Barrier forces tighten while the target tries to slip through the seam.",
-    cue: "Plan for heavier support, denser contacts, and a more defined egress route."
+    cue: "Plan for heavier support, denser contacts, and a more defined egress route.",
+    taskType: "hold_barrier"
   },
   closing_window: {
     name: "Closing Window",
     summary: "The final opportunity to seal the route before the operational picture resets.",
-    cue: "Any late exposure will draw aggressive screening behavior."
+    cue: "Any late exposure will draw aggressive screening behavior.",
+    taskType: "trail_handoff"
   },
   screen_probe: {
     name: "Screen Probe",
     summary: "Probe the screen, confirm intent, and keep the initiative without overcommitting.",
-    cue: "The opening layer is disciplined but not yet fully closed."
+    cue: "The opening layer is disciplined but not yet fully closed.",
+    taskType: "classify_screen"
   },
   route_bend: {
     name: "Route Bend",
     summary: "The enemy shifts axis and tries to force a route decision under pressure.",
-    cue: "The support picture is thickening around the turn point."
+    cue: "The support picture is thickening around the turn point.",
+    taskType: "intercept_gate"
   },
   kill_box: {
     name: "Kill Box",
     summary: "Contain the movement inside a prepared geometry and survive the counter-search.",
-    cue: "The generated path now favors a barrier-like prosecution problem."
+    cue: "The generated path now favors a barrier-like prosecution problem.",
+    taskType: "hold_barrier"
   },
   terminal_shadow: {
     name: "Terminal Shadow",
     summary: "Carry contact into the final phase and leave a clean handoff for follow-on forces.",
-    cue: "The route is now constrained, but exposure risk is highest."
+    cue: "The route is now constrained, but exposure risk is highest.",
+    taskType: "trail_handoff"
   }
 };
 
@@ -887,6 +956,20 @@ function jitterPoint([lat, lon], rng, latDelta = 0.08, lonDelta = 0.12) {
   return [Number((lat + latOffset).toFixed(6)), Number((lon + lonOffset).toFixed(6))];
 }
 
+function moveToward([latA, lonA], [latB, lonB], fraction = 0.25) {
+  return [
+    Number((latA + ((latB - latA) * fraction)).toFixed(6)),
+    Number((lonA + ((lonB - lonA) * fraction)).toFixed(6))
+  ];
+}
+
+function moveAway([latA, lonA], [latB, lonB], fraction = 0.25) {
+  return [
+    Number((latA - ((latB - latA) * fraction)).toFixed(6)),
+    Number((lonA - ((lonB - lonA) * fraction)).toFixed(6))
+  ];
+}
+
 function summarizePath(points) {
   return points
     .map(([lat, lon]) => `${toFixedCoord(lat)}, ${toFixedCoord(lon)}`)
@@ -910,15 +993,22 @@ function bearingLabelFromDegrees(degrees) {
   return labels[index];
 }
 
-function estimateIntelConfidence(template, geometry, index, rng) {
+function estimateIntelConfidence(template, geometry, index, rng, postureKey = "wide_area_search") {
   const base = template.family === "surface_shadow" ? 72 : 64;
   const densityModifier = Number(geometry?.density || 1) >= 3 ? 6 : 0;
   const progressionModifier = Math.min(10, index * 3);
+  const postureModifier = postureKey === "aggressive_intercept"
+    ? 6
+    : postureKey === "quiet_shadow"
+      ? -4
+      : postureKey === "barrier_support"
+        ? 3
+        : 0;
   const noise = Math.round((rng() - 0.5) * 14);
-  return Math.max(42, Math.min(91, base + densityModifier + progressionModifier + noise));
+  return Math.max(42, Math.min(91, base + densityModifier + progressionModifier + postureModifier + noise));
 }
 
-function buildScenarioIntel(template, geometry, forces, index, rng) {
+function buildScenarioIntel(template, geometry, forces, index, rng, postureKey = "wide_area_search") {
   const playerReference = geometry.playerSpawn;
   const likelyContact = template.family === "surface_shadow"
     ? geometry.lead
@@ -926,7 +1016,7 @@ function buildScenarioIntel(template, geometry, forces, index, rng) {
   const axisReference = template.family === "surface_shadow"
     ? geometry.destination
     : geometry.egress;
-  const confidence = estimateIntelConfidence(template, geometry, index, rng);
+  const confidence = estimateIntelConfidence(template, geometry, index, rng, postureKey);
   const likelyBearing = bearingLabelFromDegrees(approximateBearingDegrees(playerReference, likelyContact));
   const axisBearing = bearingLabelFromDegrees(approximateBearingDegrees(playerReference, axisReference));
   const sectorLabel = geometry.routeVariantLabel || forces?.sector || "main axis";
@@ -950,6 +1040,63 @@ function buildScenarioIntel(template, geometry, forces, index, rng) {
     likelyLocationText,
     confidenceText,
     prose
+  };
+}
+
+function buildScenarioAnnotations(template, geometry, forces, missionDef, postureKey, intel) {
+  const task = TASK_CATALOG[missionDef.taskType] || TASK_CATALOG.classify_trail;
+  const annotations = [];
+  const likelyContactPoint = template.family === "surface_shadow"
+    ? geometry.datum
+    : geometry.yasen;
+  const interceptPoint = template.family === "surface_shadow"
+    ? geometry.destination
+    : geometry.egress;
+  const supportPoint = template.family === "surface_shadow"
+    ? geometry.ddgDest
+    : geometry.ddgScreen;
+  const barrierPoint = template.family === "surface_shadow"
+    ? geometry.barrier
+    : geometry.supportDest;
+
+  annotations.push({
+    id: "likely_contact_area",
+    label: "Likely Contact Area",
+    kind: "search_area",
+    point: likelyContactPoint,
+    detail: `${intel.likelyLocationText}. ${intel.confidenceText}.`
+  });
+  annotations.push({
+    id: "intercept_gate",
+    label: "Intercept Gate",
+    kind: "intercept_gate",
+    point: interceptPoint,
+    detail: "Likely route decision point. Use this as a geometry cue, not a guaranteed enemy position."
+  });
+  annotations.push({
+    id: "support_window",
+    label: "Support Search Line",
+    kind: "support_zone",
+    point: supportPoint,
+    detail: "Friendly support is most relevant around this axis if you want to work with cueing instead of chasing every contact yourself."
+  });
+  annotations.push({
+    id: "barrier_station",
+    label: "Barrier Station",
+    kind: "barrier_station",
+    point: barrierPoint,
+    detail: "Useful holding point if you choose to turn the mission into a containment problem."
+  });
+
+  return {
+    primaryTask: {
+      key: missionDef.taskType || "classify_trail",
+      label: task.label,
+      objectiveLine: task.objectiveLine,
+      mapIntent: task.mapIntent
+    },
+    posture: AUTHORING_POSTURES[postureKey] || AUTHORING_POSTURES.wide_area_search,
+    annotations
   };
 }
 
@@ -1169,6 +1316,54 @@ function buildScenarioForces(template, geometry, index, theaterPicture, rng) {
   };
 }
 
+function applyAuthoringPostureToGeometry(template, family, geometry, postureKey) {
+  const posture = AUTHORING_POSTURES[postureKey] || AUTHORING_POSTURES.wide_area_search;
+  const next = { ...geometry };
+  const contactReference = family === "surface_shadow" ? geometry.lead : geometry.yasen;
+  const routeGate = family === "surface_shadow" ? geometry.destination : geometry.egress;
+
+  switch (postureKey) {
+    case "aggressive_intercept":
+      next.playerSpawn = moveToward(geometry.playerSpawn, contactReference, 0.28);
+      next.datum = moveToward(geometry.datum, contactReference, 0.18);
+      if (geometry.ddg) next.ddg = moveToward(geometry.ddg, routeGate, 0.18);
+      if (geometry.ddgScreen) next.ddgScreen = moveToward(geometry.ddgScreen, routeGate, 0.18);
+      if (geometry.supportDest) next.supportDest = moveToward(geometry.supportDest, routeGate, 0.2);
+      break;
+    case "quiet_shadow":
+      next.playerSpawn = moveAway(geometry.playerSpawn, contactReference, 0.22);
+      next.withdrawal = moveAway(geometry.withdrawal, contactReference, 0.18);
+      if (geometry.ddg) next.ddg = moveAway(geometry.ddg, contactReference, 0.12);
+      if (geometry.p8) next.p8 = moveAway(geometry.p8, contactReference, 0.08);
+      break;
+    case "barrier_support":
+      next.playerSpawn = moveToward(geometry.playerSpawn, routeGate, 0.12);
+      if (geometry.ddg) next.ddg = moveToward(geometry.ddg, routeGate, 0.26);
+      if (geometry.ddgScreen) next.ddgScreen = moveToward(geometry.ddgScreen, routeGate, 0.24);
+      if (geometry.supportGroup) next.supportGroup = moveToward(geometry.supportGroup, routeGate, 0.18);
+      if (geometry.supportDest) next.supportDest = moveToward(geometry.supportDest, routeGate, 0.18);
+      break;
+    case "wide_area_search":
+    default:
+      next.playerSpawn = moveAway(geometry.playerSpawn, contactReference, 0.1);
+      if (geometry.p8) next.p8 = moveToward(geometry.p8, geometry.center, 0.14);
+      break;
+  }
+
+  next.posture = {
+    key: postureKey,
+    label: posture.label,
+    cue: posture.cue
+  };
+  next.routeSummary = family === "surface_shadow"
+    ? summarizePath([next.playerSpawn, next.datum, next.lead, next.destination, next.withdrawal])
+    : summarizePath([next.playerSpawn, next.datum, next.yasen, next.egress, next.withdrawal]);
+  next.enemyTransitSummary = family === "surface_shadow"
+    ? summarizePath([next.lead, next.escort, next.barrier, next.destination])
+    : summarizePath([next.yasen, next.escort, next.egress]);
+  return next;
+}
+
 function buildSurfaceShadowGeometry(template, index, count, rng) {
   const enemyBase = template.route.enemyCorridor;
   const playerBase = template.route.playerCorridor;
@@ -1249,7 +1444,7 @@ function buildSubHuntGeometry(template, index, count, rng) {
   };
 }
 
-function buildScenarioRecord(template, campaignId, missionDef, index, count, year, rng, theaterPicture) {
+function buildScenarioRecord(template, campaignId, missionDef, index, count, year, rng, theaterPicture, postureKey = "wide_area_search") {
   const startBase = template.id === "luzon_strait"
     ? `${year}-04-02T04:20:00Z`
     : `${year}-03-14T02:30:00Z`;
@@ -1257,12 +1452,14 @@ function buildScenarioRecord(template, campaignId, missionDef, index, count, yea
   const rawGeometry = template.family === "surface_shadow"
     ? buildSurfaceShadowGeometry(template, index, count, rng)
     : buildSubHuntGeometry(template, index, count, rng);
-  const geometry = applyGeometrySafety(template.id, template.family, rawGeometry, rng);
+  const postureGeometry = applyAuthoringPostureToGeometry(template, template.family, rawGeometry, postureKey);
+  const geometry = applyGeometrySafety(template.id, template.family, postureGeometry, rng);
   const forces = buildScenarioForces(template, geometry, index, theaterPicture, rng);
-  const intel = buildScenarioIntel(template, geometry, forces, index, rng);
+  const intel = buildScenarioIntel(template, geometry, forces, index, rng, postureKey);
+  const tasking = buildScenarioAnnotations(template, geometry, forces, missionDef, postureKey, intel);
   const missionKey = `${campaignId}.${campaignId}.${missionDef.slug}`;
-  const description = `${missionDef.summary} ${missionDef.cue} Intel cue: ${intel.prose}`;
-  const objectiveText = `Keep your submarine combat effective and raise antennas to conclude the mission. ${intel.prose}`;
+  const description = `${missionDef.summary} ${missionDef.cue} Task: ${tasking.primaryTask.objectiveLine} Intel cue: ${intel.prose}`;
+  const objectiveText = `${tasking.primaryTask.objectiveLine} ${tasking.primaryTask.mapIntent} ${intel.prose}`;
 
   return {
     slug: missionDef.slug,
@@ -1277,6 +1474,7 @@ function buildScenarioRecord(template, campaignId, missionDef, index, count, yea
     geometry,
     forces,
     intel,
+    tasking,
     description,
     objectiveText,
     successText: `${missionDef.name} surveillance is complete. Higher command has the refined route picture and can posture the next move using your report.`
@@ -1289,6 +1487,10 @@ export function getTheaterTemplates() {
 
 export function getToneCatalog() {
   return TONE_CATALOG;
+}
+
+export function getAuthoringPostureCatalog() {
+  return AUTHORING_POSTURES;
 }
 
 export function findTheaterTemplateByName(name) {
@@ -1315,7 +1517,8 @@ export function buildContinuationScenario({
   operationalTempo = "deliberate",
   priorMissionCount = 0,
   lastOutcome = "success",
-  theaterPicture: previousTheaterPicture = null
+  theaterPicture: previousTheaterPicture = null,
+  posture = "wide_area_search"
 } = {}) {
   const theater = THEATER_TEMPLATES[theaterId] || THEATER_TEMPLATES.luzon_strait;
   const family = theater.family;
@@ -1342,9 +1545,23 @@ export function buildContinuationScenario({
   const rawGeometry = family === "surface_shadow"
     ? buildSurfaceShadowGeometry(theater, missionIndex, densityCount, rng)
     : buildSubHuntGeometry(theater, missionIndex, densityCount, rng);
-  const geometry = applyGeometrySafety(theater.id, family, rawGeometry, rng);
+  const postureGeometry = applyAuthoringPostureToGeometry(theater, family, rawGeometry, posture);
+  const geometry = applyGeometrySafety(theater.id, family, postureGeometry, rng);
   const forces = buildScenarioForces(theater, geometry, missionIndex, theaterPicture, rng);
-  const intel = buildScenarioIntel(theater, geometry, forces, missionIndex, rng);
+  const derivedTaskType = objective === "defend_chokepoint"
+    ? "hold_barrier"
+    : objective === "intercept_route"
+      ? "intercept_gate"
+      : objective === "break_contact"
+        ? "trail_handoff"
+        : objective === "shadow_safely"
+          ? "classify_trail"
+          : "reacquire_contact";
+  const continuationMissionDef = {
+    taskType: derivedTaskType
+  };
+  const intel = buildScenarioIntel(theater, geometry, forces, missionIndex, rng, posture);
+  const tasking = buildScenarioAnnotations(theater, geometry, forces, continuationMissionDef, posture, intel);
   const outcomeLine = lastOutcome === "failure"
     ? "The previous mission ended badly, so the next operation is framed around regaining control without losing the boat."
     : lastOutcome === "partial_success"
@@ -1353,11 +1570,11 @@ export function buildContinuationScenario({
   const name = `${objectiveDef.baseName} ${ordinal}`;
   const summary = objectiveDef.summaries[family] || objectiveDef.summaries.surface_shadow;
   const cue = `${riskDef.cue} ${outcomeLine}`;
-  const description = `${summary} ${cue} Intel cue: ${intel.prose}`;
+  const description = `${summary} ${cue} Task: ${tasking.primaryTask.objectiveLine} Intel cue: ${intel.prose}`;
   const missionId = `${campaignId}.${campaignId}.${slug}`;
   const objectiveText = family === "surface_shadow"
-    ? `Keep your submarine combat effective, preserve the track picture, and raise antennas when you are ready to conclude the mission. ${intel.prose}`
-    : `Keep your submarine combat effective, contain the breakout geometry, and raise antennas when you are ready to conclude the mission. ${intel.prose}`;
+    ? `${tasking.primaryTask.objectiveLine} ${tasking.primaryTask.mapIntent} Keep your submarine combat effective, preserve the track picture, and raise antennas when you are ready to conclude the mission. ${intel.prose}`
+    : `${tasking.primaryTask.objectiveLine} ${tasking.primaryTask.mapIntent} Keep your submarine combat effective, contain the breakout geometry, and raise antennas when you are ready to conclude the mission. ${intel.prose}`;
   const successText = `${name} is complete. Higher command can roll your updated track, damage, and readiness picture into the next decision cycle.`;
 
   return {
@@ -1373,6 +1590,7 @@ export function buildContinuationScenario({
     geometry,
     forces,
     intel,
+    tasking,
     description,
     objectiveText,
     successText,
@@ -1384,7 +1602,9 @@ export function buildContinuationScenario({
       riskLabel: riskDef.label,
       operationalTempo,
       tempoLabel: tempoDef.label,
-      advanceHours: tempoDef.advanceHours
+      advanceHours: tempoDef.advanceHours,
+      posture,
+      postureLabel: (AUTHORING_POSTURES[posture] || AUTHORING_POSTURES.wide_area_search).label
     }
   };
 }
@@ -1397,13 +1617,14 @@ export function buildCampaignBlueprint(spec = {}) {
   const tone = TONE_CATALOG[spec.tone] ? spec.tone : "surveillance";
   const year = Number(spec.year || theater.defaultYear || 2028);
   const playerName = String(spec.playerName || theater.player.name).trim() || theater.player.name;
+  const posture = AUTHORING_POSTURES[spec.posture] ? spec.posture : "wide_area_search";
   const seed = hashSeed(`${campaignId}:${theater.id}:${tone}:${year}:${scenarioCount}:${playerName}`);
   const rng = mulberry32(seed);
   const archetypes = pickArchetypes(tone, scenarioCount);
   const theaterUnits = buildTheaterUnitCatalog(theater, playerName);
   const theaterPicture = initializeTheaterPicture(theater, theaterUnits, rng);
   const scenarios = archetypes.map((missionDef, index) => {
-    return buildScenarioRecord(theater, campaignId, missionDef, index, scenarioCount, year, rng, theaterPicture);
+    return buildScenarioRecord(theater, campaignId, missionDef, index, scenarioCount, year, rng, theaterPicture, posture);
   });
 
   return {
@@ -1416,6 +1637,8 @@ export function buildCampaignBlueprint(spec = {}) {
     description: spec.description || `${title} is a ${TONE_CATALOG[tone].label.toLowerCase()} campaign set in the ${theater.theaterName}.`,
     tone,
     toneLabel: TONE_CATALOG[tone].label,
+    posture,
+    postureLabel: AUTHORING_POSTURES[posture].label,
     year,
     family: theater.family,
     player: {

@@ -65,7 +65,8 @@ export async function appendContinuationScenario({
     operationalTempo,
     priorMissionCount: missionChain.length,
     lastOutcome: latestResult?.outcome || "success",
-    theaterPicture: state.world_state?.theater_picture || null
+    theaterPicture: state.world_state?.theater_picture || null,
+    posture: state.world_state?.posture || "wide_area_search"
   });
 
   const blueprint = {
@@ -90,6 +91,7 @@ export async function appendContinuationScenario({
 
   state.world_state = state.world_state || {};
   state.world_state.theater_picture = scenario.theaterPicture || state.world_state.theater_picture || {};
+  state.world_state.posture = scenario.continuation?.posture || state.world_state.posture || "wide_area_search";
   state.world_state.continuation_count = Number(state.world_state.continuation_count || 0) + 1;
   state.world_state.last_extension_choice = {
     objective,

@@ -1,5 +1,6 @@
 import {
   buildCampaignBlueprint,
+  getAuthoringPostureCatalog,
   getContinuationChoiceCatalog,
   getTheaterTemplates,
   getToneCatalog
@@ -837,6 +838,7 @@ function collectWizardSpec() {
     campaignId: document.getElementById("wizard-campaign-id").value.trim(),
     theater: document.getElementById("wizard-theater").value,
     tone: document.getElementById("wizard-tone").value,
+    posture: document.getElementById("wizard-posture").value,
     year: Number(document.getElementById("wizard-year").value || 2028),
     scenarioCount: Number(document.getElementById("wizard-scenario-count").value || 3),
     playerName: document.getElementById("wizard-player-name").value.trim()
@@ -937,7 +939,8 @@ function renderContinuationPlanner(data) {
 function populateWizardSelectors() {
   const theaterSelect = document.getElementById("wizard-theater");
   const toneSelect = document.getElementById("wizard-tone");
-  if (!theaterSelect || !toneSelect) {
+  const postureSelect = document.getElementById("wizard-posture");
+  if (!theaterSelect || !toneSelect || !postureSelect) {
     return;
   }
   theaterSelect.innerHTML = Object.values(getTheaterTemplates()).map((theater) => `
@@ -946,8 +949,12 @@ function populateWizardSelectors() {
   toneSelect.innerHTML = Object.entries(getToneCatalog()).map(([key, tone]) => `
     <option value="${key}">${tone.label}</option>
   `).join("");
+  postureSelect.innerHTML = Object.entries(getAuthoringPostureCatalog()).map(([key, posture]) => `
+    <option value="${key}">${posture.label}</option>
+  `).join("");
   theaterSelect.value = "luzon_strait";
   toneSelect.value = "surveillance";
+  postureSelect.value = "wide_area_search";
 }
 
 function syncWizardDefaultsWithTheater() {
@@ -1013,7 +1020,7 @@ async function initializeWizard() {
     syncWizardDefaultsWithTheater();
     refreshCurrentWizardBlueprint();
   };
-  ["wizard-title", "wizard-campaign-id", "wizard-tone", "wizard-year", "wizard-scenario-count", "wizard-player-name"].forEach((id) => {
+  ["wizard-title", "wizard-campaign-id", "wizard-tone", "wizard-posture", "wizard-year", "wizard-scenario-count", "wizard-player-name"].forEach((id) => {
     document.getElementById(id).oninput = () => refreshCurrentWizardBlueprint();
   });
   document.getElementById("wizard-start-over").onclick = () => {

@@ -180,6 +180,10 @@
                 <span>Scenario Count</span>
                 <input id="wizard-scenario-count" type="number" min="1" max="8" step="1" value="1">
               </label>
+              <label>
+                <span>Mission Posture</span>
+                <select id="wizard-posture"></select>
+              </label>
             </div>
             <label class="full-width">
               <span>Player Unit Name</span>
@@ -240,6 +244,10 @@
               <p>
                 Tone selection changes mission archetype order, not national sides. That keeps the generated campaign coherent while still
                 varying the sequence of scout, route-bend, containment, and closing scenarios.
+              </p>
+              <p>
+                Mission posture is the player-agency bias for the generated package. It tells the generator whether to favor forward intercepts,
+                quiet offset shadowing, broader search geometry, or support-backed barrier play.
               </p>
             </div>
           </article>
