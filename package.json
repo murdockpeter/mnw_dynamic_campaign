@@ -42,6 +42,10 @@
         "to": "docs/DESKTOP_APP_GUIDE.md"
       },
       {
+        "from": "docs",
+        "to": "docs"
+      },
+      {
         "from": "campaigns",
         "to": "seed/campaigns"
       },

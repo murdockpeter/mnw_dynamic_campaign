@@ -12,6 +12,7 @@ let desktopInfo = null;
 let packageIdSyncEnabled = true;
 let workflowStatus = null;
 let authoringStageOverride = null;
+let currentOperationalMap = null;
 
 async function loadJson(targetPath) {
   const response = await fetch(targetPath);
@@ -382,50 +383,6 @@ function renderMissionResult(data) {
             ${event.weapon_key ? `Weapon: ${event.weapon_key} | ` : ""}
             ${event.amount !== null && event.amount !== undefined ? `Amount: ${event.amount}` : "No amount"}
           </div>
-        </div>
-      `).join("")}
-    </div>
-  `;
-}
-
-function renderGenerationPlan(data) {
-  const root = document.getElementById("generation-plan");
-  root.innerHTML = `
-    <div class="directive-list">
-      <div class="directive">
-        <div class="head">
-          <strong>Next Mission</strong>
-          <span class="pill ok">${data.plan.mission_id ?? "-"}</span>
-        </div>
-      </div>
-      ${data.plan.directives.map((directive) => `
-        <div class="directive">
-          <div class="head">
-            <strong>${directive.directive_type}</strong>
-            <span class="muted">${directive.source_module}</span>
-          </div>
-          <div class="muted"><code>${JSON.stringify(directive.payload)}</code></div>
-        </div>
-      `).join("")}
-    </div>
-  `;
-}
-
-function renderContracts() {
-  const root = document.getElementById("module-contracts");
-  const contracts = [
-    { name: "initialize_state", detail: "Module bootstraps its own state into the shared campaign model." },
-    { name: "ingest_result", detail: "Module consumes normalized mission-result events and mutates campaign state." },
-    { name: "advance_time", detail: "Module updates state between missions without touching MNW files directly." },
-    { name: "prepare_generation", detail: "Module emits generation directives instead of writing scenarios itself." },
-    { name: "portable backend", detail: "The Electron path mirrors build, deploy, export, ingest, and campaign generation without removing the original scripts." }
-  ];
-  root.innerHTML = `
-    <div class="contract-list">
-      ${contracts.map((item) => `
-        <div class="contract">
-          <div class="head"><strong>${item.name}</strong></div>
-          <div class="muted">${item.detail}</div>
         </div>
       `).join("")}
     </div>
@@ -833,6 +790,7 @@ function refreshCurrentWizardBlueprint() {
 }
 
 function collectWizardSpec() {
+  const maxTargetDistanceValue = document.getElementById("wizard-max-target-distance-km").value;
   return {
     title: document.getElementById("wizard-title").value.trim(),
     campaignId: document.getElementById("wizard-campaign-id").value.trim(),
@@ -841,7 +799,10 @@ function collectWizardSpec() {
     posture: document.getElementById("wizard-posture").value,
     year: Number(document.getElementById("wizard-year").value || 2028),
     scenarioCount: Number(document.getElementById("wizard-scenario-count").value || 3),
-    playerName: document.getElementById("wizard-player-name").value.trim()
+    playerName: document.getElementById("wizard-player-name").value.trim(),
+    authoringConstraints: {
+      maxDistanceToPrimaryTargetKm: maxTargetDistanceValue ? Number(maxTargetDistanceValue) : null
+    }
   };
 }
 
@@ -894,19 +855,62 @@ function renderOperationalMapForTracking(theaterNameOrLabel) {
   }
 
   const map = resolveOperationalMapForTheater(theaterNameOrLabel);
+  currentOperationalMap = map;
   if (!map) {
     title.textContent = "No theater map loaded";
     copy.textContent = "This campaign theater does not have an embedded operational SLOC page yet.";
-    link.href = "#";
+    link.disabled = true;
+    delete link.dataset.relativeName;
     badge.textContent = "Unavailable";
     return;
   }
 
   title.textContent = map.title;
-  copy.textContent = "Open the existing operational SLOC page for the current campaign theater.";
-  link.href = map.src;
+  copy.textContent = "Open the existing operational SLOC page inside Campaign Tracking.";
+  link.disabled = false;
   link.dataset.relativeName = map.relativeName;
   badge.textContent = "Theater Linked";
+}
+
+async function resolveOperationalMapSrc(map) {
+  if (!map) {
+    return null;
+  }
+  if (desktopApi?.getOperationalMapUrl && map.relativeName) {
+    return desktopApi.getOperationalMapUrl({ relativeName: map.relativeName });
+  }
+  return map.src;
+}
+
+async function openOperationalMapInApp(map = currentOperationalMap) {
+  if (!map) {
+    return;
+  }
+  const overlay = document.getElementById("tracking-map-overlay");
+  const frame = document.getElementById("tracking-map-frame");
+  const title = document.getElementById("tracking-map-overlay-title");
+  const kicker = document.getElementById("tracking-map-overlay-kicker");
+  if (!overlay || !frame || !title || !kicker) {
+    return;
+  }
+  const resolvedSrc = await resolveOperationalMapSrc(map);
+  if (!resolvedSrc) {
+    return;
+  }
+  title.textContent = map.title;
+  kicker.textContent = map.relativeName ? "Operational Area Map" : "Map Unavailable";
+  frame.src = resolvedSrc;
+  overlay.hidden = false;
+}
+
+function closeOperationalMapInApp() {
+  const overlay = document.getElementById("tracking-map-overlay");
+  const frame = document.getElementById("tracking-map-frame");
+  if (!overlay || !frame) {
+    return;
+  }
+  frame.src = "about:blank";
+  overlay.hidden = true;
 }
 
 function setDesktopOutput(value) {
@@ -1063,16 +1067,25 @@ function initializeGuideLink() {
 
 function initializeOperationalMapLink() {
   const link = document.getElementById("tracking-map-link");
-  if (!link) {
+  const closeButton = document.getElementById("tracking-map-close");
+  const overlay = document.getElementById("tracking-map-overlay");
+  if (!link || !closeButton || !overlay) {
     return;
   }
-  link.onclick = async (event) => {
-    const relativeName = link.dataset.relativeName;
-    if (desktopApi?.openOperationalMap && relativeName) {
-      event.preventDefault();
-      await desktopApi.openOperationalMap({ relativeName });
+  link.onclick = async () => {
+    await openOperationalMapInApp();
+  };
+  closeButton.onclick = () => closeOperationalMapInApp();
+  overlay.onclick = (event) => {
+    if (event.target === overlay) {
+      closeOperationalMapInApp();
     }
   };
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !overlay.hidden) {
+      closeOperationalMapInApp();
+    }
+  });
 }
 
 async function initializeWizard() {
@@ -1086,7 +1099,7 @@ async function initializeWizard() {
     syncWizardDefaultsWithTheater();
     refreshCurrentWizardBlueprint();
   };
-  ["wizard-title", "wizard-campaign-id", "wizard-tone", "wizard-posture", "wizard-year", "wizard-scenario-count", "wizard-player-name"].forEach((id) => {
+  ["wizard-title", "wizard-campaign-id", "wizard-tone", "wizard-posture", "wizard-year", "wizard-scenario-count", "wizard-player-name", "wizard-max-target-distance-km"].forEach((id) => {
     document.getElementById(id).oninput = () => refreshCurrentWizardBlueprint();
   });
   document.getElementById("wizard-start-over").onclick = () => {
@@ -1260,8 +1273,6 @@ function hydrateRuntime(data) {
   renderOperationalMapForTracking(data.state?.metadata?.theater || data.campaign?.theater);
   renderOob(data);
   renderMissionResult(data);
-  renderGenerationPlan(data);
-  renderContracts();
   renderManualBuilder(data);
   renderDebriefParser(data);
 }

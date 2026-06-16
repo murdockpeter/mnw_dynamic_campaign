@@ -1,4 +1,6 @@
 const DEFAULT_SCENARIO_COUNT = 3;
+const MIN_TARGET_DISTANCE_KM = 20;
+const MAX_TARGET_DISTANCE_KM = 500;
 
 const TONE_CATALOG = {
   surveillance: {
@@ -946,8 +948,36 @@ function formatMnwFromIso(iso) {
   return `${yyyy}/${mm}/${dd} ${hh}:${mi}:${ss}`;
 }
 
+function clampAuthoringDistanceKm(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0) {
+    return null;
+  }
+  return Math.min(MAX_TARGET_DISTANCE_KM, Math.max(MIN_TARGET_DISTANCE_KM, Math.round(numeric)));
+}
+
+function normalizeAuthoringConstraints(spec = {}) {
+  const maxDistanceToPrimaryTargetKm = clampAuthoringDistanceKm(
+    spec.authoringConstraints?.maxDistanceToPrimaryTargetKm ?? spec.maxDistanceToPrimaryTargetKm
+  );
+  return {
+    maxDistanceToPrimaryTargetKm
+  };
+}
+
 function toFixedCoord(value) {
   return Number(value).toFixed(6);
+}
+
+function haversineDistanceKm([latA, lonA], [latB, lonB]) {
+  const earthRadiusKm = 6371;
+  const latDelta = (latB - latA) * (Math.PI / 180);
+  const lonDelta = (lonB - lonA) * (Math.PI / 180);
+  const lat1 = latA * (Math.PI / 180);
+  const lat2 = latB * (Math.PI / 180);
+  const a = Math.sin(latDelta / 2) ** 2
+    + Math.cos(lat1) * Math.cos(lat2) * Math.sin(lonDelta / 2) ** 2;
+  return earthRadiusKm * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 }
 
 function jitterPoint([lat, lon], rng, latDelta = 0.08, lonDelta = 0.12) {
@@ -968,6 +998,59 @@ function moveAway([latA, lonA], [latB, lonB], fraction = 0.25) {
     Number((latA - ((latB - latA) * fraction)).toFixed(6)),
     Number((lonA - ((lonB - lonA) * fraction)).toFixed(6))
   ];
+}
+
+function primaryTargetPointForFamily(family, geometry) {
+  return family === "surface_shadow" ? geometry.lead : geometry.yasen;
+}
+
+function withUpdatedGeometrySummaries(family, geometry) {
+  return {
+    ...geometry,
+    routeSummary: family === "surface_shadow"
+      ? summarizePath([geometry.playerSpawn, geometry.datum, geometry.lead, geometry.destination, geometry.withdrawal])
+      : summarizePath([geometry.playerSpawn, geometry.datum, geometry.yasen, geometry.egress, geometry.withdrawal]),
+    enemyTransitSummary: family === "surface_shadow"
+      ? summarizePath([geometry.lead, geometry.escort, geometry.barrier, geometry.destination])
+      : summarizePath([geometry.yasen, geometry.escort, geometry.egress])
+  };
+}
+
+function applyAuthoringDistanceConstraints(family, geometry, authoringConstraints = {}) {
+  const maxDistanceKm = clampAuthoringDistanceKm(authoringConstraints.maxDistanceToPrimaryTargetKm);
+  const primaryTarget = primaryTargetPointForFamily(family, geometry);
+  const currentDistanceKm = haversineDistanceKm(geometry.playerSpawn, primaryTarget);
+  const metrics = {
+    primaryTargetDistanceKm: Number(currentDistanceKm.toFixed(1))
+  };
+
+  if (!maxDistanceKm || currentDistanceKm <= maxDistanceKm) {
+    return {
+      geometry: {
+        ...withUpdatedGeometrySummaries(family, geometry),
+        authoringMetrics: metrics
+      },
+      metrics
+    };
+  }
+
+  const compressionFraction = 1 - (maxDistanceKm / currentDistanceKm);
+  const constrainedGeometry = {
+    ...geometry,
+    playerSpawn: moveToward(geometry.playerSpawn, primaryTarget, compressionFraction),
+    withdrawal: moveToward(geometry.withdrawal, primaryTarget, compressionFraction)
+  };
+  const constrainedDistanceKm = haversineDistanceKm(constrainedGeometry.playerSpawn, primaryTarget);
+  const updatedMetrics = {
+    primaryTargetDistanceKm: Number(constrainedDistanceKm.toFixed(1))
+  };
+  return {
+    geometry: {
+      ...withUpdatedGeometrySummaries(family, constrainedGeometry),
+      authoringMetrics: updatedMetrics
+    },
+    metrics: updatedMetrics
+  };
 }
 
 function summarizePath(points) {
@@ -1444,7 +1527,18 @@ function buildSubHuntGeometry(template, index, count, rng) {
   };
 }
 
-function buildScenarioRecord(template, campaignId, missionDef, index, count, year, rng, theaterPicture, postureKey = "wide_area_search") {
+function buildScenarioRecord(
+  template,
+  campaignId,
+  missionDef,
+  index,
+  count,
+  year,
+  rng,
+  theaterPicture,
+  postureKey = "wide_area_search",
+  authoringConstraints = {}
+) {
   const startBase = template.id === "luzon_strait"
     ? `${year}-04-02T04:20:00Z`
     : `${year}-03-14T02:30:00Z`;
@@ -1453,7 +1547,12 @@ function buildScenarioRecord(template, campaignId, missionDef, index, count, yea
     ? buildSurfaceShadowGeometry(template, index, count, rng)
     : buildSubHuntGeometry(template, index, count, rng);
   const postureGeometry = applyAuthoringPostureToGeometry(template, template.family, rawGeometry, postureKey);
-  const geometry = applyGeometrySafety(template.id, template.family, postureGeometry, rng);
+  const constrainedGeometry = applyAuthoringDistanceConstraints(template.family, postureGeometry, authoringConstraints).geometry;
+  const geometry = applyAuthoringDistanceConstraints(
+    template.family,
+    applyGeometrySafety(template.id, template.family, constrainedGeometry, rng),
+    authoringConstraints
+  ).geometry;
   const forces = buildScenarioForces(template, geometry, index, theaterPicture, rng);
   const intel = buildScenarioIntel(template, geometry, forces, index, rng, postureKey);
   const tasking = buildScenarioAnnotations(template, geometry, forces, missionDef, postureKey, intel);
@@ -1518,7 +1617,8 @@ export function buildContinuationScenario({
   priorMissionCount = 0,
   lastOutcome = "success",
   theaterPicture: previousTheaterPicture = null,
-  posture = "wide_area_search"
+  posture = "wide_area_search",
+  authoringConstraints = {}
 } = {}) {
   const theater = THEATER_TEMPLATES[theaterId] || THEATER_TEMPLATES.luzon_strait;
   const family = theater.family;
@@ -1546,7 +1646,13 @@ export function buildContinuationScenario({
     ? buildSurfaceShadowGeometry(theater, missionIndex, densityCount, rng)
     : buildSubHuntGeometry(theater, missionIndex, densityCount, rng);
   const postureGeometry = applyAuthoringPostureToGeometry(theater, family, rawGeometry, posture);
-  const geometry = applyGeometrySafety(theater.id, family, postureGeometry, rng);
+  const normalizedAuthoringConstraints = normalizeAuthoringConstraints({ authoringConstraints });
+  const constrainedGeometry = applyAuthoringDistanceConstraints(family, postureGeometry, normalizedAuthoringConstraints).geometry;
+  const geometry = applyAuthoringDistanceConstraints(
+    family,
+    applyGeometrySafety(theater.id, family, constrainedGeometry, rng),
+    normalizedAuthoringConstraints
+  ).geometry;
   const forces = buildScenarioForces(theater, geometry, missionIndex, theaterPicture, rng);
   const derivedTaskType = objective === "defend_chokepoint"
     ? "hold_barrier"
@@ -1618,13 +1724,14 @@ export function buildCampaignBlueprint(spec = {}) {
   const year = Number(spec.year || theater.defaultYear || 2028);
   const playerName = String(spec.playerName || theater.player.name).trim() || theater.player.name;
   const posture = AUTHORING_POSTURES[spec.posture] ? spec.posture : "wide_area_search";
+  const authoringConstraints = normalizeAuthoringConstraints(spec);
   const seed = hashSeed(`${campaignId}:${theater.id}:${tone}:${year}:${scenarioCount}:${playerName}`);
   const rng = mulberry32(seed);
   const archetypes = pickArchetypes(tone, scenarioCount);
   const theaterUnits = buildTheaterUnitCatalog(theater, playerName);
   const theaterPicture = initializeTheaterPicture(theater, theaterUnits, rng);
   const scenarios = archetypes.map((missionDef, index) => {
-    return buildScenarioRecord(theater, campaignId, missionDef, index, scenarioCount, year, rng, theaterPicture, posture);
+    return buildScenarioRecord(theater, campaignId, missionDef, index, scenarioCount, year, rng, theaterPicture, posture, authoringConstraints);
   });
 
   return {
@@ -1639,6 +1746,7 @@ export function buildCampaignBlueprint(spec = {}) {
     toneLabel: TONE_CATALOG[tone].label,
     posture,
     postureLabel: AUTHORING_POSTURES[posture].label,
+    authoringConstraints,
     year,
     family: theater.family,
     player: {

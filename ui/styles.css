@@ -398,6 +398,10 @@ body::after {
   display: block;
 }
 
+#tracking-view {
+  position: relative;
+}
+
 .mode-switch {
   display: grid;
   gap: 10px;
@@ -831,6 +835,63 @@ code {
   color: var(--accent-2);
 }
 
+.tracking-map-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  padding: 0;
+  background: rgba(4, 12, 18, 0.88);
+  backdrop-filter: blur(8px);
+}
+
+.tracking-map-shell {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 16px;
+  height: 100%;
+  padding: 24px 28px 28px;
+  border-radius: 0;
+  border: 0;
+  background:
+    linear-gradient(180deg, rgba(15, 34, 49, 0.98), rgba(10, 24, 35, 0.99)),
+    radial-gradient(circle at top right, rgba(111, 212, 255, 0.08), transparent 32%);
+}
+
+.tracking-map-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.tracking-map-toolbar h2 {
+  margin: 6px 0 0;
+}
+
+.tracking-map-close {
+  padding: 11px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(111, 212, 255, 0.14);
+  background: linear-gradient(180deg, rgba(20, 55, 78, 0.96), rgba(16, 38, 55, 0.98));
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+}
+
+.tracking-map-close:hover {
+  border-color: rgba(111, 212, 255, 0.28);
+  background: linear-gradient(180deg, rgba(23, 67, 96, 0.98), rgba(18, 45, 64, 0.98));
+}
+
+.tracking-map-frame {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border: 1px solid rgba(111, 212, 255, 0.1);
+  border-radius: 14px;
+  background: rgba(7, 19, 29, 0.9);
+}
+
 @media (max-width: 1100px) {
   .shell {
     grid-template-columns: 1fr;
@@ -866,5 +927,14 @@ code {
     width: 1px;
     height: 14px;
     transform: translateX(-50%);
+  }
+
+  .tracking-map-overlay {
+    inset: 0;
+  }
+
+  .tracking-map-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }

@@ -103,6 +103,14 @@ ipcMain.handle("mnw:openOperationalMap", async (_event, payload) => {
   return shell.openPath(targetPath);
 });
 
+ipcMain.handle("mnw:getOperationalMapUrl", async (_event, payload) => {
+  const relativeName = payload?.relativeName;
+  if (!relativeName) {
+    return null;
+  }
+  return pathToFileURL(getDocsPath(relativeName)).href;
+});
+
 ipcMain.handle("mnw:exportRuntime", async (_event, payload) => {
   const { exportRuntimeSnapshot } = await loadPortableModule("portable/lib/desktop-api.mjs");
   return exportRuntimeSnapshot({

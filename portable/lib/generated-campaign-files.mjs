@@ -583,7 +583,8 @@ export async function buildGeneratedCampaignFiles({ templateRoot, spec }) {
     title: blueprint.title,
     theater: blueprint.theaterName,
     description: blueprint.description,
-    active_persistence_system: "baseline_modular"
+    active_persistence_system: "baseline_modular",
+    authoring_constraints: blueprint.authoringConstraints
   };
 
   const bootstrapState = {
@@ -619,7 +620,8 @@ export async function buildGeneratedCampaignFiles({ templateRoot, spec }) {
       tone: blueprint.tone,
       posture: blueprint.posture,
       route_family: blueprint.family,
-      theater_picture: blueprint.theaterPicture
+      theater_picture: blueprint.theaterPicture,
+      authoring_constraints: blueprint.authoringConstraints
     },
     module_state: {
       damage: {

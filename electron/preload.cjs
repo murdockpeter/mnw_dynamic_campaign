@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld("mnwDesktop", {
   loadRuntimeSnapshot: (payload) => ipcRenderer.invoke("mnw:loadRuntimeSnapshot", payload),
   openDesktopGuide: () => ipcRenderer.invoke("mnw:openDesktopGuide"),
   openOperationalMap: (payload) => ipcRenderer.invoke("mnw:openOperationalMap", payload),
+  getOperationalMapUrl: (payload) => ipcRenderer.invoke("mnw:getOperationalMapUrl", payload),
   exportRuntime: (payload) => ipcRenderer.invoke("mnw:exportRuntime", payload),
   buildPackage: (payload) => ipcRenderer.invoke("mnw:buildPackage", payload),
   deployPackage: (payload) => ipcRenderer.invoke("mnw:deployPackage", payload),

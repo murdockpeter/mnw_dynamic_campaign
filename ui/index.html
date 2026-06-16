@@ -184,6 +184,10 @@
                 <span>Mission Posture</span>
                 <select id="wizard-posture"></select>
               </label>
+              <label>
+                <span>Max Target Distance (km)</span>
+                <input id="wizard-max-target-distance-km" type="number" min="20" max="500" step="10" placeholder="Optional">
+              </label>
             </div>
             <label class="full-width">
               <span>Player Unit Name</span>
@@ -484,7 +488,7 @@
                   <div id="tracking-map-title" class="preview-head">No theater map loaded</div>
                   <p id="tracking-map-copy" class="muted">Load a runtime snapshot to point this link at the matching operational SLOC page.</p>
                   <div class="builder-actions" style="margin-top:14px;">
-                    <a id="tracking-map-link" class="inline-link-button" href="../docs/south-china-sea-sloc-map.html" target="_blank" rel="noopener noreferrer">Open Full Map</a>
+                    <button id="tracking-map-link" type="button" class="inline-link-button">Open Full Map</button>
                   </div>
                 </div>
               </article>
@@ -518,25 +522,21 @@
               </article>
             </div>
 
-            <div class="grid two-up collapsible-content">
-              <article class="card nested-card">
-                <div class="card-head">
-                  <h3>Generation Plan</h3>
-                  <span class="badge">Next Mission Hook</span>
-                </div>
-                <div id="generation-plan"></div>
-              </article>
-
-              <article class="card nested-card">
-                <div class="card-head">
-                  <h3>Module Contracts</h3>
-                  <span class="badge alt">Runtime Shape</span>
-                </div>
-                <div id="module-contracts"></div>
-              </article>
-            </div>
           </details>
         </div>
+
+        <section id="tracking-map-overlay" class="tracking-map-overlay" hidden>
+          <div class="tracking-map-shell">
+            <div class="tracking-map-toolbar">
+              <div>
+                <div id="tracking-map-overlay-kicker" class="eyebrow">Operational Area Map</div>
+                <h2 id="tracking-map-overlay-title">Operational Area Map</h2>
+              </div>
+              <button id="tracking-map-close" type="button" class="tracking-map-close">Close Map</button>
+            </div>
+            <iframe id="tracking-map-frame" class="tracking-map-frame" title="Operational area map"></iframe>
+          </div>
+        </section>
       </div>
     </main>
   </div>
