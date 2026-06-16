@@ -73,8 +73,8 @@ The packaged app is split into three separate workspaces:
 Practical intent:
 
 - `Setup` is where the user configures install paths and saved defaults
-- `Authoring` is where the user generates a campaign, reviews route geometry, builds packages, and deploys them
-- `Campaign Tracking` is where the user inspects runtime state and ingests mission results
+- `Authoring` is where the user generates a campaign, writes campaign files, builds packages, and deploys them
+- `Campaign Tracking` is where the user inspects runtime state, saves mission results, reviews the operational map, and appends continuation scenarios
 
 ## Campaign ID vs Package ID
 
@@ -110,6 +110,7 @@ It produces:
 - an enemy-side force template
 - a sequence of mission archetypes
 - deterministic scenario geometry for each scenario
+- optional authoring constraints such as a maximum player-to-primary-target distance
 - a stable package namespace
 
 ### How Believable Pathing Works Without AI
@@ -132,6 +133,22 @@ For each scenario, the generator:
 5. advances scenario start times and contact density from one mission to the next
 
 Because the seed is stable, the same inputs always generate the same campaign. Because the jitter is bounded and theater-specific, the output stays believable instead of becoming arbitrary.
+
+### Current Authoring Controls
+
+The `Authoring` workspace currently exposes:
+
+- campaign title
+- campaign ID
+- theater
+- tone
+- start year
+- scenario count
+- mission posture
+- player unit name
+- optional `Max Target Distance (km)`
+
+`Max Target Distance (km)` is an authoring-time pacing control. When set, the generator compresses player-to-primary-target geometry so missions do not exceed the requested transit budget. The value is persisted into generated `campaign.json` and bootstrap state, and continuation scenarios inherit it.
 
 ### How Platform Selection Works Per Side
 
@@ -167,7 +184,7 @@ That means theater selection determines the sides and baseline force composition
 
 ## What This Repo Is Not
 
-This is not yet a full polished end-user desktop product.
+This is not yet a fully polished end-user campaign game layer.
 
 Right now it provides:
 
@@ -176,7 +193,7 @@ Right now it provides:
 - build and deploy tooling
 - local DB inventory tooling
 - a modular persistence runtime
-- a Tauri-friendly web UI scaffold
+- an Electron desktop app and shared web UI
 - format knowledge
 
 ## Repo Layout
@@ -271,11 +288,14 @@ Current UI purpose:
 - inspect campaign state
 - inspect enabled persistence modules
 - inspect normalized mission-result events
-- inspect next-mission generation directives
 - build a normalized manual mission-result JSON from the browser
 - parse pasted MNW debrief text into a draft normalized result
+- preview and open theater operational maps inside the app
+- append one more continuation scenario from `Campaign Tracking`
 
 If `generated/ui/runtime.json` exists, the UI prefers that live exported snapshot instead of the static sample file.
+
+The packaged desktop app now embeds the operational map inside `Campaign Tracking` rather than opening it as an external HTML file.
 
 ## Using This Repo With Any AI Tool
 
@@ -398,6 +418,12 @@ Core scripts:
 - `tools/refresh-ui-state.ps1`
 - `tools/ingest-and-refresh.ps1`
 
+For the desktop app path, the normal post-mission loop is now:
+
+1. export the current runtime snapshot
+2. save the mission result directly inside `Campaign Tracking`
+3. continue the campaign if desired
+
 ## Debrief Text Parser
 
 The repo includes a first-pass MNW debrief parser.
@@ -412,6 +438,16 @@ Example:
 ```powershell
 python .\parsers\mnw_debrief_parser.py --input .\parsers\sample_debrief_bear_gap.txt --runtime-json .\ui\data\sample-runtime.json
 ```
+
+## Campaign Tracking Notes
+
+The tracker now emphasizes the practical player loop instead of debug internals:
+
+- export runtime
+- save result
+- continue campaign
+
+Advanced detail still exists for result history, persistent units, the embedded operational map, and the debrief parser, but the old generation-plan/module-contract cards are no longer part of the tracker UI.
 
 ## Files Worth Committing
 

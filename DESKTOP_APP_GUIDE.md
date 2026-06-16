@@ -13,6 +13,7 @@ It lets you:
 - build and deploy the generated campaign package
 - inspect campaign runtime state
 - save mission results directly in the app after missions
+- review the operational area map inside the app
 - continue the campaign by appending one more scenario after results are reviewed
 
 You do not need:
@@ -88,8 +89,10 @@ This workspace lets you:
 - choose a campaign ID
 - choose a theater
 - choose a tone
+- choose a start year
 - choose a scenario count
-- preview the generated campaign blueprint
+- choose a mission posture
+- optionally set `Max Target Distance (km)` to compress long transit geometry
 - write campaign files
 - build the package
 - deploy the package
@@ -106,9 +109,10 @@ This workspace lets you:
 
 - export the current runtime snapshot from the live campaign
 - enter and save a manual mission result directly into campaign state
+- open the theater operational map inside the app and close back to the tracker
 - choose a next objective, risk posture, and operational tempo
 - append one new scenario onto the current campaign, rebuild, and redeploy it
-- optionally open advanced detail for recent results, persistent units, parser tools, and generation internals
+- optionally open advanced detail for recent results, persistent units, the operational map, and parser tools
 
 Important:
 
@@ -168,6 +172,14 @@ The app then:
 5. advances timing and contact density across later scenarios
 
 This keeps the campaign believable without needing external AI tooling.
+
+### Max Target Distance
+
+`Max Target Distance (km)` is optional.
+
+Use it when you want to keep missions from starting too far away from the primary contact or objective. This is mainly a pacing control for MNW, where long transits can drag because time compression is limited.
+
+If you leave it blank, the generator uses its normal unconstrained geometry.
 
 ### Platform Selection
 
@@ -237,9 +249,9 @@ If you want more detail, open `Advanced Campaign Detail` for:
 
 - recent normalized result data
 - persistent unit state
+- the theater operational area map
 - debrief text parser
 - latest desktop action payload
-- generation-plan and module internals
 
 ## If Something Looks Wrong
 
@@ -258,6 +270,8 @@ If `Continue Campaign` does not produce the next mission you expect, check that:
 - the runtime campaign ID points at the campaign you actually played
 - the latest mission result was saved before extending
 - the package deploy paths still point at the correct MNW install and user campaign folders
+
+If `Open Full Map` does not load correctly, rebuild and reinstall the app before troubleshooting further. The embedded map relies on the packaged `docs` content being present in the installed build.
 
 If the next mission does not appear inside MNW immediately, remember that MNW still unlocks chained campaign missions only after the current one is actually completed in-game.
 
