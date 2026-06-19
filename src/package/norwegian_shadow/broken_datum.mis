@@ -86,7 +86,7 @@ objectives = [
 ##
 player_spawn_zone = _Z.Circular("Player Spawn Zone", player_spawn_pos, 1000)
 player_props = Element.Props.FromElementID(us_fact, "(Player) Virginia B3", ElementCategory.Submarine, virginia_id, player_spawn_zone.RandomPosition())
-player_element = Element(player_props).SetElevation(-120).SetHeading(25).SetPlayable().SetScope(Global.Scope.Player)
+player_element = Element(player_props).SetElevation(-380).SetHeading(25).SetPlayable().SetScope(Global.Scope.Player)
 player_spawn_process = _P.Element.Spawn(_mission_started, player_element, player_element.Position)
 
 player_mk48_arsenal_process = _P.Element.Arsenal(player_spawn_process, player_element, BaseCategory.Subsurface, ElementCategory.Torpedo, 1712, 12)
@@ -201,12 +201,12 @@ cargo_3_spawn = _P.Element.Spawn(p8_spawn, cargo_3_element, cargo_3_element.Posi
 ##
 yasen_spawn_zone = _Z.Circular("Yasen Spawn Zone", yasen_spawn_pos, 12000)
 yasen_props = Element.Props.FromDatabaseID(rus_fact, "Yasen Severodvinsk", ElementCategory.Submarine, yasen_id, yasen_spawn_zone.RandomPosition())
-yasen_element = Element(yasen_props).SetElevation(-140).SetHeading(245)
+yasen_element = Element(yasen_props).SetElevation(-520).SetHeading(245)
 yasen_spawn = _P.Element.Spawn(cargo_3_spawn, yasen_element, yasen_element.Position)
 
 escort_spawn_zone = _Z.Circular("Escort Spawn Zone", escort_spawn_pos, 10000)
 escort_props = Element.Props.FromDatabaseID(rus_fact, "Akula Screen", ElementCategory.Submarine, suka_b_id, escort_spawn_zone.RandomPosition())
-escort_element = Element(escort_props).SetElevation(-160).SetHeading(245).SetHVU(True)
+escort_element = Element(escort_props).SetElevation(-620).SetHeading(245).SetHVU(True)
 escort_spawn = _P.Element.Spawn(yasen_spawn, escort_element, escort_element.Position)
 
 asw_formation_subs = ASWFormation.ASWFormationProps()

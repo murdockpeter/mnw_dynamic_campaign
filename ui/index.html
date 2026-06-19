@@ -178,14 +178,14 @@
               </label>
               <label>
                 <span>Scenario Count</span>
-                <input id="wizard-scenario-count" type="number" min="1" max="8" step="1" value="1">
+                <input id="wizard-scenario-count" type="number" min="2" max="8" step="1" value="2">
               </label>
               <label>
                 <span>Mission Posture</span>
                 <select id="wizard-posture"></select>
               </label>
               <label>
-                <span>Max Target Distance (km)</span>
+                <span>Max Scenario Radius (km)</span>
                 <input id="wizard-max-target-distance-km" type="number" min="20" max="500" step="10" placeholder="Optional">
               </label>
             </div>
@@ -434,7 +434,7 @@
                   </label>
                   <div class="wizard-block">
                     <strong>What happens</strong>
-                    <div class="wizard-meta">Append one new scenario, rebuild the package, redeploy if paths are configured, and refresh Campaign Tracking.</div>
+                    <div class="wizard-meta">Rewrite the reserved next mission from the latest result, keep one additional slot reserved behind it, rebuild the package, redeploy if paths are configured, and refresh Campaign Tracking.</div>
                   </div>
                 </div>
                 <div class="builder-actions">

@@ -903,7 +903,7 @@ function hashSeed(value) {
 
 function clampScenarioCount(value) {
   const count = Number(value || DEFAULT_SCENARIO_COUNT);
-  return Math.max(1, Math.min(4, Math.round(count)));
+  return Math.max(2, Math.min(4, Math.round(count)));
 }
 
 function sanitizeCampaignId(value) {
@@ -935,6 +935,10 @@ function pickArchetypes(tone, count) {
     slug: key,
     ...MISSION_LIBRARY[key]
   }));
+}
+
+function scenarioSlotSlug(slotNumber) {
+  return `scenario_${String(slotNumber).padStart(2, "0")}`;
 }
 
 function formatMnwFromIso(iso) {
@@ -1000,8 +1004,68 @@ function moveAway([latA, lonA], [latB, lonB], fraction = 0.25) {
   ];
 }
 
+function movePointAwayByKm([latA, lonA], [latB, lonB], deltaKm = 1) {
+  const avgLat = ((latA + latB) / 2) * (Math.PI / 180);
+  const kmPerLat = 111;
+  const kmPerLon = Math.max(1, 111 * Math.cos(avgLat));
+  let xKm = (lonA - lonB) * kmPerLon;
+  let yKm = (latA - latB) * kmPerLat;
+  let magnitudeKm = Math.hypot(xKm, yKm);
+  if (magnitudeKm < 0.001) {
+    xKm = deltaKm;
+    yKm = 0;
+    magnitudeKm = deltaKm;
+  }
+  const nextXKm = xKm + ((xKm / magnitudeKm) * deltaKm);
+  const nextYKm = yKm + ((yKm / magnitudeKm) * deltaKm);
+  return [
+    Number((latB + (nextYKm / kmPerLat)).toFixed(6)),
+    Number((lonB + (nextXKm / kmPerLon)).toFixed(6))
+  ];
+}
+
 function primaryTargetPointForFamily(family, geometry) {
   return family === "surface_shadow" ? geometry.lead : geometry.yasen;
+}
+
+function geometryPointKeysForFamily(family) {
+  if (family === "surface_shadow") {
+    return [
+      "playerSpawn",
+      "datum",
+      "lead",
+      "escort",
+      "barrier",
+      "destination",
+      "helo",
+      "ddg",
+      "ddgDest",
+      "p8",
+      "center",
+      "withdrawal"
+    ];
+  }
+  return [
+    "playerSpawn",
+    "datum",
+    "yasen",
+    "escort",
+    "supportGroup",
+    "supportDest",
+    "ddg",
+    "ddgScreen",
+    "p8",
+    "center",
+    "egress",
+    "withdrawal"
+  ];
+}
+
+function scalePointTowardAnchor([lat, lon], [anchorLat, anchorLon], factor) {
+  return [
+    Number((anchorLat + ((lat - anchorLat) * factor)).toFixed(6)),
+    Number((anchorLon + ((lon - anchorLon) * factor)).toFixed(6))
+  ];
 }
 
 function withUpdatedGeometrySummaries(family, geometry) {
@@ -1016,15 +1080,99 @@ function withUpdatedGeometrySummaries(family, geometry) {
   };
 }
 
+function geometryDeconflictionRulesForFamily(family) {
+  if (family === "surface_shadow") {
+    return [
+      { left: "playerSpawn", right: "datum", minKm: 10 },
+      { left: "playerSpawn", right: "lead", minKm: 18 },
+      { left: "lead", right: "escort", minKm: 8 },
+      { left: "lead", right: "barrier", minKm: 8 },
+      { left: "escort", right: "barrier", minKm: 6 },
+      { left: "ddg", right: "ddgDest", minKm: 6 },
+      { left: "destination", right: "withdrawal", minKm: 8 }
+    ];
+  }
+  return [
+    { left: "playerSpawn", right: "datum", minKm: 10 },
+    { left: "playerSpawn", right: "yasen", minKm: 18 },
+    { left: "yasen", right: "escort", minKm: 8 },
+    { left: "yasen", right: "supportGroup", minKm: 10 },
+    { left: "escort", right: "supportGroup", minKm: 8 },
+    { left: "supportGroup", right: "supportDest", minKm: 6 },
+    { left: "egress", right: "withdrawal", minKm: 8 }
+  ];
+}
+
+function applyGeometryDeconfliction(family, geometry) {
+  const pointKeys = geometryPointKeysForFamily(family).filter((key) => Array.isArray(geometry[key]));
+  const constrained = { ...geometry };
+  const explicitRules = geometryDeconflictionRulesForFamily(family);
+  const seenPairs = new Set();
+  const rules = [
+    ...explicitRules,
+    ...pointKeys.flatMap((left, index) => pointKeys.slice(index + 1).map((right) => ({ left, right, minKm: 4 })))
+  ].filter((rule) => {
+    const pairKey = [rule.left, rule.right].sort().join(":");
+    if (seenPairs.has(pairKey)) {
+      return false;
+    }
+    seenPairs.add(pairKey);
+    return true;
+  });
+
+  for (let pass = 0; pass < 4; pass += 1) {
+    let changed = false;
+    for (const rule of rules) {
+      const left = constrained[rule.left];
+      const right = constrained[rule.right];
+      if (!Array.isArray(left) || !Array.isArray(right)) {
+        continue;
+      }
+      const distanceKm = haversineDistanceKm(left, right);
+      if (distanceKm >= rule.minKm) {
+        continue;
+      }
+      const neededKm = rule.minKm - distanceKm;
+      if (rule.left === "playerSpawn") {
+        constrained[rule.right] = movePointAwayByKm(right, left, neededKm);
+      } else if (rule.right === "playerSpawn") {
+        constrained[rule.left] = movePointAwayByKm(left, right, neededKm);
+      } else {
+        constrained[rule.left] = movePointAwayByKm(left, right, neededKm / 2);
+        constrained[rule.right] = movePointAwayByKm(right, left, neededKm / 2);
+      }
+      changed = true;
+    }
+    if (!changed) {
+      break;
+    }
+  }
+
+  return {
+    ...withUpdatedGeometrySummaries(family, constrained),
+    deconfliction: {
+      pairRuleCount: rules.length
+    }
+  };
+}
+
 function applyAuthoringDistanceConstraints(family, geometry, authoringConstraints = {}) {
   const maxDistanceKm = clampAuthoringDistanceKm(authoringConstraints.maxDistanceToPrimaryTargetKm);
   const primaryTarget = primaryTargetPointForFamily(family, geometry);
   const currentDistanceKm = haversineDistanceKm(geometry.playerSpawn, primaryTarget);
+  const pointKeys = geometryPointKeysForFamily(family);
+  const farthestGeneratedDistanceKm = pointKeys.reduce((maxDistance, key) => {
+    if (key === "playerSpawn" || !Array.isArray(geometry[key])) {
+      return maxDistance;
+    }
+    return Math.max(maxDistance, haversineDistanceKm(geometry.playerSpawn, geometry[key]));
+  }, 0);
   const metrics = {
-    primaryTargetDistanceKm: Number(currentDistanceKm.toFixed(1))
+    primaryTargetDistanceKm: Number(currentDistanceKm.toFixed(1)),
+    farthestGeneratedDistanceKm: Number(farthestGeneratedDistanceKm.toFixed(1))
   };
 
-  if (!maxDistanceKm || currentDistanceKm <= maxDistanceKm) {
+  if (!maxDistanceKm || farthestGeneratedDistanceKm <= maxDistanceKm) {
     return {
       geometry: {
         ...withUpdatedGeometrySummaries(family, geometry),
@@ -1034,15 +1182,25 @@ function applyAuthoringDistanceConstraints(family, geometry, authoringConstraint
     };
   }
 
-  const compressionFraction = 1 - (maxDistanceKm / currentDistanceKm);
-  const constrainedGeometry = {
-    ...geometry,
-    playerSpawn: moveToward(geometry.playerSpawn, primaryTarget, compressionFraction),
-    withdrawal: moveToward(geometry.withdrawal, primaryTarget, compressionFraction)
-  };
+  const anchor = geometry.playerSpawn;
+  const scaleFactor = maxDistanceKm / farthestGeneratedDistanceKm;
+  const constrainedGeometry = { ...geometry };
+  for (const key of pointKeys) {
+    if (key === "playerSpawn" || !Array.isArray(geometry[key])) {
+      continue;
+    }
+    constrainedGeometry[key] = scalePointTowardAnchor(geometry[key], anchor, scaleFactor);
+  }
   const constrainedDistanceKm = haversineDistanceKm(constrainedGeometry.playerSpawn, primaryTarget);
+  const constrainedFarthestDistanceKm = pointKeys.reduce((maxDistance, key) => {
+    if (key === "playerSpawn" || !Array.isArray(constrainedGeometry[key])) {
+      return maxDistance;
+    }
+    return Math.max(maxDistance, haversineDistanceKm(constrainedGeometry.playerSpawn, constrainedGeometry[key]));
+  }, 0);
   const updatedMetrics = {
-    primaryTargetDistanceKm: Number(constrainedDistanceKm.toFixed(1))
+    primaryTargetDistanceKm: Number(constrainedDistanceKm.toFixed(1)),
+    farthestGeneratedDistanceKm: Number(constrainedFarthestDistanceKm.toFixed(1))
   };
   return {
     geometry: {
@@ -1051,6 +1209,14 @@ function applyAuthoringDistanceConstraints(family, geometry, authoringConstraint
     },
     metrics: updatedMetrics
   };
+}
+
+function finalizeScenarioGeometry(theaterId, family, geometry, rng, authoringConstraints = {}) {
+  const initiallyConstrained = applyAuthoringDistanceConstraints(family, geometry, authoringConstraints).geometry;
+  const safetyApplied = applyGeometrySafety(theaterId, family, initiallyConstrained, rng);
+  const deconflicted = applyGeometryDeconfliction(family, safetyApplied);
+  const finalConstrained = applyAuthoringDistanceConstraints(family, deconflicted, authoringConstraints).geometry;
+  return applyGeometrySafety(theaterId, family, finalConstrained, rng);
 }
 
 function summarizePath(points) {
@@ -1537,7 +1703,9 @@ function buildScenarioRecord(
   rng,
   theaterPicture,
   postureKey = "wide_area_search",
-  authoringConstraints = {}
+  authoringConstraints = {},
+  slotNumber = index + 1,
+  reserved = false
 ) {
   const startBase = template.id === "luzon_strait"
     ? `${year}-04-02T04:20:00Z`
@@ -1547,25 +1715,36 @@ function buildScenarioRecord(
     ? buildSurfaceShadowGeometry(template, index, count, rng)
     : buildSubHuntGeometry(template, index, count, rng);
   const postureGeometry = applyAuthoringPostureToGeometry(template, template.family, rawGeometry, postureKey);
-  const constrainedGeometry = applyAuthoringDistanceConstraints(template.family, postureGeometry, authoringConstraints).geometry;
-  const geometry = applyAuthoringDistanceConstraints(
-    template.family,
-    applyGeometrySafety(template.id, template.family, constrainedGeometry, rng),
-    authoringConstraints
-  ).geometry;
+  const geometry = finalizeScenarioGeometry(template.id, template.family, postureGeometry, rng, authoringConstraints);
   const forces = buildScenarioForces(template, geometry, index, theaterPicture, rng);
   const intel = buildScenarioIntel(template, geometry, forces, index, rng, postureKey);
   const tasking = buildScenarioAnnotations(template, geometry, forces, missionDef, postureKey, intel);
-  const missionKey = `${campaignId}.${campaignId}.${missionDef.slug}`;
-  const description = `${missionDef.summary} ${missionDef.cue} Task: ${tasking.primaryTask.objectiveLine} Intel cue: ${intel.prose}`;
-  const objectiveText = `${tasking.primaryTask.objectiveLine} ${tasking.primaryTask.mapIntent} ${intel.prose}`;
+  const slug = scenarioSlotSlug(slotNumber);
+  const missionKey = `${campaignId}.${campaignId}.${slug}`;
+  const summary = reserved
+    ? "Reserved follow-on mission slot. Update the previous mission result in Campaign Tracking before playing this scenario."
+    : missionDef.summary;
+  const cue = reserved
+    ? "This mission slot exists so the campaign chain always has a valid next mission available inside MNW."
+    : missionDef.cue;
+  const description = reserved
+    ? `${summary} This placeholder exists so MNW always has a valid next mission, but its content is intended to be rewritten before play.`
+    : `${missionDef.summary} ${missionDef.cue} Task: ${tasking.primaryTask.objectiveLine} Intel cue: ${intel.prose}`;
+  const objectiveText = reserved
+    ? "This is a reserved follow-on mission slot. If you want to continue the campaign, return to Campaign Tracking, save the result from the previous mission, and use Continue Campaign to regenerate this scenario before play. If you do not want to continue, treat the previous mission as the campaign conclusion."
+    : `${tasking.primaryTask.objectiveLine} ${tasking.primaryTask.mapIntent} ${intel.prose}`;
+  const successText = reserved
+    ? `Scenario ${slotNumber} placeholder completed.`
+    : `${missionDef.name} surveillance is complete. Higher command has the refined route picture and can posture the next move using your report.`;
 
   return {
-    slug: missionDef.slug,
+    slug,
     missionId: missionKey,
-    name: missionDef.name,
-    summary: missionDef.summary,
-    cue: missionDef.cue,
+    name: `Scenario ${slotNumber}`,
+    summary,
+    cue,
+    slotNumber,
+    archetypeSlug: missionDef.slug,
     index,
     family: template.family,
     startIso: startTime.iso,
@@ -1576,7 +1755,11 @@ function buildScenarioRecord(
     tasking,
     description,
     objectiveText,
-    successText: `${missionDef.name} surveillance is complete. Higher command has the refined route picture and can posture the next move using your report.`
+    successText,
+    reserved,
+    continuation: {
+      reserved
+    }
   };
 }
 
@@ -1610,6 +1793,8 @@ export function buildContinuationScenario({
   year,
   playerName,
   missionIndex = 0,
+  slotNumber = missionIndex + 1,
+  slugOverride = null,
   referenceIso,
   objective = "pursue_contact",
   riskPosture = "balanced",
@@ -1618,15 +1803,16 @@ export function buildContinuationScenario({
   lastOutcome = "success",
   theaterPicture: previousTheaterPicture = null,
   posture = "wide_area_search",
-  authoringConstraints = {}
+  authoringConstraints = {},
+  reserved = false
 } = {}) {
   const theater = THEATER_TEMPLATES[theaterId] || THEATER_TEMPLATES.luzon_strait;
   const family = theater.family;
   const objectiveDef = CONTINUATION_OBJECTIVES[objective] || CONTINUATION_OBJECTIVES.pursue_contact;
   const riskDef = RISK_POSTURES[riskPosture] || RISK_POSTURES.balanced;
   const tempoDef = OPERATIONAL_TEMPOS[operationalTempo] || OPERATIONAL_TEMPOS.deliberate;
-  const ordinal = missionIndex + 1;
-  const slug = `${objectiveDef.slugPrefix}_${String(ordinal).padStart(2, "0")}`;
+  const ordinal = slotNumber;
+  const slug = slugOverride || scenarioSlotSlug(slotNumber);
   const startIso = plusHours(referenceIso || `${year}-01-01T00:00:00Z`, tempoDef.advanceHours).iso;
   const rng = mulberry32(hashSeed([
     campaignId,
@@ -1647,12 +1833,7 @@ export function buildContinuationScenario({
     : buildSubHuntGeometry(theater, missionIndex, densityCount, rng);
   const postureGeometry = applyAuthoringPostureToGeometry(theater, family, rawGeometry, posture);
   const normalizedAuthoringConstraints = normalizeAuthoringConstraints({ authoringConstraints });
-  const constrainedGeometry = applyAuthoringDistanceConstraints(family, postureGeometry, normalizedAuthoringConstraints).geometry;
-  const geometry = applyAuthoringDistanceConstraints(
-    family,
-    applyGeometrySafety(theater.id, family, constrainedGeometry, rng),
-    normalizedAuthoringConstraints
-  ).geometry;
+  const geometry = finalizeScenarioGeometry(theater.id, family, postureGeometry, rng, normalizedAuthoringConstraints);
   const forces = buildScenarioForces(theater, geometry, missionIndex, theaterPicture, rng);
   const derivedTaskType = objective === "defend_chokepoint"
     ? "hold_barrier"
@@ -1673,15 +1854,25 @@ export function buildContinuationScenario({
     : lastOutcome === "partial_success"
       ? "The previous mission produced useful contact data, but the enemy still has room to maneuver."
       : "The previous mission produced enough tactical clarity to drive a purposeful follow-on operation.";
-  const name = `${objectiveDef.baseName} ${ordinal}`;
-  const summary = objectiveDef.summaries[family] || objectiveDef.summaries.surface_shadow;
-  const cue = `${riskDef.cue} ${outcomeLine}`;
-  const description = `${summary} ${cue} Task: ${tasking.primaryTask.objectiveLine} Intel cue: ${intel.prose}`;
+  const name = `Scenario ${slotNumber}`;
+  const summary = reserved
+    ? "Reserved follow-on mission slot. Update the previous mission result in Campaign Tracking before playing this scenario."
+    : (objectiveDef.summaries[family] || objectiveDef.summaries.surface_shadow);
+  const cue = reserved
+    ? "This mission slot exists so the campaign chain always has a valid next mission available inside MNW."
+    : `${riskDef.cue} ${outcomeLine}`;
+  const description = reserved
+    ? `${summary} This placeholder exists so MNW always has a valid next mission, but its content is intended to be rewritten before play.`
+    : `${summary} ${cue} Task: ${tasking.primaryTask.objectiveLine} Intel cue: ${intel.prose}`;
   const missionId = `${campaignId}.${campaignId}.${slug}`;
-  const objectiveText = family === "surface_shadow"
-    ? `${tasking.primaryTask.objectiveLine} ${tasking.primaryTask.mapIntent} Keep your submarine combat effective, preserve the track picture, and raise antennas when you are ready to conclude the mission. ${intel.prose}`
-    : `${tasking.primaryTask.objectiveLine} ${tasking.primaryTask.mapIntent} Keep your submarine combat effective, contain the breakout geometry, and raise antennas when you are ready to conclude the mission. ${intel.prose}`;
-  const successText = `${name} is complete. Higher command can roll your updated track, damage, and readiness picture into the next decision cycle.`;
+  const objectiveText = reserved
+    ? "This is a reserved follow-on mission slot. If you want to continue the campaign, return to Campaign Tracking, save the result from the previous mission, and use Continue Campaign to regenerate this scenario before play. If you do not want to continue, treat the previous mission as the campaign conclusion."
+    : family === "surface_shadow"
+      ? `${tasking.primaryTask.objectiveLine} ${tasking.primaryTask.mapIntent} Keep your submarine combat effective, preserve the track picture, and raise antennas when you are ready to conclude the mission. ${intel.prose}`
+      : `${tasking.primaryTask.objectiveLine} ${tasking.primaryTask.mapIntent} Keep your submarine combat effective, contain the breakout geometry, and raise antennas when you are ready to conclude the mission. ${intel.prose}`;
+  const successText = reserved
+    ? `${name} placeholder completed.`
+    : `${name} is complete. Higher command can roll your updated track, damage, and readiness picture into the next decision cycle.`;
 
   return {
     slug,
@@ -1689,6 +1880,7 @@ export function buildContinuationScenario({
     name,
     summary,
     cue,
+    slotNumber,
     index: missionIndex,
     family,
     startIso,
@@ -1700,6 +1892,7 @@ export function buildContinuationScenario({
     description,
     objectiveText,
     successText,
+    reserved,
     theaterPicture,
     continuation: {
       objective,
@@ -1710,7 +1903,8 @@ export function buildContinuationScenario({
       tempoLabel: tempoDef.label,
       advanceHours: tempoDef.advanceHours,
       posture,
-      postureLabel: (AUTHORING_POSTURES[posture] || AUTHORING_POSTURES.wide_area_search).label
+      postureLabel: (AUTHORING_POSTURES[posture] || AUTHORING_POSTURES.wide_area_search).label,
+      reserved
     }
   };
 }
@@ -1731,7 +1925,8 @@ export function buildCampaignBlueprint(spec = {}) {
   const theaterUnits = buildTheaterUnitCatalog(theater, playerName);
   const theaterPicture = initializeTheaterPicture(theater, theaterUnits, rng);
   const scenarios = archetypes.map((missionDef, index) => {
-    return buildScenarioRecord(theater, campaignId, missionDef, index, scenarioCount, year, rng, theaterPicture, posture, authoringConstraints);
+    const reserved = index === scenarioCount - 1;
+    return buildScenarioRecord(theater, campaignId, missionDef, index, scenarioCount, year, rng, theaterPicture, posture, authoringConstraints, index + 1, reserved);
   });
 
   return {

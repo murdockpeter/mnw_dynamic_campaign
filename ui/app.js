@@ -798,7 +798,7 @@ function collectWizardSpec() {
     tone: document.getElementById("wizard-tone").value,
     posture: document.getElementById("wizard-posture").value,
     year: Number(document.getElementById("wizard-year").value || 2028),
-    scenarioCount: Number(document.getElementById("wizard-scenario-count").value || 3),
+    scenarioCount: Number(document.getElementById("wizard-scenario-count").value || 2),
     playerName: document.getElementById("wizard-player-name").value.trim(),
     authoringConstraints: {
       maxDistanceToPrimaryTargetKm: maxTargetDistanceValue ? Number(maxTargetDistanceValue) : null
@@ -954,7 +954,7 @@ function renderContinuationPlanner(data) {
       <div class="wizard-block">
         <strong>Campaign State</strong>
         <div class="wizard-meta">Current mission: ${currentMissionId}</div>
-        <div class="muted">${missionCount} mission result${missionCount === 1 ? "" : "s"} recorded. The new scenario will be appended to the existing campaign chain and staged for immediate play.</div>
+        <div class="muted">${missionCount} mission result${missionCount === 1 ? "" : "s"} recorded. The reserved next mission will be regenerated from the latest result, and one additional slot will stay chained behind it.</div>
       </div>
       <div class="wizard-block">
         <strong>Command Intent</strong>
@@ -970,11 +970,11 @@ function renderContinuationPlanner(data) {
 
   actionButton.onclick = async () => {
     if (!desktopApi?.continueCampaign) {
-      setContinuationStatus("Desktop app required to append and deploy continuation scenarios.");
+      setContinuationStatus("Desktop app required to regenerate the reserved next mission and redeploy the campaign.");
       return;
     }
     const campaignId = document.getElementById("desktop-campaign-id").value.trim() || data.state.metadata.campaign_id || "silent_meridian";
-    setContinuationStatus("Appending the next scenario, rebuilding the package, and refreshing runtime state...");
+    setContinuationStatus("Regenerating the reserved next mission, extending the chain by one slot, rebuilding the package, and refreshing runtime state...");
     const result = await desktopApi.continueCampaign({
       campaignId,
       objective: objectiveSelect.value,
@@ -982,7 +982,7 @@ function renderContinuationPlanner(data) {
       operationalTempo: tempoSelect.value
     });
     setDesktopOutput(result);
-    setContinuationStatus(`Appended ${result.continuation.mission_name} and refreshed Campaign Tracking.`);
+    setContinuationStatus(`Regenerated ${result.continuation.mission_name}, preserved a reserved follow-on slot, and refreshed Campaign Tracking.`);
     if (result.runtime?.payload) {
       hydrateRuntime(result.runtime.payload);
     } else if (result.continuation?.runtime) {

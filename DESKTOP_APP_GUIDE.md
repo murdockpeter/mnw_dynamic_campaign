@@ -28,7 +28,7 @@ You do not need:
 
 On Windows, use:
 
-- `MNW Dynamic Campaign Console Setup 0.1.0.exe`
+- `MNW Dynamic Campaign Console Setup 0.1.1.exe`
 
 On macOS, use:
 
@@ -92,7 +92,7 @@ This workspace lets you:
 - choose a start year
 - choose a scenario count
 - choose a mission posture
-- optionally set `Max Target Distance (km)` to compress long transit geometry
+- optionally set `Max Scenario Radius (km)` to compress long transit geometry
 - write campaign files
 - build the package
 - deploy the package
@@ -173,11 +173,11 @@ The app then:
 
 This keeps the campaign believable without needing external AI tooling.
 
-### Max Target Distance
+### Max Scenario Radius
 
-`Max Target Distance (km)` is optional.
+`Max Scenario Radius (km)` is optional.
 
-Use it when you want to keep missions from starting too far away from the primary contact or objective. This is mainly a pacing control for MNW, where long transits can drag because time compression is limited.
+Use it when you want to keep the entire generated mission footprint tighter around the player start. This is mainly a pacing control for MNW, where long transits can drag because time compression is limited.
 
 If you leave it blank, the generator uses its normal unconstrained geometry.
 

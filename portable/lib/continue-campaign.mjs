@@ -27,6 +27,18 @@ function appendCsvRows(existingCsv, rows) {
   return current ? `${current}\n${addition}\n` : `${addition}\n`;
 }
 
+function upsertScenarioLocaleRows(existingCsv, campaignId, scenarioSlug, rows) {
+  const missionPrefix = `${campaignId}/${scenarioSlug}.mis,`;
+  const preservedLines = String(existingCsv || "")
+    .split(/\r?\n/g)
+    .filter((line) => line && !line.startsWith(missionPrefix));
+  return appendCsvRows(preservedLines.join("\n"), rows);
+}
+
+function missionSlugFromId(missionId) {
+  return String(missionId || "").split(".").pop() || null;
+}
+
 export async function appendContinuationScenario({
   repoRoot,
   campaignId,
@@ -51,23 +63,49 @@ export async function appendContinuationScenario({
   if (!playerUnit) {
     throw new Error("Unable to resolve the player unit from campaign state.");
   }
+  const currentMissionId = state.current_mission_id || missionChain[missionChain.length - 1] || null;
+  const currentSlotIndex = missionChain.indexOf(currentMissionId);
+  if (currentSlotIndex < 0) {
+    throw new Error(`Unable to resolve the current reserved mission slot for ${campaignId}.`);
+  }
+  const hasTailSlot = currentSlotIndex < missionChain.length - 1;
+  const currentSlotSlug = missionSlugFromId(currentMissionId);
 
-  const missionIndex = missionChain.length;
   const scenario = buildContinuationScenario({
     campaignId,
     theaterId: theater.id,
     year: new Date(state.campaign_clock || Date.now()).getUTCFullYear(),
     playerName: playerUnit.name,
-    missionIndex,
+    missionIndex: currentSlotIndex,
+    slotNumber: currentSlotIndex + 1,
+    slugOverride: currentSlotSlug,
     referenceIso: state.campaign_clock || new Date().toISOString(),
     objective,
     riskPosture,
     operationalTempo,
-    priorMissionCount: missionChain.length,
+    priorMissionCount: currentSlotIndex + 1,
     lastOutcome: latestResult?.outcome || "success",
     theaterPicture: state.world_state?.theater_picture || null,
     posture: state.world_state?.posture || "wide_area_search",
     authoringConstraints: state.world_state?.authoring_constraints || campaignConfig.authoring_constraints || {}
+  });
+  const tailScenario = hasTailSlot ? null : buildContinuationScenario({
+    campaignId,
+    theaterId: theater.id,
+    year: new Date(state.campaign_clock || Date.now()).getUTCFullYear(),
+    playerName: playerUnit.name,
+    missionIndex: currentSlotIndex + 1,
+    slotNumber: currentSlotIndex + 2,
+    referenceIso: scenario.startIso,
+    objective: "pursue_contact",
+    riskPosture: "balanced",
+    operationalTempo: "deliberate",
+    priorMissionCount: currentSlotIndex + 2,
+    lastOutcome: "success",
+    theaterPicture: scenario.theaterPicture || state.world_state?.theater_picture || null,
+    posture: state.world_state?.posture || "wide_area_search",
+    authoringConstraints: state.world_state?.authoring_constraints || campaignConfig.authoring_constraints || {},
+    reserved: true
   });
 
   const blueprint = {
@@ -77,20 +115,35 @@ export async function appendContinuationScenario({
     player: { name: playerUnit.name }
   };
   const artifacts = buildScenarioPackageArtifacts({ blueprint, scenario });
+  const tailArtifacts = tailScenario ? buildScenarioPackageArtifacts({ blueprint, scenario: tailScenario }) : null;
 
   await ensureDir(packageDir);
   for (const [relativePath, content] of Object.entries(artifacts.files)) {
     await writeText(path.join(packageDir, relativePath), content);
   }
+  if (tailArtifacts) {
+    for (const [relativePath, content] of Object.entries(tailArtifacts.files)) {
+      await writeText(path.join(packageDir, relativePath), content);
+    }
+  }
 
-  const updatedMissionChain = [...missionChain, scenario.missionId];
+  const updatedMissionChain = [...missionChain];
+  updatedMissionChain[currentSlotIndex] = scenario.missionId;
+  if (tailScenario) {
+    updatedMissionChain.push(tailScenario.missionId);
+  }
   await writeText(path.join(packageDir, campaignId, "quest.cmp"), buildQuestScript(updatedMissionChain));
 
   const localePath = path.join(packageDir, "locale.csv");
   const existingLocale = await readTextIfExists(localePath);
-  await writeText(localePath, appendCsvRows(existingLocale, artifacts.localeRows));
+  let nextLocale = upsertScenarioLocaleRows(existingLocale, campaignId, scenario.slug, artifacts.localeRows);
+  if (tailScenario && tailArtifacts) {
+    nextLocale = upsertScenarioLocaleRows(nextLocale, campaignId, tailScenario.slug, tailArtifacts.localeRows);
+  }
+  await writeText(localePath, nextLocale);
 
   state.world_state = state.world_state || {};
+  state.current_mission_id = scenario.missionId;
   state.world_state.theater_picture = scenario.theaterPicture || state.world_state.theater_picture || {};
   state.world_state.posture = scenario.continuation?.posture || state.world_state.posture || "wide_area_search";
   state.world_state.authoring_constraints = state.world_state.authoring_constraints || campaignConfig.authoring_constraints || {};
@@ -124,6 +177,7 @@ export async function appendContinuationScenario({
     package_dir: packageDir,
     continuation_source_dir: packageDir,
     updated_mission_count: updatedMissionChain.length,
+    next_reserved_mission_id: tailScenario?.missionId || updatedMissionChain[currentSlotIndex + 1] || null,
     continuation: scenario.continuation,
     runtime
   };

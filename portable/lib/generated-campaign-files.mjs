@@ -43,6 +43,68 @@ function formatGc([lat, lon]) {
   return `GC(${lat.toFixed(6)}, ${lon.toFixed(6)})`;
 }
 
+function hashSeed(value) {
+  let hash = 2166136261;
+  for (const char of String(value || "")) {
+    hash ^= char.charCodeAt(0);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function mulberry32(seed) {
+  let state = seed >>> 0;
+  return () => {
+    state += 0x6D2B79F5;
+    let t = Math.imul(state ^ (state >>> 15), 1 | state);
+    t ^= t + Math.imul(t ^ (t >>> 7), 61 | t);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function haversineDistanceKm([latA, lonA], [latB, lonB]) {
+  const earthRadiusKm = 6371;
+  const latDelta = (latB - latA) * (Math.PI / 180);
+  const lonDelta = (lonB - lonA) * (Math.PI / 180);
+  const lat1 = latA * (Math.PI / 180);
+  const lat2 = latB * (Math.PI / 180);
+  const a = Math.sin(latDelta / 2) ** 2
+    + Math.cos(lat1) * Math.cos(lat2) * Math.sin(lonDelta / 2) ** 2;
+  return earthRadiusKm * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+}
+
+function offsetPointByKm([lat, lon], angleRadians, distanceKm) {
+  const kmPerLat = 111;
+  const kmPerLon = Math.max(1, 111 * Math.cos(lat * (Math.PI / 180)));
+  return [
+    Number((lat + ((Math.sin(angleRadians) * distanceKm) / kmPerLat)).toFixed(6)),
+    Number((lon + ((Math.cos(angleRadians) * distanceKm) / kmPerLon)).toFixed(6))
+  ];
+}
+
+function buildDeconflictedPositions({ center, count, radiusKm, minSpacingKm, seedKey }) {
+  if (!Array.isArray(center) || count <= 0) {
+    return [];
+  }
+  const rng = mulberry32(hashSeed(seedKey));
+  const positions = [];
+  const attemptsLimit = Math.max(24, count * 40);
+  for (let attempt = 0; attempt < attemptsLimit && positions.length < count; attempt += 1) {
+    const angle = rng() * Math.PI * 2;
+    const distanceKm = radiusKm * (0.3 + (rng() * 0.7));
+    const candidate = offsetPointByKm(center, angle, distanceKm);
+    if (positions.every((existing) => haversineDistanceKm(existing, candidate) >= minSpacingKm)) {
+      positions.push(candidate);
+    }
+  }
+  while (positions.length < count) {
+    const angle = (Math.PI * 2 * positions.length) / Math.max(1, count);
+    const ringDistanceKm = Math.min(radiusKm, Math.max(minSpacingKm, radiusKm * 0.65));
+    positions.push(offsetPointByKm(center, angle, ringDistanceKm));
+  }
+  return positions;
+}
+
 function buildAnnotationPoiList(annotations = []) {
   return annotations
     .slice(0, 4)
@@ -80,6 +142,27 @@ function buildSurfaceMissionScript(blueprint, scenario) {
   const additionalBarrier = scenario.index >= 1;
   const annotationPoiLines = buildAnnotationPoiList(scenario.tasking?.annotations || []);
   const annotationPoiAttachList = buildAnnotationPoiAttachList(scenario.tasking?.annotations || []);
+  const biologicPositions = buildDeconflictedPositions({
+    center: g.center,
+    count: 3,
+    radiusKm: 85,
+    minSpacingKm: 12,
+    seedKey: `${scenario.missionId}:surface:biologics`
+  });
+  const merchantCount = Math.max(2, scenario.geometry.density + 1);
+  const merchantPositions = buildDeconflictedPositions({
+    center: g.center,
+    count: merchantCount,
+    radiusKm: 100,
+    minSpacingKm: 18,
+    seedKey: `${scenario.missionId}:surface:merchants`
+  });
+  const biologicBlock = biologicPositions.map((point, idx) => `bio_props = Element.Props.FromDatabaseID(civ_fact, "Biologic ${idx}", ElementCategory.Biologic, 1, ${formatGc(point)})
+bio_element = Element(bio_props).SetElevation(${-60 - (idx * 40)}).SetHeading(random.randrange(0, 359))
+_P.Element.Spawn(player_spawn_process, bio_element, bio_element.Position)`).join("\n");
+  const merchantBlock = merchantPositions.map((point, idx) => `cargo_props = Element.Props.FromDatabaseID(civ_fact, "Merchant ${idx + 1}", ElementCategory.Ship, _get_random_cargo(), ${formatGc(point)})
+cargo_element = Element(cargo_props).SetHeading(random.randrange(180, 280))
+_P.Element.Spawn(player_spawn_process, cargo_element, cargo_element.Position)`).join("\n");
   return `import random
 
 ##
@@ -139,7 +222,7 @@ objectives = [
 ]
 
 player_spawn_zone = _Z.Circular("Player Spawn Zone", player_spawn_pos, 1000)
-player_props = Element.Props.FromElementID(us_fact, "(Player) Virginia B3", ElementCategory.Submarine, virginia_id, player_spawn_zone.RandomPosition())
+player_props = Element.Props.FromElementID(us_fact, "(Player) Virginia B3", ElementCategory.Submarine, virginia_id, player_spawn_pos)
 player_element = Element(player_props).SetElevation(-145).SetHeading(275).SetPlayable().SetScope(Global.Scope.Player)
 player_spawn_process = _P.Element.Spawn(_mission_started, player_element, player_element.Position)
 
@@ -191,17 +274,9 @@ p8_element = Element(p8_props).SetElevation(5200).SetHeading(255)
 p8_spawn = _P.Element.Spawn(friendly_ddg_plot, p8_element, p8_element.Position)
 p8_plot = _P.Element.Plot(p8_spawn, p8_element, Waypoint(${formatGc(g.datum)}))
 
-bios_zone = _Z.Circular("Biologics Zone", battle_area_center, 85000)
-for idx in range(3):
-    bio_props = Element.Props.FromDatabaseID(civ_fact, "Biologic %s" % idx, ElementCategory.Biologic, 1, bios_zone.RandomPosition())
-    bio_element = Element(bio_props).SetElevation(-60 - (idx * 40)).SetHeading(random.randrange(0, 359))
-    _P.Element.Spawn(player_spawn_process, bio_element, bio_element.Position)
+${biologicBlock}
 
-civ_zone = _Z.Circular("Civilian Traffic Zone", battle_area_center, 100000)
-for idx in range(${Math.max(2, scenario.geometry.density + 1)}):
-    cargo_props = Element.Props.FromDatabaseID(civ_fact, "Merchant %s" % (idx + 1), ElementCategory.Ship, _get_random_cargo(), civ_zone.RandomPosition())
-    cargo_element = Element(cargo_props).SetHeading(random.randrange(180, 280))
-    _P.Element.Spawn(player_spawn_process, cargo_element, cargo_element.Position)
+${merchantBlock}
 
 t055_props = Element.Props.FromDatabaseID(ch_fact, "PLAN Lead DDG", ElementCategory.Ship, t055_id, lead_pos)
 t055_element = Element(t055_props).SetElevation(0).SetHeading(150).SetHVU(True)
@@ -258,8 +333,25 @@ end_transmission_process = _P.Element.Radio(end_message_process, sat_element, en
 function buildSubHuntMissionScript(blueprint, scenario) {
   const g = scenario.geometry;
   const supportUnits = Math.max(1, scenario.geometry.density);
+  const playerDepthFeet = -380;
+  const targetDepthFeet = -520;
+  const escortDepthFeet = -620;
   const annotationPoiLines = buildAnnotationPoiList(scenario.tasking?.annotations || []);
   const annotationPoiAttachList = buildAnnotationPoiAttachList(scenario.tasking?.annotations || []);
+  const biologicPositions = buildDeconflictedPositions({
+    center: g.center,
+    count: 4,
+    radiusKm: 80,
+    minSpacingKm: 12,
+    seedKey: `${scenario.missionId}:subhunt:biologics`
+  });
+  const merchantPositions = buildDeconflictedPositions({
+    center: g.center,
+    count: supportUnits + 2,
+    radiusKm: 120,
+    minSpacingKm: 18,
+    seedKey: `${scenario.missionId}:subhunt:merchants`
+  });
   const friendlySurface = scenario.forces?.friendlySurface?.[0] || {
     name: "USS Spruance",
     dbid: 294,
@@ -288,14 +380,33 @@ function buildSubHuntMissionScript(blueprint, scenario) {
   const enemySupportAir = scenario.forces?.enemyAir || [];
   const supportFaction = enemySupportSurface[0]?.faction || enemySupportAir[0]?.faction || "RU";
   const supportFactionId = factionRuntimeId(supportFaction);
+  const supportSurfacePositions = buildDeconflictedPositions({
+    center: g.supportGroup,
+    count: enemySupportSurface.length,
+    radiusKm: 10,
+    minSpacingKm: 5,
+    seedKey: `${scenario.missionId}:subhunt:support_surface`
+  });
+  const supportAirPositions = buildDeconflictedPositions({
+    center: g.supportGroup,
+    count: enemySupportAir.length,
+    radiusKm: 10,
+    minSpacingKm: 4,
+    seedKey: `${scenario.missionId}:subhunt:support_air`
+  });
+  const biologicBlock = biologicPositions.map((point, idx) => `bio_props = Element.Props.FromDatabaseID(civ_fact, "Biologic %s" % ${idx}, ElementCategory.Biologic, 1, ${formatGc(point)})
+bio_element = Element(bio_props).SetElevation(${-60 - (idx * 35)}).SetHeading(random.randrange(0, 359))
+_P.Element.Spawn(p8_spawn, bio_element, bio_element.Position)`).join("\n");
+  const merchantBlock = merchantPositions.map((point, idx) => `cargo_props = Element.Props.FromDatabaseID(civ_fact, "Merchant %s" % (${idx} + 1), ElementCategory.Ship, _get_random_cargo(), ${formatGc(point)})
+cargo_element = Element(cargo_props).SetHeading(random.randrange(200, 280))
+_P.Element.Spawn(p8_spawn, cargo_element, cargo_element.Position)`).join("\n");
   const supportGroupBlock = enemySupportSurface.length || enemySupportAir.length
     ? `
-support_zone = _Z.Circular("Support Group Zone", support_group_pos, 10000)
 support_plot_anchor = russian_plot
 ${enemySupportSurface.map((unit, index) => {
   const variable = `support_surface_${index}`;
   const spawnAnchor = index === 0 ? "support_plot_anchor" : `support_surface_${index - 1}_plot`;
-  return `${variable}_props = Element.Props.FromDatabaseID(${supportFactionId}, "${unit.name}", ElementCategory.Ship, ${unit.dbid}, support_zone.RandomPosition())
+  return `${variable}_props = Element.Props.FromDatabaseID(${supportFactionId}, "${unit.name}", ElementCategory.Ship, ${unit.dbid}, ${formatGc(supportSurfacePositions[index])})
 ${variable}_element = Element(${variable}_props).SetElevation(0).SetHeading(225)
 ${variable}_spawn = _P.Element.Spawn(${spawnAnchor}, ${variable}_element, ${variable}_element.Position)
 ${variable}_plot = _P.Element.Plot(${variable}_spawn, ${variable}_element, Waypoint(support_group_dest))`;
@@ -305,7 +416,7 @@ ${enemySupportAir.map((unit, index) => {
   const spawnAnchor = enemySupportSurface.length
     ? `support_surface_${enemySupportSurface.length - 1}_plot`
     : "support_plot_anchor";
-  return `${variable}_props = Element.Props.FromDatabaseID(${supportFactionId}, "${unit.name}", ElementCategory.Aircraft, ${unit.dbid}, support_zone.RandomPosition())
+  return `${variable}_props = Element.Props.FromDatabaseID(${supportFactionId}, "${unit.name}", ElementCategory.Aircraft, ${unit.dbid}, ${formatGc(supportAirPositions[index])})
 ${variable}_element = Element(${variable}_props).SetElevation(600).SetHeading(225)
 ${variable}_spawn = _P.Element.Spawn(${spawnAnchor}, ${variable}_element, ${variable}_element.Position)
 ${variable}_plot = _P.Element.Plot(${variable}_spawn, ${variable}_element, Waypoint(${index === 0 ? formatGc(g.center) : "support_group_dest"}))`;
@@ -371,8 +482,8 @@ objectives = [
 ]
 
 player_spawn_zone = _Z.Circular("Player Spawn Zone", player_spawn_pos, 1000)
-player_props = Element.Props.FromElementID(us_fact, "(Player) Virginia B3", ElementCategory.Submarine, virginia_id, player_spawn_zone.RandomPosition())
-player_element = Element(player_props).SetElevation(-135).SetHeading(30).SetPlayable().SetScope(Global.Scope.Player)
+player_props = Element.Props.FromElementID(us_fact, "(Player) Virginia B3", ElementCategory.Submarine, virginia_id, player_spawn_pos)
+player_element = Element(player_props).SetElevation(${playerDepthFeet}).SetHeading(30).SetPlayable().SetScope(Global.Scope.Player)
 player_spawn_process = _P.Element.Spawn(_mission_started, player_element, player_element.Position)
 
 player_mk48_arsenal_process = _P.Element.Arsenal(player_spawn_process, player_element, BaseCategory.Subsurface, ElementCategory.Torpedo, 1712, 12)
@@ -422,26 +533,18 @@ p8_props = Element.Props.FromDatabaseID(${factionRuntimeId(friendlyAir.faction)}
 p8_element = Element(p8_props).SetElevation(5000).SetHeading(220)
 p8_spawn = _P.Element.Spawn(ddg_plot, p8_element, p8_element.Position)
 
-bios_zone = _Z.Circular("Biologics Zone", battle_area_center, 80000)
-for idx in range(4):
-    bio_props = Element.Props.FromDatabaseID(civ_fact, "Biologic %s" % idx, ElementCategory.Biologic, 1, bios_zone.RandomPosition())
-    bio_element = Element(bio_props).SetElevation(-60 - (idx * 35)).SetHeading(random.randrange(0, 359))
-    _P.Element.Spawn(p8_spawn, bio_element, bio_element.Position)
+${biologicBlock}
 
-civ_zone = _Z.Circular("Civilian Traffic Zone", battle_area_center, 120000)
-for idx in range(${supportUnits + 2}):
-    cargo_props = Element.Props.FromDatabaseID(civ_fact, "Merchant %s" % (idx + 1), ElementCategory.Ship, _get_random_cargo(), civ_zone.RandomPosition())
-    cargo_element = Element(cargo_props).SetHeading(random.randrange(200, 280))
-    _P.Element.Spawn(p8_spawn, cargo_element, cargo_element.Position)
+${merchantBlock}
 
 yasen_spawn_zone = _Z.Circular("Yasen Spawn Zone", yasen_spawn_pos, 12000)
-yasen_props = Element.Props.FromDatabaseID(${factionRuntimeId(primaryTarget.faction)}, "${primaryTarget.name}", ElementCategory.Submarine, yasen_id, yasen_spawn_zone.RandomPosition())
-yasen_element = Element(yasen_props).SetElevation(-140).SetHeading(245)
+yasen_props = Element.Props.FromDatabaseID(${factionRuntimeId(primaryTarget.faction)}, "${primaryTarget.name}", ElementCategory.Submarine, yasen_id, yasen_spawn_pos)
+yasen_element = Element(yasen_props).SetElevation(${targetDepthFeet}).SetHeading(245)
 yasen_spawn = _P.Element.Spawn(p8_spawn, yasen_element, yasen_element.Position)
 
 escort_spawn_zone = _Z.Circular("Escort Spawn Zone", escort_spawn_pos, 10000)
-escort_props = Element.Props.FromDatabaseID(${factionRuntimeId(escortUnit.faction)}, "${escortUnit.name}", ElementCategory.Submarine, escort_id, escort_spawn_zone.RandomPosition())
-escort_element = Element(escort_props).SetElevation(-160).SetHeading(245).SetHVU(True)
+escort_props = Element.Props.FromDatabaseID(${factionRuntimeId(escortUnit.faction)}, "${escortUnit.name}", ElementCategory.Submarine, escort_id, escort_spawn_pos)
+escort_element = Element(escort_props).SetElevation(${escortDepthFeet}).SetHeading(245).SetHVU(True)
 escort_spawn = _P.Element.Spawn(yasen_spawn, escort_element, escort_element.Position)
 
 asw_formation_subs = ASWFormation.ASWFormationProps()
@@ -494,7 +597,7 @@ export function buildLocaleCsv(blueprint, scenarioRows) {
   ];
 
   for (const row of scenarioRows) {
-    lines.push(...row);
+    lines.push(row);
   }
 
   return `${lines.join("\n")}\n`;
@@ -512,6 +615,7 @@ export function buildQuestScript(campaignMissionIds) {
 }
 
 export function buildScenarioPackageArtifacts({ blueprint, scenario }) {
+  const isReservedScenario = Boolean(scenario.reserved || scenario.continuation?.reserved);
   const intelLine = scenario.intel?.prose || "Enemy activity is assessed along the current route family, but cueing remains imprecise.";
   const taskLine = scenario.tasking?.primaryTask?.objectiveLine || "Build the tactical picture and preserve the boat.";
   const mapIntentLine = scenario.tasking?.primaryTask?.mapIntent || "Use the marked cues as geometry aids rather than exact truth.";
@@ -520,7 +624,9 @@ export function buildScenarioPackageArtifacts({ blueprint, scenario }) {
   const messages = {
     mission_from: blueprint.theaterId === "luzon_strait" ? "COMSUBPAC" : "COMSUBLANT",
     mission_to: blueprint.player.name.toUpperCase(),
-    mission_objectives: `BT\nSUBJ: ${scenario.name.toUpperCase()}\n\n1. ${scenario.summary}\n\n2. Primary Task:\n   ${taskLine}\n\n3. Posture:\n   ${postureLine}\n\n4. Intel Cue:\n   ${intelLine}\n\n5. Marked Cues:\n   ${annotationLines || "No additional marked cues."}\n\n6. Player Guidance:\n   ${mapIntentLine}\n\n7. Route Summary:\n   ${scenario.geometry.routeSummary}\n\n8. Enemy Transit:\n   ${scenario.geometry.enemyTransitSummary}\n\n9. Keep your submarine combat effective and raise antennas when you are ready to conclude the mission.`,
+    mission_objectives: isReservedScenario
+      ? `BT\nSUBJ: ${scenario.name.toUpperCase()} - PLACEHOLDER\n\n1. This mission slot is reserved so the campaign chain always has a valid next node.\n\n2. If you do not want to continue the campaign, treat the previous mission as the campaign conclusion.\n\n3. If you do want to continue, do not play this scenario yet.\n\n4. Return to Campaign Tracking.\n\n5. Save the result from the previous mission.\n\n6. Click Continue Campaign so the app can rewrite this scenario with updated tasking, geometry, and supporting forces.\n\n7. Rebuild and redeploy if prompted.\n\n8. Launch this scenario only after the tracker confirms it was regenerated.\n\n9. Current placeholder route summary:\n   ${scenario.geometry.routeSummary}\n\n10. Current placeholder enemy transit:\n   ${scenario.geometry.enemyTransitSummary}`
+      : `BT\nSUBJ: ${scenario.name.toUpperCase()}\n\n1. ${scenario.summary}\n\n2. Primary Task:\n   ${taskLine}\n\n3. Posture:\n   ${postureLine}\n\n4. Intel Cue:\n   ${intelLine}\n\n5. Marked Cues:\n   ${annotationLines || "No additional marked cues."}\n\n6. Player Guidance:\n   ${mapIntentLine}\n\n7. Route Summary:\n   ${scenario.geometry.routeSummary}\n\n8. Enemy Transit:\n   ${scenario.geometry.enemyTransitSummary}\n\n9. Keep your submarine combat effective and raise antennas when you are ready to conclude the mission.`,
     mission_success: `BT\nSUBJ: MISSION STATUS - SUCCESS\n\n${scenario.successText}`
   };
   const metadata = missionMetadataRecord(

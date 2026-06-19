@@ -170,12 +170,21 @@ function advanceTime(state, hours, modulesConfig) {
 
 async function ingestMissionResultRecord({ repoRoot, campaignId, result, stateDir, advanceHours = 24.0 }) {
   const campaignDir = path.join(repoRoot, "campaigns", campaignId);
+  let packageDir = path.join(repoRoot, "src", "packages", campaignId);
+  if (!(await pathExists(packageDir))) {
+    packageDir = path.join(repoRoot, "src", "package");
+  }
   const modulesConfig = await readJson(path.join(campaignDir, "modules.json"));
   const { state, statePath } = await loadOrBootstrapState({ repoRoot, campaignId, stateDir, campaignDir });
   initializeModules(state, modulesConfig);
   ingestResult(state, result, modulesConfig);
   advanceTime(state, advanceHours, modulesConfig);
-  state.current_mission_id = result.mission_id;
+  const missionChain = await readMissionChain(campaignId, packageDir);
+  const currentIndex = missionChain.indexOf(result.mission_id || "");
+  const nextMissionId = currentIndex >= 0 && currentIndex < missionChain.length - 1
+    ? missionChain[currentIndex + 1]
+    : result.mission_id;
+  state.current_mission_id = nextMissionId;
 
   await writeJson(statePath, state);
 
@@ -193,6 +202,7 @@ async function ingestMissionResultRecord({ repoRoot, campaignId, result, stateDi
   return {
     campaign_id: campaignId,
     mission_id: result.mission_id,
+    next_mission_id: nextMissionId,
     outcome: result.outcome,
     advance_hours: advanceHours,
     state_path: statePath,

@@ -146,9 +146,9 @@ The `Authoring` workspace currently exposes:
 - scenario count
 - mission posture
 - player unit name
-- optional `Max Target Distance (km)`
+- optional `Max Scenario Radius (km)`
 
-`Max Target Distance (km)` is an authoring-time pacing control. When set, the generator compresses player-to-primary-target geometry so missions do not exceed the requested transit budget. The value is persisted into generated `campaign.json` and bootstrap state, and continuation scenarios inherit it.
+`Max Scenario Radius (km)` is an authoring-time pacing control. When set, the generator scales the generated scenario geometry inward around the player start so all generated placements stay inside the requested radius. The value is persisted into generated `campaign.json` and bootstrap state, and continuation scenarios inherit it.
 
 ### How Platform Selection Works Per Side
 
