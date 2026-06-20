@@ -9,7 +9,8 @@ It contains:
 - a modular persistence scaffold
 - a browser and Electron frontend
 - a deterministic campaign generator that does not require external AI
-- a continuation workflow that can append one more scenario after mission results are saved and reviewed
+- a continuation workflow that rewrites a reserved follow-on mission slot after mission results are saved and reviewed
+- optional AISStream sampling that can seed merchant traffic from live AIS contact snapshots
 - developer and player workflows side by side
 
 ## Start Here
@@ -26,8 +27,8 @@ Start with:
 
 Typical player artifacts:
 
-- `dist\MNW Dynamic Campaign Console Setup 0.1.0.exe`
-- `dist\MNW Dynamic Campaign Console Setup 0.1.0.exe.blockmap`
+- `dist\MNW Dynamic Campaign Console Setup 0.1.1.exe`
+- `dist\MNW Dynamic Campaign Console Setup 0.1.1.exe.blockmap`
 - `dist\latest.yml`
 - `dist\*.dmg` when a macOS build is produced
 
@@ -56,9 +57,16 @@ The packaged app does not replace the original repo-native workflow. It sits alo
 
 For the packaged desktop workflow, the intended post-mission loop is now:
 
-1. export the current runtime snapshot
+1. export the current runtime snapshot from the live campaign
 2. save the mission result directly inside `Campaign Tracking`
-3. continue the campaign if you want to append the next scenario
+3. continue the campaign if you want to rewrite the reserved next scenario
+
+Practical current model:
+
+- the generator can start a campaign with a playable first scenario plus a reserved follow-on slot
+- `Continue Campaign` rewrites that reserved slot from the latest saved result
+- the app also keeps one additional reserved slot behind it so MNW always has a valid next mission node
+- if the player does not want to continue, the previous completed mission can be treated as the campaign conclusion
 
 ## Main Components
 
@@ -73,9 +81,9 @@ For the packaged desktop workflow, the intended post-mission loop is now:
 - `electron/`
   desktop wrapper
 - `portable/`
-  Node-based portable build, deploy, export, ingest, generation, and continuation actions
+  Node-based portable build, deploy, export, ingest, generation, continuation, and AIS actions
 - `shared/campaign-generator.mjs`
-  deterministic campaign blueprint and continuation generator
+  deterministic campaign blueprint, placeholder-slot, and continuation generator
 
 ## Release Recommendation
 
@@ -88,5 +96,6 @@ For technical users, keep using the source repo and the developer guide.
 - [DEVELOPER_GUIDE.md](./DEVELOPER_GUIDE.md)
 - [DESKTOP_APP_GUIDE.md](./DESKTOP_APP_GUIDE.md)
 - [RESEARCH.md](./RESEARCH.md)
+- [ui/README.md](./ui/README.md)
 - `docs/local-ai-campaign-workflow.html`
 - `docs/tool-reference.html`

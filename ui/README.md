@@ -1,55 +1,56 @@
 # UI Scaffold
 
-This UI is a web-first frontend scaffold for the modular campaign persistence system.
+This UI is the shared frontend for the desktop campaign workflow.
 
-Why this exists now:
+It is no longer just a browser mockup. The same UI now drives the packaged Electron app and the repo preview path.
 
-- it keeps the UI evolving alongside the backend
-- it is easy for AI coding tools to inspect and modify
-- it can later be wrapped in Tauri for a cross-platform desktop app
+## Current Purpose
 
-Current purpose:
+The UI currently supports:
 
-- inspect campaign metadata
-- inspect enabled persistence modules
-- inspect order of battle state
-- inspect mission result events
-- inspect next-mission generation directives
-- build and save a normalized manual mission result from the browser
-- parse pasted MNW debrief text into a draft result before manual review
-- choose continuation intent and append one more scenario in the desktop app workflow
+- desktop setup and saved defaults
+- deterministic campaign authoring
+- package build and deploy actions through the desktop backend
+- exported runtime-state inspection
+- direct mission-result entry
+- debrief-text parsing into a draft result payload
+- embedded operational-map viewing inside `Campaign Tracking`
+- AISStream debug and contact review
+- continuation control that rewrites the reserved next mission slot
 
-The current UI reads static sample data from `ui/data/sample-runtime.json`.
+If `generated/ui/runtime.json` exists, the UI prefers that live exported snapshot instead of sample data.
 
-If `generated/ui/runtime.json` exists, the UI prefers that live exported snapshot instead.
+`Campaign Tracking` no longer loads sample runtime state as a fallback.
 
 ## Current Live Workflow
 
-1. Export or bootstrap campaign state.
-2. Run the UI.
-3. Save a manual mission result directly from `Campaign Tracking`.
-4. Let the tracker refresh itself from the updated runtime snapshot.
-5. If desired, append one more scenario from `Campaign Tracking`.
-6. Reload the page and inspect the updated state.
+1. Save desktop settings in `Setup`.
+2. Generate a campaign in `Authoring`.
+3. Build and deploy it.
+4. Play the current mission in MNW.
+5. Export runtime in `Campaign Tracking`.
+6. Save the mission result.
+7. If continuing, rewrite the reserved next mission with `Continue Campaign`.
+8. Refresh the tracker and validate the new state.
 
 ## Manual Result Builder
 
-The UI now includes a manual result builder.
+The UI includes a manual result builder for the normal post-mission loop.
 
 Current flow:
 
-1. open the UI
+1. open `Campaign Tracking`
 2. fill in mission outcome, elapsed hours, unit, ammo expenditure, damage, or destruction
 3. click `Save Result To Campaign`
 4. let the tracker refresh the live campaign state automatically
 
-`Download JSON` and `Copy JSON` still exist if you want an external record, but they are no longer required for the normal MNW desktop workflow.
+`Download JSON` and `Copy JSON` still exist for external records, but they are no longer required for the normal desktop workflow.
 
 ## Debrief Text Parser
 
-The UI now also includes a debrief-text parser panel.
+The UI includes a debrief-text parser panel.
 
-Use it when you have copied text from an MNW after-action/debrief screen and want a faster starting point than filling every field by hand.
+Use it when you have copied text from an MNW after-action or debrief screen and want a faster starting point than filling every field by hand.
 
 Current flow:
 
@@ -60,23 +61,32 @@ Current flow:
 5. correct anything the parser could not infer cleanly
 6. click `Save Result To Campaign`
 
-This parser should be treated as an operator assist, not a final authority.
+This parser is an operator assist, not a final authority.
 
-It now attempts to:
+## Operational Map
 
-- infer elapsed mission time from debrief text
-- resolve ownship to the player unit when possible
-- map known enemy platform names onto persistent unit IDs
-- translate common status phrases into draft damage or destruction events
+The desktop app now embeds the operational map inside `Campaign Tracking`.
 
-Helper scripts:
+Current behavior:
 
-- `tools/run-dev.ps1`
-- `tools/ingest-result.py`
-- `tools/ingest-and-refresh.ps1`
-- `tools/refresh-ui-state.ps1`
+- the map opens inside the app instead of launching as an external HTML file
+- the embedded view is meant to take over the tracker workspace until closed
+- the close action returns the user to the tracker
 
-Those scripts still exist for non-desktop or manual workflows, but the packaged Electron app no longer requires them for normal post-mission result entry.
+## AIS Support
+
+The UI includes an optional AIS section in `Setup` and a live AIS panel in `Campaign Tracking`.
+
+Current behavior:
+
+- `Setup` stores whether AISStream is enabled, the query radius, and the local API key
+- `Campaign Tracking` can request a fresh AIS sample for the current theater
+- the tracker shows AIS status, contact summaries, and debug JSON
+- the saved sample can later seed merchant traffic during generation
+
+Current limitation:
+
+- the UI can inspect and seed AIS-derived traffic, but this does not yet guarantee one-for-one MNW native responder behavior in the simulator
 
 ## Continuation Flow
 
@@ -90,7 +100,10 @@ After ingesting a result, the operator can choose:
 
 Then `Continue Campaign` will:
 
-1. append one new scenario to the campaign mission chain
-2. rebuild the package
-3. redeploy it when configured paths are available
-4. refresh the exported runtime snapshot used by the tracker
+1. rewrite the reserved next scenario from the latest saved result
+2. preserve one additional reserved follow-on slot behind it
+3. rebuild the package
+4. redeploy it when configured paths are available
+5. refresh the exported runtime snapshot used by the tracker
+
+Do not treat the placeholder next mission as a normal playable mission before this rewrite occurs.

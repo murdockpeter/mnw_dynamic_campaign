@@ -68,7 +68,7 @@ objectives = [
 ##
 player_spawn_zone = _Z.Circular("Player Spawn Zone", player_spawn_pos, 1000)
 player_props = Element.Props.FromElementID(us_fact, "(Player) Virginia B3", ElementCategory.Submarine, virginia_id, player_spawn_zone.RandomPosition())
-player_element = Element(player_props).SetElevation(-380).SetHeading(15).SetPlayable().SetScope(Global.Scope.Player)
+player_element = Element(player_props).SetElevation(-90).SetHeading(15).SetPlayable().SetScope(Global.Scope.Player)
 player_spawn_process = _P.Element.Spawn(_mission_started, player_element, player_element.Position)
 
 player_mk48_arsenal_process = _P.Element.Arsenal(player_spawn_process, player_element, BaseCategory.Subsurface, ElementCategory.Torpedo, 1712, 12)
@@ -166,13 +166,13 @@ cargo_2_spawn = _P.Element.Spawn(player_spawn_process, cargo_2_element, cargo_2_
 ##
 russian_spawn_zone = _Z.Circular("Russian Spawn Zone", russian_spawn_pos, 12000)
 russian_props = Element.Props.FromDatabaseID(rus_fact, "Yasen Vladivostok", ElementCategory.Submarine, yasen_id, russian_spawn_zone.RandomPosition())
-russian_element = Element(russian_props).SetElevation(-520).SetHeading(235)
+russian_element = Element(russian_props).SetElevation(-120).SetHeading(235)
 russian_spawn_process = _P.Element.Spawn(player_spawn_process, russian_element, russian_element.Position)
 russian_dive_process = _P.Element.Dive(russian_spawn_process, russian_element)
 
 escort_spawn_zone = _Z.Circular("Escort Spawn Zone", escort_spawn_pos, 10000)
 escort_props = Element.Props.FromDatabaseID(rus_fact, "Suka B", ElementCategory.Submarine, suka_b_id, escort_spawn_zone.RandomPosition())
-escort_element = Element(escort_props).SetElevation(-620).SetHeading(235).SetHVU(True)
+escort_element = Element(escort_props).SetElevation(-150).SetHeading(235).SetHVU(True)
 escort_spawn_process = _P.Element.Spawn(player_spawn_process, escort_element, escort_element.Position)
 escort_dive_process = _P.Element.Dive(escort_spawn_process, escort_element)
 

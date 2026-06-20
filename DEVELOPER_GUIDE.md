@@ -4,37 +4,58 @@ This guide is for repo users who want to edit content, run scripts, build packag
 
 ## What This Repo Is
 
-This repo is a starter framework for:
+This repo is a working framework for:
 
 - authoring custom `.mis` mission files
 - authoring custom `.cmp` campaign chains
 - packaging MNW content into valid `.kyt` archives
 - indexing local MNW database archives without redistributing them
 - persisting campaign state outside the game
+- generating deterministic campaigns and continuation scenarios
 - testing custom content in a real game install
-- evolving from hand-authored scenarios into AI-assisted generation
 
-It already includes one working sample campaign package so there is a known-good baseline to copy, rename, and extend.
-It also supports separate standalone package trees in one repo, so unrelated campaigns can be built and distributed as separate `.kyt` archives.
+It supports:
+
+- the original script-first repo workflow
+- a packaged Electron desktop workflow for non-technical users
+
+## Current Product Shape
+
+The current desktop product is no longer just a package builder. It now has a practical campaign loop:
+
+1. generate a campaign package
+2. build and deploy it
+3. export a live runtime snapshot after play
+4. save the mission result inside `Campaign Tracking`
+5. continue the campaign by rewriting the reserved next mission slot
+
+This matters for development because several design decisions now exist to satisfy MNW campaign-chain behavior rather than ideal purity:
+
+- the tracker uses exported runtime data only
+- the operational map is embedded inside the app
+- the campaign chain keeps a reserved follow-on mission slot
+- continuation rewrites that reserved slot instead of appending from an empty chain end
+- AIS sampling is stored locally in settings and fed into generation as optional merchant traffic
 
 ## Desktop App Path
 
 The original script-first workflow remains intact.
 
-In parallel, the repo now also contains a portable desktop-app path aimed at end users who should not need to bring their own AI tooling, Python install, or PowerShell scripts.
+In parallel, the repo also contains a portable desktop-app path aimed at end users who should not need to bring their own AI tooling, Python install, or PowerShell scripts.
 
-New pieces:
+Main desktop pieces:
 
 - `package.json`
 - `electron/`
 - `portable/`
 - `shared/campaign-generator.mjs`
+- `ui/`
 
 Design intent:
 
-- keep the existing `ui/` as the main frontend
+- keep the shared `ui/` as the main frontend
 - wrap it in Electron for Windows and macOS
-- move build, deploy, export, ingest, and simple campaign generation into Node-based portable modules
+- move build, deploy, export, ingest, generation, continuation, and AIS actions into Node-based portable modules
 - preserve the original `tools/*.ps1` and Python utilities for repo-native/operator workflows
 
 That means there are now two supported paths:
@@ -64,7 +85,7 @@ npm run desktop:dist
 
 ## Desktop UI Workspaces
 
-The packaged app is split into three separate workspaces:
+The packaged app is split into three workspaces:
 
 - `Setup`
 - `Authoring`
@@ -72,30 +93,30 @@ The packaged app is split into three separate workspaces:
 
 Practical intent:
 
-- `Setup` is where the user configures install paths and saved defaults
-- `Authoring` is where the user generates a campaign, writes campaign files, builds packages, and deploys them
-- `Campaign Tracking` is where the user inspects runtime state, saves mission results, reviews the operational map, and appends continuation scenarios
+- `Setup` configures install paths, default IDs, package defaults, and optional AIS settings
+- `Authoring` generates a campaign, writes campaign files, builds packages, and deploys them
+- `Campaign Tracking` inspects runtime state, saves mission results, shows the embedded operational map, surfaces AIS debug data, and rewrites the reserved next mission
 
 ## Campaign ID vs Package ID
 
 These two IDs are related, but they are not the same thing conceptually.
 
-- `Campaign ID` is the runtime/persistence campaign identifier
+- `Campaign ID` is the runtime and persistence identifier
 - `Package ID` is the authored MNW package identifier and namespace
 
-In normal use, they should usually match.
+In normal use they should usually match.
 
 Example:
 
-- runtime campaign ID: `iron_archipelago`
-- package ID: `iron_archipelago`
-- mission namespace inside the package: `iron_archipelago.iron_archipelago.<mission>`
+- runtime campaign ID: `norwegian_shadow`
+- package ID: `norwegian_shadow`
+- mission namespace inside the package: `norwegian_shadow.norwegian_shadow.<mission>`
 
-You only need them to differ if you are intentionally tracking one runtime campaign while building or deploying a different package tree.
+Only split them if you are intentionally tracking one runtime campaign while building or deploying a different package tree.
 
 ## Deterministic Campaign Generation
 
-The desktop path includes a rule-based generator in `shared/campaign-generator.mjs`.
+The desktop path includes a rule-based generator in [shared/campaign-generator.mjs](C:/Users/Peter%20G.%20Robbins/Documents/claudeprojects/mnw_dynamic_campaign/shared/campaign-generator.mjs:1).
 
 This generator is intentionally not AI-backed. The goal is to let an end user generate a believable starter campaign without requiring a model provider, API key, prompt workflow, Python environment, or repo knowledge.
 
@@ -110,8 +131,9 @@ It produces:
 - an enemy-side force template
 - a sequence of mission archetypes
 - deterministic scenario geometry for each scenario
-- optional authoring constraints such as a maximum player-to-primary-target distance
+- authoring constraints such as maximum player-to-primary-target distance
 - a stable package namespace
+- placeholder follow-on scenarios where required for the runtime workflow
 
 ### How Believable Pathing Works Without AI
 
@@ -128,11 +150,11 @@ For each scenario, the generator:
 
 1. picks a mission archetype sequence from the selected tone
 2. derives a stable seed from campaign ID, theater, tone, year, scenario count, and player name
-3. uses that seed to apply bounded jitter to corridor anchor points
+3. applies bounded jitter to corridor anchor points
 4. creates derived geometry such as player spawn, initial datum, lead enemy contact, escort positions, barrier or egress points, support stations, and withdrawal legs
-5. advances scenario start times and contact density from one mission to the next
-
-Because the seed is stable, the same inputs always generate the same campaign. Because the jitter is bounded and theater-specific, the output stays believable instead of becoming arbitrary.
+5. advances scenario start times and contact density
+6. runs deconfliction so generated placements do not overlap
+7. applies authoring constraints such as max distance to primary target
 
 ### Current Authoring Controls
 
@@ -148,26 +170,13 @@ The `Authoring` workspace currently exposes:
 - player unit name
 - optional `Max Scenario Radius (km)`
 
-`Max Scenario Radius (km)` is an authoring-time pacing control. When set, the generator scales the generated scenario geometry inward around the player start so all generated placements stay inside the requested radius. The value is persisted into generated `campaign.json` and bootstrap state, and continuation scenarios inherit it.
+`Max Scenario Radius (km)` is an authoring-time pacing control. When set, the generator scales non-AIS generated scenario geometry inward around the player start so generated placements stay inside the requested radius. The value is persisted into generated `campaign.json` and bootstrap state, and continuation scenarios inherit it.
 
 ### How Platform Selection Works Per Side
 
 Player-side and enemy-side platform choices are not random.
 
-They come from the selected theater template in `shared/campaign-generator.mjs`.
-
-Each theater currently defines:
-
-- player unit ID
-- player name
-- player faction
-- player platform type
-- player DBID
-- player starting ammo
-- enemy roster entries
-- enemy faction
-- enemy platform type
-- enemy DBIDs
+They come from the selected theater template in [shared/campaign-generator.mjs](C:/Users/Peter%20G.%20Robbins/Documents/claudeprojects/mnw_dynamic_campaign/shared/campaign-generator.mjs:230).
 
 Current examples:
 
@@ -179,22 +188,49 @@ Current examples:
   - player: U.S. submarine
   - enemies: Russian submarines
   - geometry family: `sub_hunt`
+- `norwegian_sea`
+  - player: U.S. submarine
+  - enemies: Russian submarines
+  - geometry family: `sub_hunt`
 
-That means theater selection determines the sides and baseline force composition, while tone selection determines the narrative progression of the mission sequence.
+Theater selection determines the sides and baseline force composition. Tone selection determines the narrative progression of the mission sequence.
 
-## What This Repo Is Not
+## Placeholder Follow-On Model
 
-This is not yet a fully polished end-user campaign game layer.
+The current dynamic-campaign implementation uses a reserved next mission slot because MNW expects a valid next mission node in the campaign chain.
 
-Right now it provides:
+Current behavior:
 
-- package structure
-- sample authored content
-- build and deploy tooling
-- local DB inventory tooling
-- a modular persistence runtime
-- an Electron desktop app and shared web UI
-- format knowledge
+- initial generation creates a playable mission plus a reserved follow-on slot
+- the placeholder mission briefing explicitly tells the player not to launch it before regeneration
+- `Continue Campaign` rewrites that reserved mission from the latest saved result
+- the app keeps another reserved slot behind it so the chain remains valid
+
+Relevant generator text lives in [shared/campaign-generator.mjs](C:/Users/Peter%20G.%20Robbins/Documents/claudeprojects/mnw_dynamic_campaign/shared/campaign-generator.mjs:1803) and [portable/lib/generated-campaign-files.mjs](C:/Users/Peter%20G.%20Robbins/Documents/claudeprojects/mnw_dynamic_campaign/portable/lib/generated-campaign-files.mjs:663).
+
+## AIS Integration
+
+The desktop path now supports optional AISStream sampling.
+
+Current behavior:
+
+- settings can store an AISStream API key locally
+- the desktop backend can open the websocket and sample contacts for the current theater
+- the latest sample is stored in local settings
+- generation can seed merchant traffic from that saved AIS sample
+- the tracker surfaces AIS debug JSON for inspection
+
+Important limitation:
+
+- current AIS support is a traffic-seeding feature first
+- it is not yet proven to reproduce MNW's native in-sim AIS responder behavior one-for-one
+
+Relevant files:
+
+- [portable/lib/ais-api.mjs](C:/Users/Peter%20G.%20Robbins/Documents/claudeprojects/mnw_dynamic_campaign/portable/lib/ais-api.mjs:1)
+- [portable/lib/desktop-api.mjs](C:/Users/Peter%20G.%20Robbins/Documents/claudeprojects/mnw_dynamic_campaign/portable/lib/desktop-api.mjs:195)
+- [shared/campaign-generator.mjs](C:/Users/Peter%20G.%20Robbins/Documents/claudeprojects/mnw_dynamic_campaign/shared/campaign-generator.mjs:1535)
+- [portable/lib/generated-campaign-files.mjs](C:/Users/Peter%20G.%20Robbins/Documents/claudeprojects/mnw_dynamic_campaign/portable/lib/generated-campaign-files.mjs:170)
 
 ## Repo Layout
 
@@ -207,28 +243,7 @@ TODO.md
 .gitignore
 src/
   package/
-    locale.csv
-    manifest.json
-    template.cmp.json
-    template.mis.json
-    norwegian_shadow/
-      quest.cmp
-      quest.cmp.json
-      bear_gap.mis
-      bear_gap.mis.json
-      broken_datum.mis
-      broken_datum.mis.json
   packages/
-    iron_archipelago/
-      manifest.json
-      locale.csv
-      template.cmp.json
-      template.mis.json
-      iron_archipelago/
-        quest.cmp
-        quest.cmp.json
-        bashi_screen.mis
-        bashi_screen.mis.json
 engine/
 modules/
 storage/
@@ -237,6 +252,9 @@ parsers/
 tests/
 tools/
 ui/
+electron/
+portable/
+shared/
 dist/
 generated/
 ```
@@ -253,7 +271,6 @@ MNW content authoring in this repo is built around a few practical facts:
 - archive entry paths matter; MNW expects forward-slash ZIP paths
 - mission IDs are tied to the package identity plus internal folder structure
 - separate distributable campaigns should generally be separate package trees and separate `.kyt` files
-- `Var\DB` archives are locally readable and can be indexed without shipping them in the repo
 - persistence should live outside MNW, not inside mission scripts
 
 ## Persistence Architecture
@@ -266,81 +283,34 @@ Implemented baseline pieces:
 - JSON storage backend
 - normalized mission-result format
 - tiny runtime that loads enabled modules
-- first persistence modules:
-  - `damage`
-  - `ammo`
-- generation-plan hook for next-mission writers
-- smoke test for the full persistence loop
+- persistence modules for damage and ammo
+- generation hook for next-mission writers
+- export flow for UI snapshots
 
-Design rule:
+Design rules:
 
 - the runtime must not hardcode one persistent campaign system
 - different systems should be selectable by campaign configuration
 - modules mutate shared state and emit directives
 - mission generation remains a separate concern
 
-## UI Scaffold
+## UI Notes
 
 The repository includes a UI layer under `ui/`.
 
 Current UI purpose:
 
-- inspect campaign state
-- inspect enabled persistence modules
-- inspect normalized mission-result events
-- build a normalized manual mission-result JSON from the browser
-- parse pasted MNW debrief text into a draft normalized result
+- save desktop settings
+- generate deterministic campaigns
+- build and deploy packages
+- inspect exported runtime state
+- save a normalized mission result directly from the app
+- parse pasted MNW debrief text into a draft result
 - preview and open theater operational maps inside the app
-- append one more continuation scenario from `Campaign Tracking`
+- inspect AIS debug payloads
+- rewrite one continuation scenario from `Campaign Tracking`
 
-If `generated/ui/runtime.json` exists, the UI prefers that live exported snapshot instead of the static sample file.
-
-The packaged desktop app now embeds the operational map inside `Campaign Tracking` rather than opening it as an external HTML file.
-
-## Using This Repo With Any AI Tool
-
-You do not need a specific model or IDE. Any AI tool that can read and edit files in a local folder can work with this repository.
-
-Examples:
-
-- ChatGPT with local file access
-- Claude with local workspace access
-- Codex / OpenAI coding agents
-- Cursor
-- Windsurf
-- Copilot Chat in a local repo
-- any agentic shell tool that can edit files and run PowerShell
-
-### Recommended AI Workflow
-
-1. Give the AI this repository as its working folder.
-2. Tell it your design goal.
-3. Point it at `RESEARCH.md` first so it understands MNW packaging and scenario structure.
-4. Tell it to use the relevant package source tree as the source of truth for MNW package content.
-5. Use `src/package/` for the included `Norwegian Shadow` sample package.
-6. Use `src/packages/<campaign-id>/` for a standalone distributable campaign package.
-7. If it needs platform context, have it run `tools/index-db.ps1` against the user's local MNW install.
-8. If it needs campaign persistence logic, have it work against `engine/`, `modules/`, `storage/`, and `campaigns/`.
-9. If it needs user-facing workflow changes, have it inspect `ui/`.
-10. Have it run `tools/build.ps1`, optionally with `-SourceDir` and `-OutputPath`.
-11. Optionally have it run `tools/deploy.ps1`, optionally with `-PackagePath`.
-12. Test in game.
-13. Iterate based on in-game behavior and `Player.log`.
-
-### What To Tell The AI Explicitly
-
-Tell it:
-
-- do not invent new binary formats
-- preserve MNW `.kyt` packaging rules
-- preserve forward-slash ZIP entry names
-- treat the selected package source tree as the editable MNW source tree
-- keep standalone campaigns in separate package trees when they are meant to be distributed independently
-- do not assume two unrelated campaigns should share one `.kyt`
-- update `manifest.json` hashes whenever package files change
-- use `generated/db/` only as a local index derived from the user's own game install
-- keep persistence systems modular and selectable by configuration
-- keep UI and backend data contracts aligned
+The packaged desktop app embeds the operational map inside `Campaign Tracking` rather than opening it as an external HTML file.
 
 ## Build
 
@@ -356,18 +326,6 @@ To build a separate standalone package:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\tools\build.ps1 -SourceDir .\src\packages\iron_archipelago -OutputPath .\dist\iron_archipelago.kyt
-```
-
-## Local Database Inventory
-
-This repo does not ship MNW database files.
-
-Instead, it includes a local-only inventory helper that scans the user's own installed `Var\DB` archives and emits a machine-friendly index under `generated/db/`.
-
-Run:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\tools\index-db.ps1
 ```
 
 ## Deploy
@@ -389,6 +347,18 @@ To deploy a specific standalone package:
 powershell -ExecutionPolicy Bypass -File .\tools\deploy.ps1 -PackagePath .\dist\iron_archipelago.kyt
 ```
 
+## Local Database Inventory
+
+This repo does not ship MNW database files.
+
+Instead, it includes a local-only inventory helper that scans the user's own installed `Var\DB` archives and emits a machine-friendly index under `generated/db/`.
+
+Run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\index-db.ps1
+```
+
 ## Testing
 
 Persistence smoke test:
@@ -396,6 +366,16 @@ Persistence smoke test:
 ```powershell
 python -m unittest tests.test_persistence_smoke
 ```
+
+Desktop test loop:
+
+1. generate or rewrite the campaign
+2. build the package
+3. deploy the package
+4. fully exit MNW
+5. relaunch MNW
+6. validate in-game behavior
+7. inspect `Player.log` when something diverges
 
 ## Manual Result Ingestion
 
@@ -430,7 +410,7 @@ The repo includes a first-pass MNW debrief parser.
 
 Current entry points:
 
-- browser UI `Debrief Text Parser` panel
+- browser and desktop UI `Debrief Text Parser` panel
 - CLI parser at `parsers/mnw_debrief_parser.py`
 
 Example:
@@ -438,16 +418,6 @@ Example:
 ```powershell
 python .\parsers\mnw_debrief_parser.py --input .\parsers\sample_debrief_bear_gap.txt --runtime-json .\ui\data\sample-runtime.json
 ```
-
-## Campaign Tracking Notes
-
-The tracker now emphasizes the practical player loop instead of debug internals:
-
-- export runtime
-- save result
-- continue campaign
-
-Advanced detail still exists for result history, persistent units, the embedded operational map, and the debrief parser, but the old generation-plan/module-contract cards are no longer part of the tracker UI.
 
 ## Files Worth Committing
 
@@ -484,20 +454,14 @@ Do not commit:
 
 See [RESEARCH.md](./RESEARCH.md).
 
-## Practical Advice
-
-Do not separate UI and backend planning by months.
-
-If the UI is intended to drive campaign-state workflows, module selection, result ingestion, and generation review, it should evolve alongside the persistence runtime.
-
 ## Hard-Won MNW Rules
 
 - Treat the selected package source tree as the source of truth for that package's MNW content.
 - Use `src/package/` for the included sample package and `src/packages/<campaign-id>/` for standalone distributable campaigns.
 - Always rebuild the `.kyt` after any mission or campaign edit.
-- Always redeploy after rebuild, then verify the deployed package hash matches the specific `.kyt` you just built.
+- Always redeploy after rebuild, then verify the deployed package matches the specific `.kyt` you just built.
 - Fully exit and relaunch MNW after deployment when validating campaign progression or save behavior.
 - Custom campaign mission IDs must use the package namespace actually present in the archive.
 - If a campaign is meant to be its own thing, give it its own package tree, its own `.kyt`, and its own mission namespace.
-- Reintroduce new campaign graph links one step at a time.
+- If a campaign chain behaves oddly, suspect placeholder-slot timing, package drift, or stale deployed files before assuming persistence is wrong.
 - If a campaign disappears from the menu or hangs on `Loading Missions...`, first suspect a bad mission reference or a manifest/package mismatch.

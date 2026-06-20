@@ -9,12 +9,13 @@ The desktop app is a packaged frontend and workflow wrapper for the dynamic camp
 It lets you:
 
 - configure where `Modern Naval Warfare` stores campaign packages
-- generate a simple campaign, including a single-scenario start, without bringing your own AI
+- generate a deterministic campaign without bringing your own AI tooling
 - build and deploy the generated campaign package
-- inspect campaign runtime state
+- inspect exported campaign runtime state
 - save mission results directly in the app after missions
 - review the operational area map inside the app
-- continue the campaign by appending one more scenario after results are reviewed
+- refresh and inspect a live AISStream sample for the current theater
+- continue the campaign by rewriting the reserved next mission from the latest saved result
 
 You do not need:
 
@@ -22,7 +23,6 @@ You do not need:
 - PowerShell
 - Node.js
 - npm
-- AI tooling
 
 ## What To Install
 
@@ -34,7 +34,7 @@ On macOS, use:
 
 - the packaged `.dmg` release once one is provided
 
-If someone gives you the source repo instead of the packaged installer, that is the developer version, not the player-first install path.
+If someone gives you the source repo instead of the packaged installer, that is the developer path, not the player-first install path.
 
 ## First Launch
 
@@ -47,6 +47,7 @@ You will be asked for:
 - `Preferred Runtime Campaign ID`
 - `Preferred Package ID`
 - optional package source and output paths
+- optional AISStream settings
 
 ### Typical Windows Paths
 
@@ -78,6 +79,16 @@ This is where you tell the app:
 - where your user profile stores campaign packages
 - which campaign ID should be treated as the default runtime campaign
 - which package ID should be treated as the default package namespace
+- whether package ID should mirror campaign ID automatically
+- whether AISStream sampling is enabled
+- what AIS query radius to use
+- what AISStream API key to store locally
+
+Notes:
+
+- the AIS token is stored in desktop settings on your machine
+- the token is not written into generated campaign package files
+- the `Use Latest Generated Campaign` button can repoint the saved defaults to the newest generated package tree
 
 ### Authoring
 
@@ -92,14 +103,24 @@ This workspace lets you:
 - choose a start year
 - choose a scenario count
 - choose a mission posture
-- optionally set `Max Scenario Radius (km)` to compress long transit geometry
+- choose a player unit name
+- optionally set `Max Scenario Radius (km)` to compress generated mission geometry around the player start
 - write campaign files
 - build the package
 - deploy the package
 
-It also shows the pathing model and platform selection model used by the generator.
+Current theater families include:
 
-For an MVP-style dynamic workflow, you can also start with a single scenario here and then extend the campaign later from `Campaign Tracking`.
+- `Luzon Strait`
+- `South China Sea`
+- `Norwegian Sea`
+
+Important:
+
+- `Scenario Count` currently starts at `2` or more because the app keeps a reserved follow-on mission slot in the package
+- the first mission is intended to be playable
+- the next mission slot is intentionally present so MNW always has a valid next mission node
+- that reserved next mission is meant to be rewritten from `Campaign Tracking` before the player launches it
 
 ### Campaign Tracking
 
@@ -108,18 +129,21 @@ Use this after missions.
 This workspace lets you:
 
 - export the current runtime snapshot from the live campaign
+- inspect exported campaign metadata and persistent state
 - enter and save a manual mission result directly into campaign state
-- open the theater operational map inside the app and close back to the tracker
+- parse debrief text into a draft result payload
+- open the theater operational map inside the app and return to the tracker
 - choose a next objective, risk posture, and operational tempo
-- append one new scenario onto the current campaign, rebuild, and redeploy it
-- optionally open advanced detail for recent results, persistent units, the operational map, and parser tools
+- rewrite the reserved next scenario from the latest mission result
+- refresh and inspect a live AIS sample for the current theater
+- open advanced detail for recent results, persistent units, the embedded operational map, and parser tools
 
 Important:
 
-- `Campaign Tracking` now uses real exported runtime data only
+- `Campaign Tracking` now uses exported runtime data only
 - it does not fall back to sample campaign state
-- if no runtime snapshot exists yet, the app will show instructions instead of fake data
-- the normal MNW loop is now: `Export Runtime Snapshot` -> `Save Result To Campaign` -> `Continue Campaign`
+- if no runtime snapshot exists yet, the app shows instructions instead of fake data
+- the normal loop is now: `Export Runtime Snapshot` -> `Save Result To Campaign` -> `Continue Campaign`
 
 ## Campaign ID vs Package ID
 
@@ -130,13 +154,13 @@ These usually match.
 
 Typical simple usage:
 
-- campaign ID: `iron_archipelago`
-- package ID: `iron_archipelago`
+- campaign ID: `norwegian_shadow`
+- package ID: `norwegian_shadow`
 
 That produces mission namespaces like:
 
 ```text
-iron_archipelago.iron_archipelago.bashi_screen
+norwegian_shadow.norwegian_shadow.bear_gap
 ```
 
 Only split these IDs if you intentionally know you are tracking one campaign state while building another package tree.
@@ -151,6 +175,7 @@ It does not call an AI model. Instead, it uses:
 - side templates
 - mission archetype sequences
 - seeded variation
+- bounded geometry constraints
 
 That means the same inputs will always produce the same campaign or continuation scenario.
 
@@ -170,31 +195,52 @@ The app then:
 3. jitters the corridor anchor points within bounded limits
 4. derives spawn points, contact datums, escorts, barrier or egress points, and withdrawal legs
 5. advances timing and contact density across later scenarios
-
-This keeps the campaign believable without needing external AI tooling.
+6. applies a deconfliction pass so generated placements do not collapse onto the same point
 
 ### Max Scenario Radius
 
 `Max Scenario Radius (km)` is optional.
 
-Use it when you want to keep the entire generated mission footprint tighter around the player start. This is mainly a pacing control for MNW, where long transits can drag because time compression is limited.
+Use it when you want to keep the generated mission footprint tighter around the player start. This is mainly a pacing control for MNW, where long transits can drag because time compression is limited.
 
-If you leave it blank, the generator uses its normal unconstrained geometry.
+Current behavior:
 
-### Platform Selection
+- non-AIS generated scenario elements are compressed inward to respect the setting
+- continuation scenarios inherit the saved radius constraint
+- AIS-imported merchant traffic is not clipped to that radius; it can stay on the live contact geometry it was sampled from
 
-Theater choice drives side selection and baseline units.
+### Placeholder Follow-On Mission
 
-For example:
+The current dynamic-campaign workaround depends on a reserved next mission slot.
 
-- `Luzon Strait`
-  - player side: U.S. submarine
-  - opposing side: PLAN surface combatants
-- `South China Sea`
-  - player side: U.S. submarine
-  - opposing side: Russian submarines
+This exists because MNW expects the campaign chain to already contain a valid next mission node.
 
-Tone changes the scenario sequence and pacing. It does not swap the sides or the theater family.
+Current behavior:
+
+- the generated campaign includes a playable current mission
+- the next mission slot is a placeholder with explicit instructions in its briefing
+- `Continue Campaign` rewrites that placeholder based on the saved result from the previous mission
+- the app then keeps another reserved slot behind it so the chain remains valid
+
+If you do not want to continue, treat the previous completed mission as the campaign ending.
+
+Do not launch the placeholder mission before rewriting it in `Campaign Tracking`.
+
+## AISStream Support
+
+AIS integration is optional.
+
+Current behavior:
+
+- the desktop app can request a live AISStream sample for the current theater center
+- the latest sample is stored in local desktop settings
+- generated campaigns can use that sample to seed named merchant traffic into scenarios
+- the tracker can show AIS debug payloads and sampled contacts for review
+
+Current limitation:
+
+- this is primarily a traffic-seeding feature today
+- it is not yet documented as a guaranteed one-for-one replacement for MNW's built-in in-sim AIS/responder behavior
 
 ## Typical Use Flow
 
@@ -204,35 +250,37 @@ For a first-time player or operator:
 2. open `Setup`
 3. set the MNW paths
 4. save settings
-5. open `Authoring`
-6. preview a campaign
-7. write campaign files
-8. build the package
-9. deploy the package
-10. launch MNW and play
-11. return to `Campaign Tracking` and use `Export Runtime Snapshot` once the campaign exists in MNW
-12. open `Campaign Tracking` to inspect the exported real state
-13. after each mission, enter only the changes that matter in `Step 2: Save Mission Result`
-14. click `Save Result To Campaign`
-15. if you want to keep going, use `Step 3: Continue Campaign` to choose the next objective and append one new scenario
-16. export or refresh runtime again as needed
+5. optionally enable AISStream and save the key locally
+6. open `Authoring`
+7. preview or review the campaign summary
+8. write campaign files
+9. build the package
+10. deploy the package
+11. launch MNW and play the first mission
+12. return to `Campaign Tracking`
+13. click `Export Runtime Snapshot`
+14. enter the mission changes that matter in `Step 2: Save Mission Result`
+15. click `Save Result To Campaign`
+16. if you want to continue, use `Step 3: Continue Campaign` to rewrite the reserved next mission
+17. export or refresh runtime again as needed
 
 ### Recommended Dynamic Use
 
-If you want the campaign to grow based on mission results and your choices, the cleanest current flow is:
+If you want the campaign to grow from mission results and player choices, the clean current flow is:
 
-1. start with `Scenario Count` set to `1`
-2. play that scenario
+1. generate the campaign
+2. play the current mission only
 3. open `Campaign Tracking`
 4. click `Export Runtime Snapshot`
-5. enter the mission outcome manually and click `Save Result To Campaign`
+5. enter the mission outcome and click `Save Result To Campaign`
 6. choose:
    - next objective
    - risk posture
    - operational tempo
 7. click `Continue Campaign`
-8. let the app append, rebuild, redeploy, and refresh tracking state
-9. repeat after the next mission if you want to keep extending the campaign
+8. let the app rewrite the reserved next mission, rebuild, redeploy, and refresh tracking state
+9. launch the regenerated next mission in MNW
+10. repeat after the next mission if you want to keep extending the campaign
 
 ### Campaign Tracking Layout
 
@@ -243,7 +291,7 @@ The current tracker is intentionally arranged as a simple three-step loop:
 2. `Step 2: Save Mission Result`
    Enter the mission changes and click `Save Result To Campaign`.
 3. `Step 3: Continue Campaign`
-   Choose the next intent and append the next mission.
+   Choose the next intent and rewrite the next mission slot.
 
 If you want more detail, open `Advanced Campaign Detail` for:
 
@@ -251,6 +299,7 @@ If you want more detail, open `Advanced Campaign Detail` for:
 - persistent unit state
 - the theater operational area map
 - debrief text parser
+- AIS debug payloads
 - latest desktop action payload
 
 ## If Something Looks Wrong
@@ -262,6 +311,7 @@ Check these first:
 - your runtime campaign ID and package ID are what you intend
 - the package was built before deployment
 - the package was deployed after the latest build
+- you are testing a newly generated or newly redeployed package, not an older cached one
 
 If the app launches but cannot find campaign files, the most common cause is a path or ID mismatch.
 
@@ -270,10 +320,17 @@ If `Continue Campaign` does not produce the next mission you expect, check that:
 - the runtime campaign ID points at the campaign you actually played
 - the latest mission result was saved before extending
 - the package deploy paths still point at the correct MNW install and user campaign folders
+- you did not launch the placeholder mission before rewriting it
 
-If `Open Full Map` does not load correctly, rebuild and reinstall the app before troubleshooting further. The embedded map relies on the packaged `docs` content being present in the installed build.
+If the operational map does not load correctly, rebuild and reinstall the app before troubleshooting further. The embedded map relies on the packaged `docs` content being present in the installed build.
 
-If the next mission does not appear inside MNW immediately, remember that MNW still unlocks chained campaign missions only after the current one is actually completed in-game.
+If a generated hostile submarine spawns badly, verify you are testing a fresh regenerated mission. Recent builds use shallow initial submerged depths plus an explicit dive process to avoid both surfaced spawns and deep seabed collisions.
+
+If the next mission does not appear inside MNW immediately, remember that the continuation flow depends on:
+
+- the current mission being completed in-game
+- the latest result being saved into campaign state
+- the reserved next mission being rewritten before play
 
 ## Advanced Users
 

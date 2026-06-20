@@ -358,9 +358,12 @@ end_transmission_process = _P.Element.Radio(end_message_process, sat_element, en
 function buildSubHuntMissionScript(blueprint, scenario) {
   const g = scenario.geometry;
   const supportUnits = Math.max(1, scenario.geometry.density);
-  const playerDepthFeet = -380;
-  const targetDepthFeet = -520;
-  const escortDepthFeet = -620;
+  // Keep generated subs safely submerged without assuming deep-water bathymetry.
+  // Stock MNW missions commonly use about -50 ft for initial sub spawns, so we stay
+  // in that shallow-start regime and rely on the explicit Dive process after spawn.
+  const playerDepthFeet = -90;
+  const targetDepthFeet = -120;
+  const escortDepthFeet = -150;
   const annotationPoiLines = buildAnnotationPoiList(scenario.tasking?.annotations || []);
   const annotationPoiAttachList = buildAnnotationPoiAttachList(scenario.tasking?.annotations || []);
   const biologicPositions = buildDeconflictedPositions({

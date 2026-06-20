@@ -81,7 +81,7 @@ objectives = [
 ##
 player_spawn_zone = _Z.Circular("Player Spawn Zone", player_spawn_pos, 1200)
 player_props = Element.Props.FromElementID(us_fact, "(Player) Virginia B3", ElementCategory.Submarine, virginia_id, player_spawn_zone.RandomPosition())
-player_element = Element(player_props).SetElevation(-380).SetHeading(215).SetPlayable().SetScope(Global.Scope.Player)
+player_element = Element(player_props).SetElevation(-90).SetHeading(215).SetPlayable().SetScope(Global.Scope.Player)
 player_spawn_process = _P.Element.Spawn(_mission_started, player_element, player_element.Position)
 
 player_mk48_arsenal_process = _P.Element.Arsenal(player_spawn_process, player_element, BaseCategory.Subsurface, ElementCategory.Torpedo, 1712, 12)
@@ -187,7 +187,7 @@ cargo_2_spawn = _P.Element.Spawn(p8_spawn, cargo_2_element, cargo_2_element.Posi
 ##
 akula_spawn_zone = _Z.Circular("Akula Spawn Zone", akula_spawn_pos, 9000)
 akula_props = Element.Props.FromDatabaseID(rus_fact, "Akula Hunter", ElementCategory.Submarine, suka_b_id, akula_spawn_zone.RandomPosition())
-akula_element = Element(akula_props).SetElevation(-560).SetHeading(70).SetHVU(True)
+akula_element = Element(akula_props).SetElevation(-120).SetHeading(70).SetHVU(True)
 akula_spawn = _P.Element.Spawn(cargo_2_spawn, akula_element, akula_element.Position)
 akula_dive = _P.Element.Dive(akula_spawn, akula_element)
 
