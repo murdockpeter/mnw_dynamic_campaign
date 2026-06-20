@@ -12,6 +12,14 @@ function defaultSettings() {
     preferredPackageId: "silent_meridian",
     preferredPackageSourceDir: "",
     preferredPackageOutputPath: "",
+    ais: {
+      enabled: false,
+      provider: "aisstream",
+      endpointTemplate: "",
+      token: "",
+      queryRadiusKm: 160,
+      latestSample: null
+    },
     firstLaunchComplete: false
   };
 }

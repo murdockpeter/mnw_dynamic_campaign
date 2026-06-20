@@ -1495,10 +1495,85 @@ function summarizeOffstageUnits(pool = [], selected = []) {
   return pool.filter((unit) => !selectedIds.has(unit.unitId)).map((unit) => unit.name);
 }
 
-function buildScenarioForces(template, geometry, index, theaterPicture, rng) {
+function deconflictTrafficPoints(points = [], anchorPoints = [], minTrafficKm = 6, minAnchorKm = 4) {
+  const result = points.map((point) => [...point]);
+  for (let pass = 0; pass < 4; pass += 1) {
+    let changed = false;
+    for (let index = 0; index < result.length; index += 1) {
+      let point = result[index];
+      for (const anchor of anchorPoints) {
+        if (!Array.isArray(anchor)) {
+          continue;
+        }
+        const distanceKm = haversineDistanceKm(point, anchor);
+        if (distanceKm < minAnchorKm) {
+          point = movePointAwayByKm(point, anchor, minAnchorKm - distanceKm);
+          changed = true;
+        }
+      }
+      for (let otherIndex = 0; otherIndex < result.length; otherIndex += 1) {
+        if (index === otherIndex) {
+          continue;
+        }
+        const other = result[otherIndex];
+        const distanceKm = haversineDistanceKm(point, other);
+        if (distanceKm < minTrafficKm) {
+          point = movePointAwayByKm(point, other, (minTrafficKm - distanceKm) / 2);
+          changed = true;
+        }
+      }
+      result[index] = point;
+    }
+    if (!changed) {
+      break;
+    }
+  }
+  return result;
+}
+
+function buildAisMerchantTraffic(family, geometry, density, authoringConstraints = {}, aisSnapshot = null) {
+  const contacts = Array.isArray(aisSnapshot?.contacts) ? aisSnapshot.contacts : [];
+  if (!contacts.length) {
+    return [];
+  }
+  const playerSpawn = geometry.playerSpawn;
+  const maxImportedContacts = Math.max(2, Math.min(8, density + 2));
+  const filtered = contacts
+    .filter((contact) => Number.isFinite(Number(contact.lat)) && Number.isFinite(Number(contact.lon)))
+    .map((contact) => ({
+      ...contact,
+      point: [Number(contact.lat), Number(contact.lon)],
+      distanceKm: haversineDistanceKm(playerSpawn, [Number(contact.lat), Number(contact.lon)])
+    }))
+    .sort((left, right) => left.distanceKm - right.distanceKm)
+    .slice(0, maxImportedContacts);
+  if (!filtered.length) {
+    return [];
+  }
+  const anchorPoints = geometryPointKeysForFamily(family)
+    .map((key) => geometry[key])
+    .filter((point) => Array.isArray(point));
+  const adjustedPoints = deconflictTrafficPoints(
+    filtered.map((contact) => contact.point),
+    anchorPoints,
+    8,
+    5
+  );
+  return filtered.map((contact, index) => ({
+    id: `ais_${contact.mmsi || index + 1}`,
+    mmsi: contact.mmsi || null,
+    name: contact.name || `AIS Merchant ${index + 1}`,
+    point: adjustedPoints[index],
+    source: "aisstream",
+    distanceKm: Number(haversineDistanceKm(playerSpawn, adjustedPoints[index]).toFixed(1))
+  }));
+}
+
+function buildScenarioForces(template, geometry, index, theaterPicture, rng, authoringConstraints = {}, aisSnapshot = null) {
   const pools = THEATER_FORCE_POOLS[template.id] || {};
   const scenarioSector = pickScenarioSector(template, geometry, index);
   const density = Number(geometry?.density || 1);
+  const aisMerchantTraffic = buildAisMerchantTraffic(template.family, geometry, density, authoringConstraints, aisSnapshot);
 
   if (template.family === "surface_shadow") {
     const enemyPrimary = selectUnitsForMission(
@@ -1524,6 +1599,7 @@ function buildScenarioForces(template, geometry, index, theaterPicture, rng) {
       enemySecondary,
       enemyAir,
       ambientMerchantCount: Math.max(3, density + 2 + Math.floor(rng() * 2)),
+      aisMerchantTraffic,
       ambientBiologicCount: 3 + Math.floor(rng() * 2),
       offstageEnemy: summarizeOffstageUnits([...(pools.enemySurface || []), ...(pools.enemyAir || [])], [...enemyPrimary, ...enemySecondary, ...enemyAir]),
       offstageFriendly: summarizeOffstageUnits([...(pools.friendlySurface || []), ...(pools.friendlyAir || [])], [...friendlySurface, ...friendlyAir])
@@ -1556,6 +1632,7 @@ function buildScenarioForces(template, geometry, index, theaterPicture, rng) {
     enemySurfaceSupport,
     enemyAir,
     ambientMerchantCount: Math.max(3, density + 2 + Math.floor(rng() * 2)),
+    aisMerchantTraffic,
     ambientBiologicCount: 4 + Math.floor(rng() * 2),
     offstageEnemy: summarizeOffstageUnits(
       [...(pools.enemySubsurface || []), ...(pools.enemySurfaceSupport || []), ...(pools.enemyAir || [])],
@@ -1705,7 +1782,8 @@ function buildScenarioRecord(
   postureKey = "wide_area_search",
   authoringConstraints = {},
   slotNumber = index + 1,
-  reserved = false
+  reserved = false,
+  aisSnapshot = null
 ) {
   const startBase = template.id === "luzon_strait"
     ? `${year}-04-02T04:20:00Z`
@@ -1716,7 +1794,7 @@ function buildScenarioRecord(
     : buildSubHuntGeometry(template, index, count, rng);
   const postureGeometry = applyAuthoringPostureToGeometry(template, template.family, rawGeometry, postureKey);
   const geometry = finalizeScenarioGeometry(template.id, template.family, postureGeometry, rng, authoringConstraints);
-  const forces = buildScenarioForces(template, geometry, index, theaterPicture, rng);
+  const forces = buildScenarioForces(template, geometry, index, theaterPicture, rng, authoringConstraints, aisSnapshot);
   const intel = buildScenarioIntel(template, geometry, forces, index, rng, postureKey);
   const tasking = buildScenarioAnnotations(template, geometry, forces, missionDef, postureKey, intel);
   const slug = scenarioSlotSlug(slotNumber);
@@ -1804,7 +1882,8 @@ export function buildContinuationScenario({
   theaterPicture: previousTheaterPicture = null,
   posture = "wide_area_search",
   authoringConstraints = {},
-  reserved = false
+  reserved = false,
+  aisSnapshot = null
 } = {}) {
   const theater = THEATER_TEMPLATES[theaterId] || THEATER_TEMPLATES.luzon_strait;
   const family = theater.family;
@@ -1834,7 +1913,7 @@ export function buildContinuationScenario({
   const postureGeometry = applyAuthoringPostureToGeometry(theater, family, rawGeometry, posture);
   const normalizedAuthoringConstraints = normalizeAuthoringConstraints({ authoringConstraints });
   const geometry = finalizeScenarioGeometry(theater.id, family, postureGeometry, rng, normalizedAuthoringConstraints);
-  const forces = buildScenarioForces(theater, geometry, missionIndex, theaterPicture, rng);
+  const forces = buildScenarioForces(theater, geometry, missionIndex, theaterPicture, rng, normalizedAuthoringConstraints, aisSnapshot);
   const derivedTaskType = objective === "defend_chokepoint"
     ? "hold_barrier"
     : objective === "intercept_route"
@@ -1926,7 +2005,21 @@ export function buildCampaignBlueprint(spec = {}) {
   const theaterPicture = initializeTheaterPicture(theater, theaterUnits, rng);
   const scenarios = archetypes.map((missionDef, index) => {
     const reserved = index === scenarioCount - 1;
-    return buildScenarioRecord(theater, campaignId, missionDef, index, scenarioCount, year, rng, theaterPicture, posture, authoringConstraints, index + 1, reserved);
+    return buildScenarioRecord(
+      theater,
+      campaignId,
+      missionDef,
+      index,
+      scenarioCount,
+      year,
+      rng,
+      theaterPicture,
+      posture,
+      authoringConstraints,
+      index + 1,
+      reserved,
+      spec.aisSnapshot || null
+    );
   });
 
   return {

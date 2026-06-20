@@ -13,6 +13,7 @@ let packageIdSyncEnabled = true;
 let workflowStatus = null;
 let authoringStageOverride = null;
 let currentOperationalMap = null;
+let currentRuntimePayload = null;
 
 async function loadJson(targetPath) {
   const response = await fetch(targetPath);
@@ -266,6 +267,7 @@ function setTrackingRuntimeAvailability(hasRuntime, message = "") {
 }
 
 function renderRuntimeUnavailable(reason) {
+  currentRuntimePayload = null;
   const campaignSummary = document.getElementById("campaign-summary");
   const moduleSummary = document.getElementById("module-summary");
   const heroStats = document.getElementById("hero-stats");
@@ -303,6 +305,8 @@ function renderRuntimeUnavailable(reason) {
   }
 
   setTrackingRuntimeAvailability(false, message);
+  renderAisContacts({ contacts: [] });
+  setAisStatus("No AIS data loaded.");
 }
 
 function renderHeroStats(data) {
@@ -701,13 +705,29 @@ function renderDebriefParser(data) {
 function renderSettingsPreview(settings) {
   const preferredCampaignId = settings.preferredCampaignId || "silent_meridian";
   const preferredPackageId = settings.preferredPackageId || preferredCampaignId || "silent_meridian";
-  document.getElementById("settings-json").textContent = JSON.stringify(settings, null, 2);
+  const maskedSettings = {
+    ...settings,
+    ais: settings.ais ? {
+      ...settings.ais,
+      token: settings.ais.token ? "********" : "",
+      latestSample: settings.ais.latestSample ? {
+        fetchedAt: settings.ais.latestSample.fetchedAt || null,
+        theaterName: settings.ais.latestSample.theaterName || null,
+        radiusKm: settings.ais.latestSample.radiusKm || null,
+        contactCount: Array.isArray(settings.ais.latestSample.contacts) ? settings.ais.latestSample.contacts.length : 0
+      } : null
+    } : undefined
+  };
+  document.getElementById("settings-json").textContent = JSON.stringify(maskedSettings, null, 2);
   document.getElementById("settings-game-path").value = settings.gameCampaignPath || "";
   document.getElementById("settings-user-path").value = settings.userCampaignPath || "";
   document.getElementById("settings-campaign-id").value = preferredCampaignId;
   document.getElementById("settings-package-id").value = preferredPackageId;
   document.getElementById("settings-source-dir").value = settings.preferredPackageSourceDir || "";
   document.getElementById("settings-output-path").value = settings.preferredPackageOutputPath || "";
+  document.getElementById("settings-ais-enabled").checked = Boolean(settings.ais?.enabled);
+  document.getElementById("settings-ais-radius-km").value = settings.ais?.queryRadiusKm || 160;
+  document.getElementById("settings-ais-token").value = settings.ais?.token || "";
   packageIdSyncEnabled = preferredPackageId === preferredCampaignId;
   document.getElementById("settings-package-sync").checked = packageIdSyncEnabled;
   syncDesktopOpsDefaults({
@@ -776,6 +796,12 @@ function collectDesktopSettingsForm() {
     preferredPackageId: document.getElementById("settings-package-id").value.trim() || document.getElementById("settings-campaign-id").value.trim() || "silent_meridian",
     preferredPackageSourceDir: document.getElementById("settings-source-dir").value.trim(),
     preferredPackageOutputPath: document.getElementById("settings-output-path").value.trim(),
+    ais: {
+      enabled: document.getElementById("settings-ais-enabled").checked,
+      provider: "aisstream",
+      token: document.getElementById("settings-ais-token").value.trim(),
+      queryRadiusKm: Number(document.getElementById("settings-ais-radius-km").value || 160)
+    },
     firstLaunchComplete: true
   };
 }
@@ -1265,6 +1291,7 @@ async function initializeDesktopSettings() {
 }
 
 function hydrateRuntime(data) {
+  currentRuntimePayload = data;
   setTrackingRuntimeAvailability(true);
   renderCampaignSummary(data);
   renderModuleSummary(data);
@@ -1275,6 +1302,7 @@ function hydrateRuntime(data) {
   renderMissionResult(data);
   renderManualBuilder(data);
   renderDebriefParser(data);
+  renderAisSummaryPlaceholder(data);
 }
 
 async function loadInitialRuntime() {
@@ -1294,6 +1322,130 @@ async function loadInitialRuntime() {
   }
 }
 
+function averagePoints(points) {
+  if (!points.length) {
+    return null;
+  }
+  const totals = points.reduce((acc, [lat, lon]) => {
+    acc.lat += lat;
+    acc.lon += lon;
+    return acc;
+  }, { lat: 0, lon: 0 });
+  return [
+    Number((totals.lat / points.length).toFixed(6)),
+    Number((totals.lon / points.length).toFixed(6))
+  ];
+}
+
+function deriveTheaterCenter(theaterName) {
+  const templates = Object.values(getTheaterTemplates());
+  const template = templates.find((item) => item.theaterName === theaterName || item.label === theaterName);
+  if (!template) {
+    return null;
+  }
+  const route = template.route || {};
+  const variant = Array.isArray(route.variants) && route.variants.length ? route.variants[0] : route;
+  const points = [
+    ...(variant.playerCorridor || []),
+    ...(variant.enemyCorridor || []),
+    ...(variant.supportCorridor || []),
+    ...(variant.heloCorridor || []),
+    ...(variant.airCorridor || [])
+  ].filter((point) => Array.isArray(point) && point.length === 2);
+  return averagePoints(points);
+}
+
+function setAisStatus(message) {
+  const node = document.getElementById("tracking-ais-status");
+  if (node) {
+    node.textContent = message;
+  }
+}
+
+function renderAisDebug(result) {
+  const root = document.getElementById("tracking-ais-debug-json");
+  const badge = document.getElementById("tracking-ais-debug-badge");
+  if (!root || !badge) {
+    return;
+  }
+  const payload = result?.debug ? {
+    provider: result.provider || "aisstream",
+    theaterName: result.theaterName || null,
+    center: result.center || null,
+    radiusKm: result.radiusKm || null,
+    contactCount: Array.isArray(result.contacts) ? result.contacts.length : 0,
+    messageCount: result.debug.messageCount || 0,
+    uniqueVessels: result.debug.uniqueVessels || 0,
+    sampledMessages: result.debug.sampledMessages || []
+  } : {};
+  root.textContent = JSON.stringify(payload, null, 2);
+  badge.textContent = result?.debug?.messageCount ? `${result.debug.messageCount} Msg` : "Empty";
+}
+
+function renderAisContacts(result) {
+  const root = document.getElementById("tracking-ais-list");
+  const copy = document.getElementById("tracking-ais-copy");
+  if (!root || !copy) {
+    return;
+  }
+  if (!result?.contacts?.length) {
+    root.innerHTML = "";
+    copy.textContent = "Enable AISStream in Setup, save the key locally, then use this to sample live contacts around the current theater.";
+    renderAisDebug(result);
+    return;
+  }
+  copy.textContent = result.center
+    ? `${result.theaterName || "Current theater"} centered near ${result.center[0].toFixed(3)}, ${result.center[1].toFixed(3)} with a ${result.radiusKm} km query radius.`
+    : "Live AIS sample loaded.";
+  root.innerHTML = result.contacts.map((contact) => `
+    <div class="event">
+      <div class="head">
+        <strong>${contact.name || "Unnamed Vessel"}</strong>
+        <span class="pill alt">${contact.mmsi || "No MMSI"}</span>
+      </div>
+      <div class="muted">
+        ${contact.lat.toFixed(4)}, ${contact.lon.toFixed(4)}
+        ${Number.isFinite(contact.distanceKm) ? ` | ${contact.distanceKm.toFixed(1)} km` : ""}
+        ${Number.isFinite(contact.sog) ? ` | ${contact.sog.toFixed(1)} kt` : ""}
+        ${Number.isFinite(contact.cog) ? ` | COG ${contact.cog.toFixed(0)}` : ""}
+      </div>
+    </div>
+  `).join("");
+  renderAisDebug(result);
+}
+
+function renderAisSummaryPlaceholder(data) {
+  const theaterName = data?.state?.metadata?.theater || data?.campaign?.theater || "";
+  const center = deriveTheaterCenter(theaterName);
+  const copy = document.getElementById("tracking-ais-copy");
+  if (copy && center) {
+    copy.textContent = `Enable AISStream in Setup, save the key locally, then use this to sample live contacts around ${theaterName} near ${center[0].toFixed(3)}, ${center[1].toFixed(3)}.`;
+  }
+  renderAisDebug(null);
+}
+
+async function refreshAisContacts() {
+  if (!desktopApi?.fetchAisContacts) {
+    setAisStatus("Desktop app required for AISStream access.");
+    return;
+  }
+  const theaterName = currentRuntimePayload?.state?.metadata?.theater || currentRuntimePayload?.campaign?.theater || "";
+  const center = deriveTheaterCenter(theaterName);
+  if (!center) {
+    setAisStatus("Unable to derive a theater query center yet.");
+    return;
+  }
+  const radiusKm = Number(document.getElementById("settings-ais-radius-km")?.value || 160);
+  setAisStatus("Refreshing AIS contacts from AISStream...");
+  try {
+    const result = await desktopApi.fetchAisContacts({ center, radiusKm, theaterName });
+    setAisStatus(result.status || "AIS refresh complete.");
+    renderAisContacts(result);
+  } catch (error) {
+    setAisStatus(error.message || "AIS refresh failed.");
+  }
+}
+
 async function main() {
   const runtime = await loadInitialRuntime();
   await refreshWorkflowStatus();
@@ -1307,6 +1459,7 @@ async function main() {
   await initializeDesktopSettings();
   await initializeWizard();
   await initializeDesktopOps();
+  document.getElementById("tracking-ais-refresh")?.addEventListener("click", refreshAisContacts);
 }
 
 main().catch((error) => {

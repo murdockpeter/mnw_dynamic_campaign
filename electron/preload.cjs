@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld("mnwDesktop", {
   getWorkflowStatus: (payload) => ipcRenderer.invoke("mnw:getWorkflowStatus", payload),
   loadSettings: () => ipcRenderer.invoke("mnw:loadSettings"),
   saveSettings: (payload) => ipcRenderer.invoke("mnw:saveSettings", payload),
+  fetchAisContacts: (payload) => ipcRenderer.invoke("mnw:fetchAisContacts", payload),
   loadRuntimeSnapshot: (payload) => ipcRenderer.invoke("mnw:loadRuntimeSnapshot", payload),
   openDesktopGuide: () => ipcRenderer.invoke("mnw:openDesktopGuide"),
   openOperationalMap: (payload) => ipcRenderer.invoke("mnw:openOperationalMap", payload),

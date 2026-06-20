@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 
 import { buildPackage } from "./build-package.mjs";
 import { appendContinuationScenario } from "./continue-campaign.mjs";
+import { fetchAisContacts } from "./ais-api.mjs";
 import { defaultGamePaths, ensureDir, md5File, readJson, repoRoot, writeJson } from "./fs-helpers.mjs";
 import { deployPackage } from "./deploy-package.mjs";
 import { generateCampaign } from "./generate-campaign.mjs";
@@ -191,6 +192,33 @@ export async function saveSettingsForDesktop({ settingsPath, settings }) {
   return saveSettings(settingsPath, settings);
 }
 
+export async function fetchAisContactsForDesktop({ center, radiusKm, theaterName, settingsPath } = {}) {
+  const settings = await readDesktopSettings(settingsPath);
+  const result = await fetchAisContacts({
+    settings,
+    center,
+    radiusKm,
+    theaterName
+  });
+  if (settingsPath && result?.enabled) {
+    await saveSettings(settingsPath, {
+      ...settings,
+      ais: {
+        ...(settings.ais || {}),
+        latestSample: {
+          fetchedAt: new Date().toISOString(),
+          provider: result.provider || "aisstream",
+          theaterName: result.theaterName || theaterName || null,
+          center: result.center || center || null,
+          radiusKm: result.radiusKm || radiusKm || settings.ais?.queryRadiusKm || 160,
+          contacts: Array.isArray(result.contacts) ? result.contacts : []
+        }
+      }
+    });
+  }
+  return result;
+}
+
 export async function exportRuntimeSnapshot({ campaignId, outputPath, stateDir, settingsPath, contentRoot, workspaceRoot } = {}) {
   const settings = await readDesktopSettings(settingsPath);
   const roots = await resolveRoots({ contentRoot, workspaceRoot });
@@ -263,15 +291,18 @@ export async function ingestResultPayloadForDesktop({ campaignId, result, stateD
 }
 
 export async function generateCampaignForDesktop({ spec, dryRun = false, settingsPath, contentRoot, workspaceRoot } = {}) {
+  const settings = settingsPath ? await readDesktopSettings(settingsPath) : {};
   const roots = await resolveRoots({ contentRoot, workspaceRoot });
   const result = await generateCampaign({
     templateRoot: roots.contentRoot,
     workspaceRoot: roots.workspaceRoot,
-    spec,
+    spec: {
+      ...(spec || {}),
+      aisSnapshot: settings?.ais?.latestSample || null
+    },
     dryRun
   });
   if (settingsPath && !dryRun) {
-    const settings = await readDesktopSettings(settingsPath);
     await saveSettings(settingsPath, {
       ...settings,
       preferredCampaignId: result.blueprint.campaignId,
@@ -315,7 +346,8 @@ export async function continueCampaignForDesktop({
     objective,
     riskPosture,
     operationalTempo,
-    stateDir
+    stateDir,
+    aisSnapshot: settings?.ais?.latestSample || null
   });
   const sourceDir = continuation.continuation_source_dir || path.join(roots.workspaceRoot, "src", "packages", effectiveCampaignId);
   const outputPath = resolveOutputPath(settings) || path.join(roots.workspaceRoot, "dist", `${effectiveCampaignId}.kyt`);

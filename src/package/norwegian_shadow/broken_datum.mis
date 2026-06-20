@@ -203,16 +203,16 @@ yasen_spawn_zone = _Z.Circular("Yasen Spawn Zone", yasen_spawn_pos, 12000)
 yasen_props = Element.Props.FromDatabaseID(rus_fact, "Yasen Severodvinsk", ElementCategory.Submarine, yasen_id, yasen_spawn_zone.RandomPosition())
 yasen_element = Element(yasen_props).SetElevation(-520).SetHeading(245)
 yasen_spawn = _P.Element.Spawn(cargo_3_spawn, yasen_element, yasen_element.Position)
+yasen_dive = _P.Element.Dive(yasen_spawn, yasen_element)
 
 escort_spawn_zone = _Z.Circular("Escort Spawn Zone", escort_spawn_pos, 10000)
 escort_props = Element.Props.FromDatabaseID(rus_fact, "Akula Screen", ElementCategory.Submarine, suka_b_id, escort_spawn_zone.RandomPosition())
 escort_element = Element(escort_props).SetElevation(-620).SetHeading(245).SetHVU(True)
 escort_spawn = _P.Element.Spawn(yasen_spawn, escort_element, escort_element.Position)
+escort_dive = _P.Element.Dive(escort_spawn, escort_element)
 
-asw_formation_subs = ASWFormation.ASWFormationProps()
-asw_formation_subs.SetCourse(245.0)
-russian_squad = Squadron(rus_fact, "Russian Breakout Group", [yasen_element, escort_element], yasen_spawn_pos, asw_formation_subs)
-russian_plot = _P.Squadron.Plot(escort_spawn, russian_squad, Waypoint(egress_pos))
+yasen_plot = _P.Element.Plot(escort_dive, yasen_element, Waypoint(egress_pos))
+escort_plot = _P.Element.Plot(yasen_plot, escort_element, Waypoint(egress_pos))
 
 ##
 # Hostile support group

@@ -45,7 +45,8 @@ export async function appendContinuationScenario({
   objective,
   riskPosture,
   operationalTempo,
-  stateDir
+  stateDir,
+  aisSnapshot = null
 }) {
   const campaignDir = path.join(repoRoot, "campaigns", campaignId);
   const packageDir = path.join(repoRoot, "src", "packages", campaignId);
@@ -87,7 +88,8 @@ export async function appendContinuationScenario({
     lastOutcome: latestResult?.outcome || "success",
     theaterPicture: state.world_state?.theater_picture || null,
     posture: state.world_state?.posture || "wide_area_search",
-    authoringConstraints: state.world_state?.authoring_constraints || campaignConfig.authoring_constraints || {}
+    authoringConstraints: state.world_state?.authoring_constraints || campaignConfig.authoring_constraints || {},
+    aisSnapshot
   });
   const tailScenario = hasTailSlot ? null : buildContinuationScenario({
     campaignId,
@@ -105,7 +107,8 @@ export async function appendContinuationScenario({
     theaterPicture: scenario.theaterPicture || state.world_state?.theater_picture || null,
     posture: state.world_state?.posture || "wide_area_search",
     authoringConstraints: state.world_state?.authoring_constraints || campaignConfig.authoring_constraints || {},
-    reserved: true
+    reserved: true,
+    aisSnapshot
   });
 
   const blueprint = {

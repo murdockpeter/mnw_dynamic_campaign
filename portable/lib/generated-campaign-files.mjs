@@ -43,6 +43,16 @@ function formatGc([lat, lon]) {
   return `GC(${lat.toFixed(6)}, ${lon.toFixed(6)})`;
 }
 
+const GENERIC_CARGO_IDS = [
+  99992101, 99992105, 99992106, 99992107, 99992108,
+  99992109, 99992110, 99992111, 99992201, 99992202,
+  99992203, 99992204, 99992205, 99992206, 99992207,
+  99992208, 99992209, 99992210, 99992211, 99992301,
+  99992302, 99992303, 99992304, 99992305, 99992306,
+  99992307, 99992308, 99992309, 99992310, 99992311,
+  99992312, 99992313, 99992314, 99992315, 99992401
+];
+
 function hashSeed(value) {
   let hash = 2166136261;
   for (const char of String(value || "")) {
@@ -82,27 +92,35 @@ function offsetPointByKm([lat, lon], angleRadians, distanceKm) {
   ];
 }
 
-function buildDeconflictedPositions({ center, count, radiusKm, minSpacingKm, seedKey }) {
+function buildDeconflictedPositions({ center, count, radiusKm, minSpacingKm, seedKey, existingPoints = [] }) {
   if (!Array.isArray(center) || count <= 0) {
     return [];
   }
   const rng = mulberry32(hashSeed(seedKey));
-  const positions = [];
+  const positions = [...existingPoints];
+  const generated = [];
   const attemptsLimit = Math.max(24, count * 40);
-  for (let attempt = 0; attempt < attemptsLimit && positions.length < count; attempt += 1) {
+  for (let attempt = 0; attempt < attemptsLimit && generated.length < count; attempt += 1) {
     const angle = rng() * Math.PI * 2;
     const distanceKm = radiusKm * (0.3 + (rng() * 0.7));
     const candidate = offsetPointByKm(center, angle, distanceKm);
     if (positions.every((existing) => haversineDistanceKm(existing, candidate) >= minSpacingKm)) {
       positions.push(candidate);
+      generated.push(candidate);
     }
   }
-  while (positions.length < count) {
-    const angle = (Math.PI * 2 * positions.length) / Math.max(1, count);
+  while (generated.length < count) {
+    const angle = (Math.PI * 2 * generated.length) / Math.max(1, count);
     const ringDistanceKm = Math.min(radiusKm, Math.max(minSpacingKm, radiusKm * 0.65));
-    positions.push(offsetPointByKm(center, angle, ringDistanceKm));
+    const candidate = offsetPointByKm(center, angle, ringDistanceKm);
+    positions.push(candidate);
+    generated.push(candidate);
   }
-  return positions;
+  return generated;
+}
+
+function pickGenericCargoDbid(seedKey) {
+  return GENERIC_CARGO_IDS[hashSeed(seedKey) % GENERIC_CARGO_IDS.length];
 }
 
 function buildAnnotationPoiList(annotations = []) {
@@ -149,18 +167,23 @@ function buildSurfaceMissionScript(blueprint, scenario) {
     minSpacingKm: 12,
     seedKey: `${scenario.missionId}:surface:biologics`
   });
-  const merchantCount = Math.max(2, scenario.geometry.density + 1);
+  const aisMerchantTraffic = Array.isArray(scenario.forces?.aisMerchantTraffic) ? scenario.forces.aisMerchantTraffic : [];
+  const syntheticMerchantCount = Math.max(0, (scenario.forces?.ambientMerchantCount ?? Math.max(2, scenario.geometry.density + 1)) - aisMerchantTraffic.length);
   const merchantPositions = buildDeconflictedPositions({
     center: g.center,
-    count: merchantCount,
+    count: syntheticMerchantCount,
     radiusKm: 100,
     minSpacingKm: 18,
-    seedKey: `${scenario.missionId}:surface:merchants`
+    seedKey: `${scenario.missionId}:surface:merchants`,
+    existingPoints: aisMerchantTraffic.map((contact) => contact.point)
   });
   const biologicBlock = biologicPositions.map((point, idx) => `bio_props = Element.Props.FromDatabaseID(civ_fact, "Biologic ${idx}", ElementCategory.Biologic, 1, ${formatGc(point)})
 bio_element = Element(bio_props).SetElevation(${-60 - (idx * 40)}).SetHeading(random.randrange(0, 359))
 _P.Element.Spawn(player_spawn_process, bio_element, bio_element.Position)`).join("\n");
-  const merchantBlock = merchantPositions.map((point, idx) => `cargo_props = Element.Props.FromDatabaseID(civ_fact, "Merchant ${idx + 1}", ElementCategory.Ship, _get_random_cargo(), ${formatGc(point)})
+  const aisMerchantBlock = aisMerchantTraffic.map((contact, idx) => `cargo_props = Element.Props.FromDatabaseID(civ_fact, "${String(contact.name || `AIS Merchant ${idx + 1}`).replaceAll("\"", "")}", ElementCategory.Ship, ${pickGenericCargoDbid(contact.mmsi || contact.id || `${scenario.missionId}:ais:${idx}`)}, ${formatGc(contact.point)})
+cargo_element = Element(cargo_props).SetHeading(random.randrange(180, 280))
+_P.Element.Spawn(player_spawn_process, cargo_element, cargo_element.Position)`).join("\n");
+  const merchantBlock = merchantPositions.map((point, idx) => `cargo_props = Element.Props.FromDatabaseID(civ_fact, "Merchant ${aisMerchantTraffic.length + idx + 1}", ElementCategory.Ship, _get_random_cargo(), ${formatGc(point)})
 cargo_element = Element(cargo_props).SetHeading(random.randrange(180, 280))
 _P.Element.Spawn(player_spawn_process, cargo_element, cargo_element.Position)`).join("\n");
   return `import random
@@ -276,6 +299,8 @@ p8_plot = _P.Element.Plot(p8_spawn, p8_element, Waypoint(${formatGc(g.datum)}))
 
 ${biologicBlock}
 
+${aisMerchantBlock}
+
 ${merchantBlock}
 
 t055_props = Element.Props.FromDatabaseID(ch_fact, "PLAN Lead DDG", ElementCategory.Ship, t055_id, lead_pos)
@@ -345,12 +370,14 @@ function buildSubHuntMissionScript(blueprint, scenario) {
     minSpacingKm: 12,
     seedKey: `${scenario.missionId}:subhunt:biologics`
   });
+  const aisMerchantTraffic = Array.isArray(scenario.forces?.aisMerchantTraffic) ? scenario.forces.aisMerchantTraffic : [];
   const merchantPositions = buildDeconflictedPositions({
     center: g.center,
-    count: supportUnits + 2,
+    count: Math.max(0, (scenario.forces?.ambientMerchantCount ?? (supportUnits + 2)) - aisMerchantTraffic.length),
     radiusKm: 120,
     minSpacingKm: 18,
-    seedKey: `${scenario.missionId}:subhunt:merchants`
+    seedKey: `${scenario.missionId}:subhunt:merchants`,
+    existingPoints: aisMerchantTraffic.map((contact) => contact.point)
   });
   const friendlySurface = scenario.forces?.friendlySurface?.[0] || {
     name: "USS Spruance",
@@ -397,7 +424,10 @@ function buildSubHuntMissionScript(blueprint, scenario) {
   const biologicBlock = biologicPositions.map((point, idx) => `bio_props = Element.Props.FromDatabaseID(civ_fact, "Biologic %s" % ${idx}, ElementCategory.Biologic, 1, ${formatGc(point)})
 bio_element = Element(bio_props).SetElevation(${-60 - (idx * 35)}).SetHeading(random.randrange(0, 359))
 _P.Element.Spawn(p8_spawn, bio_element, bio_element.Position)`).join("\n");
-  const merchantBlock = merchantPositions.map((point, idx) => `cargo_props = Element.Props.FromDatabaseID(civ_fact, "Merchant %s" % (${idx} + 1), ElementCategory.Ship, _get_random_cargo(), ${formatGc(point)})
+  const aisMerchantBlock = aisMerchantTraffic.map((contact, idx) => `cargo_props = Element.Props.FromDatabaseID(civ_fact, "${String(contact.name || `AIS Merchant ${idx + 1}`).replaceAll("\"", "")}", ElementCategory.Ship, ${pickGenericCargoDbid(contact.mmsi || contact.id || `${scenario.missionId}:ais:${idx}`)}, ${formatGc(contact.point)})
+cargo_element = Element(cargo_props).SetHeading(random.randrange(200, 280))
+_P.Element.Spawn(p8_spawn, cargo_element, cargo_element.Position)`).join("\n");
+  const merchantBlock = merchantPositions.map((point, idx) => `cargo_props = Element.Props.FromDatabaseID(civ_fact, "Merchant %s" % (${aisMerchantTraffic.length + idx} + 1), ElementCategory.Ship, _get_random_cargo(), ${formatGc(point)})
 cargo_element = Element(cargo_props).SetHeading(random.randrange(200, 280))
 _P.Element.Spawn(p8_spawn, cargo_element, cargo_element.Position)`).join("\n");
   const supportGroupBlock = enemySupportSurface.length || enemySupportAir.length
@@ -535,22 +565,24 @@ p8_spawn = _P.Element.Spawn(ddg_plot, p8_element, p8_element.Position)
 
 ${biologicBlock}
 
+${aisMerchantBlock}
+
 ${merchantBlock}
 
 yasen_spawn_zone = _Z.Circular("Yasen Spawn Zone", yasen_spawn_pos, 12000)
 yasen_props = Element.Props.FromDatabaseID(${factionRuntimeId(primaryTarget.faction)}, "${primaryTarget.name}", ElementCategory.Submarine, yasen_id, yasen_spawn_pos)
 yasen_element = Element(yasen_props).SetElevation(${targetDepthFeet}).SetHeading(245)
 yasen_spawn = _P.Element.Spawn(p8_spawn, yasen_element, yasen_element.Position)
+yasen_dive = _P.Element.Dive(yasen_spawn, yasen_element)
 
 escort_spawn_zone = _Z.Circular("Escort Spawn Zone", escort_spawn_pos, 10000)
 escort_props = Element.Props.FromDatabaseID(${factionRuntimeId(escortUnit.faction)}, "${escortUnit.name}", ElementCategory.Submarine, escort_id, escort_spawn_pos)
 escort_element = Element(escort_props).SetElevation(${escortDepthFeet}).SetHeading(245).SetHVU(True)
 escort_spawn = _P.Element.Spawn(yasen_spawn, escort_element, escort_element.Position)
+escort_dive = _P.Element.Dive(escort_spawn, escort_element)
 
-asw_formation_subs = ASWFormation.ASWFormationProps()
-asw_formation_subs.SetCourse(245.0)
-russian_squad = Squadron(rus_fact, "Russian Breakout Group", [yasen_element, escort_element], yasen_spawn_pos, asw_formation_subs)
-russian_plot = _P.Squadron.Plot(escort_spawn, russian_squad, Waypoint(egress_pos))
+yasen_plot = _P.Element.Plot(escort_dive, yasen_element, Waypoint(egress_pos))
+escort_plot = _P.Element.Plot(yasen_plot, escort_element, Waypoint(egress_pos))
 
 ${supportGroupBlock}
 

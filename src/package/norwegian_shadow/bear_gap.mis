@@ -168,16 +168,16 @@ russian_spawn_zone = _Z.Circular("Russian Spawn Zone", russian_spawn_pos, 12000)
 russian_props = Element.Props.FromDatabaseID(rus_fact, "Yasen Vladivostok", ElementCategory.Submarine, yasen_id, russian_spawn_zone.RandomPosition())
 russian_element = Element(russian_props).SetElevation(-520).SetHeading(235)
 russian_spawn_process = _P.Element.Spawn(player_spawn_process, russian_element, russian_element.Position)
+russian_dive_process = _P.Element.Dive(russian_spawn_process, russian_element)
 
 escort_spawn_zone = _Z.Circular("Escort Spawn Zone", escort_spawn_pos, 10000)
 escort_props = Element.Props.FromDatabaseID(rus_fact, "Suka B", ElementCategory.Submarine, suka_b_id, escort_spawn_zone.RandomPosition())
 escort_element = Element(escort_props).SetElevation(-620).SetHeading(235).SetHVU(True)
 escort_spawn_process = _P.Element.Spawn(player_spawn_process, escort_element, escort_element.Position)
+escort_dive_process = _P.Element.Dive(escort_spawn_process, escort_element)
 
-asw_formation_props = ASWFormation.ASWFormationProps()
-asw_formation_props.SetCourse(235.0)
-russian_squad = Squadron(rus_fact, "Breakout Group", [russian_element, escort_element], russian_spawn_zone.RandomPosition(), asw_formation_props)
-russian_plot = _P.Squadron.Plot(escort_spawn_process, russian_squad, Waypoint(egress_pos))
+russian_plot = _P.Element.Plot(escort_dive_process, russian_element, Waypoint(egress_pos))
+escort_plot = _P.Element.Plot(russian_plot, escort_element, Waypoint(egress_pos))
 
 ##
 # Objective changes

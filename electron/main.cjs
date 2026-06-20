@@ -80,6 +80,11 @@ ipcMain.handle("mnw:saveSettings", async (_event, payload) => {
   return saveSettingsForDesktop({ settingsPath: getSettingsPath(), settings: payload || {} });
 });
 
+ipcMain.handle("mnw:fetchAisContacts", async (_event, payload) => {
+  const { fetchAisContactsForDesktop } = await loadPortableModule("portable/lib/desktop-api.mjs");
+  return fetchAisContactsForDesktop({ ...(payload || {}), settingsPath: getSettingsPath() });
+});
+
 ipcMain.handle("mnw:loadRuntimeSnapshot", async (_event, payload) => {
   const { loadRuntimeSnapshotForDesktop } = await loadPortableModule("portable/lib/desktop-api.mjs");
   return loadRuntimeSnapshotForDesktop({

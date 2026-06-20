@@ -103,6 +103,24 @@
                   <input id="settings-output-path" type="text">
                 </label>
               </div>
+              <div class="wizard-block" style="margin-top:16px;">
+                <strong>Optional AISStream Feed</strong>
+                <div class="wizard-meta">The desktop app can open an AISStream websocket from the backend only. The API key stays in local desktop settings and is not written into generated campaign files.</div>
+              </div>
+              <div class="field-grid" style="margin-top:14px;">
+                <label class="toggle compact-toggle">
+                  <span>Enable AISStream</span>
+                  <input id="settings-ais-enabled" type="checkbox">
+                </label>
+                <label>
+                  <span>AIS Radius (km)</span>
+                  <input id="settings-ais-radius-km" type="number" min="20" max="500" step="10" value="160">
+                </label>
+                <label class="full-width">
+                  <span>AISStream API Key</span>
+                  <input id="settings-ais-token" type="password" autocomplete="off" placeholder="Paste AISStream API key">
+                </label>
+              </div>
               <div class="builder-actions">
                 <button id="settings-save" type="button">Save Desktop Settings</button>
                 <button id="settings-use-generated" type="button">Use Latest Generated Campaign</button>
@@ -475,6 +493,36 @@
                   <span class="badge">Persistent Units</span>
                 </div>
                 <div id="oob-table-wrap" class="table-wrap"></div>
+              </article>
+            </div>
+
+            <div class="grid one-up collapsible-content">
+              <article class="card nested-card">
+                <div class="card-head">
+                  <h3>Live AIS Feed</h3>
+                  <span class="badge alt">Optional</span>
+                </div>
+                <div class="builder-form">
+                  <p id="tracking-ais-copy" class="muted">Enable AISStream in Setup, save the key locally, then use this to sample live contacts around the current theater.</p>
+                  <div class="builder-actions" style="margin-top:14px;">
+                    <button id="tracking-ais-refresh" type="button">Refresh AIS Contacts</button>
+                  </div>
+                  <p id="tracking-ais-status" class="muted builder-help">No AIS data loaded.</p>
+                  <div id="tracking-ais-list" class="event-list"></div>
+                  <details style="margin-top:16px;">
+                    <summary class="collapsible-summary">
+                      <div>
+                        <strong>AIS Debug Payload</strong>
+                        <div class="muted">See message counts and sampled raw websocket payloads.</div>
+                      </div>
+                      <span id="tracking-ais-debug-badge" class="badge alt">Empty</span>
+                    </summary>
+                    <div class="builder-preview" style="margin-top:14px;">
+                      <div class="preview-head">AIS Debug JSON</div>
+                      <pre id="tracking-ais-debug-json">{}</pre>
+                    </div>
+                  </details>
+                </div>
               </article>
             </div>
 
