@@ -1,8 +1,8 @@
-version: 0.1.1
+version: 0.1.2
 files:
-  - url: MNW-Dynamic-Campaign-Console-Setup-0.1.1.exe
+  - url: MNW-Dynamic-Campaign-Console-Setup-0.1.2.exe
     sha512: ISGPKgKrnRjgbNkx6VAHM3kT5CERx2O66CSi8bUmiAAp9w+RLaAXBmWv8KzCRr7NddCagwuhyokwYIyX7kamJg==
     size: 82779878
-path: MNW-Dynamic-Campaign-Console-Setup-0.1.1.exe
+path: MNW-Dynamic-Campaign-Console-Setup-0.1.2.exe
 sha512: ISGPKgKrnRjgbNkx6VAHM3kT5CERx2O66CSi8bUmiAAp9w+RLaAXBmWv8KzCRr7NddCagwuhyokwYIyX7kamJg==
 releaseDate: '2026-06-20T21:40:17.355Z'

@@ -1,5 +1,8 @@
 import path from "node:path";
 import fs from "node:fs/promises";
+import os from "node:os";
+import { execFile as execFileCallback } from "node:child_process";
+import { promisify } from "node:util";
 
 import { buildPackage } from "./build-package.mjs";
 import { appendContinuationScenario } from "./continue-campaign.mjs";
@@ -10,6 +13,8 @@ import { generateCampaign } from "./generate-campaign.mjs";
 import { exportRuntimePayload, ingestMissionResult, ingestMissionResultPayload } from "./runtime.mjs";
 import { loadSettings, saveSettings } from "./settings-store.mjs";
 import { ensureWorkspace } from "./workspace-bootstrap.mjs";
+
+const execFile = promisify(execFileCallback);
 
 async function readDesktopSettings(settingsPath) {
   return settingsPath ? loadSettings(settingsPath) : loadSettings("__defaults__.json");
@@ -35,6 +40,160 @@ async function pathExists(targetPath) {
   } catch {
     return false;
   }
+}
+
+async function directoryExists(targetPath) {
+  try {
+    const stats = await fs.stat(targetPath);
+    return stats.isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+function normalizeWindowsPath(value) {
+  return String(value || "").trim().replace(/\//g, "\\");
+}
+
+async function readWindowsRegistryString(keyPath, valueName) {
+  if (process.platform !== "win32") {
+    return null;
+  }
+  try {
+    const { stdout } = await execFile("reg", ["query", keyPath, "/v", valueName], { windowsHide: true });
+    const match = stdout.match(new RegExp(`${valueName}\\s+REG_\\w+\\s+(.+)$`, "mi"));
+    return match ? normalizeWindowsPath(match[1]) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function parseSteamLibraryFolders(rawVdf = "") {
+  const libraries = [];
+  const regex = /"path"\s+"([^"]+)"/g;
+  for (const match of rawVdf.matchAll(regex)) {
+    const candidate = normalizeWindowsPath(match[1].replace(/\\\\/g, "\\"));
+    if (candidate && !libraries.includes(candidate)) {
+      libraries.push(candidate);
+    }
+  }
+  return libraries;
+}
+
+async function detectSteamLibraries() {
+  const libraries = [];
+  const pushCandidate = (candidate) => {
+    const normalized = normalizeWindowsPath(candidate);
+    if (normalized && !libraries.includes(normalized)) {
+      libraries.push(normalized);
+    }
+  };
+
+  pushCandidate(await readWindowsRegistryString("HKCU\\Software\\Valve\\Steam", "SteamPath"));
+  pushCandidate(process.env["ProgramFiles(x86)"] ? path.join(process.env["ProgramFiles(x86)"], "Steam") : null);
+  pushCandidate(process.env.ProgramFiles ? path.join(process.env.ProgramFiles, "Steam") : null);
+  pushCandidate("C:\\Steam");
+
+  for (const steamRoot of [...libraries]) {
+    const libraryFile = path.join(steamRoot, "steamapps", "libraryfolders.vdf");
+    try {
+      const raw = await fs.readFile(libraryFile, "utf8");
+      for (const parsed of parseSteamLibraryFolders(raw)) {
+        pushCandidate(parsed);
+      }
+    } catch {
+      // Continue with any roots we already have.
+    }
+  }
+
+  return libraries;
+}
+
+async function detectGameCampaignPath() {
+  const defaults = defaultGamePaths();
+  const defaultCandidate = defaults.gameCampaignPath;
+  if (defaultCandidate && await directoryExists(defaultCandidate)) {
+    return {
+      path: defaultCandidate,
+      source: "default_steam_path",
+      exists: true
+    };
+  }
+
+  for (const steamLibrary of await detectSteamLibraries()) {
+    const candidate = path.join(steamLibrary, "steamapps", "common", "Modern Naval Warfare", "Var", "Scenarios", "Packages", "Campaigns");
+    if (await directoryExists(candidate)) {
+      return {
+        path: candidate,
+        source: "steam_library_scan",
+        exists: true
+      };
+    }
+  }
+
+  return {
+    path: defaultCandidate || "",
+    source: "default_guess",
+    exists: Boolean(defaultCandidate)
+  };
+}
+
+async function detectUserCampaignPath() {
+  const defaults = defaultGamePaths();
+  const candidates = [
+    defaults.userCampaignPath,
+    path.join(os.homedir(), "AppData", "LocalLow", "WaveOps", "ModernNavalWarfare", "Scenarios", "Packages", "Campaigns")
+  ].filter(Boolean);
+
+  for (const candidate of candidates) {
+    if (await directoryExists(candidate)) {
+      return {
+        path: candidate,
+        source: "local_profile",
+        exists: true
+      };
+    }
+  }
+
+  return {
+    path: candidates[0] || "",
+    source: "default_guess",
+    exists: Boolean(candidates[0])
+  };
+}
+
+export async function detectDesktopPathsForDesktop({ settingsPath, contentRoot, workspaceRoot } = {}) {
+  const settings = await readDesktopSettings(settingsPath);
+  const roots = await resolveRoots({ contentRoot, workspaceRoot });
+  const preferredCampaignId = settings.preferredCampaignId || "silent_meridian";
+  const preferredPackageId = settings.preferredPackageId || preferredCampaignId;
+  const gameCampaign = await detectGameCampaignPath();
+  const userCampaign = await detectUserCampaignPath();
+  const preferredPackageSourceDir = path.join(roots.workspaceRoot, "src", "packages", preferredPackageId);
+  const preferredPackageOutputPath = path.join(roots.workspaceRoot, "dist", `${preferredPackageId}.kyt`);
+  const findings = [
+    gameCampaign.exists
+      ? `Game campaign path found via ${gameCampaign.source.replaceAll("_", " ")}.`
+      : "Game campaign path not confirmed; using the best default guess.",
+    userCampaign.exists
+      ? "User campaign path found in the local Windows profile."
+      : "User campaign path not confirmed; using the standard LocalLow guess.",
+    `Package source and output paths were set from this app's writable workspace for package ID ${preferredPackageId}.`
+  ];
+
+  return {
+    gameCampaignPath: gameCampaign.path,
+    userCampaignPath: userCampaign.path,
+    preferredCampaignId,
+    preferredPackageId,
+    preferredPackageSourceDir,
+    preferredPackageOutputPath,
+    findings,
+    status: {
+      gameCampaignFound: gameCampaign.exists,
+      userCampaignFound: userCampaign.exists
+    }
+  };
 }
 
 function resolveSourceDir(settings, sourceDir) {

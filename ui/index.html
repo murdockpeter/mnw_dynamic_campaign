@@ -72,6 +72,10 @@
                 namespace used for build and deploy. Keep them the same for a normal one-package workflow. Split them only if you are
                 tracking one runtime campaign while building another package tree.
               </p>
+              <p class="muted">
+                On first launch, the app will try to locate the installed game campaign folder, your user campaign folder, and the local
+                workspace output paths automatically. Use <strong>Find Paths</strong> to run that scan again if needed.
+              </p>
               <div class="field-grid">
                 <label>
                   <span>Game Campaign Path</span>
@@ -122,6 +126,7 @@
                 </label>
               </div>
               <div class="builder-actions">
+                <button id="settings-find-paths" type="button">Find Paths</button>
                 <button id="settings-save" type="button">Save Desktop Settings</button>
                 <button id="settings-use-generated" type="button">Use Latest Generated Campaign</button>
               </div>

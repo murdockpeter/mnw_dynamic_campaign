@@ -1,13 +1,12 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-import { defaultGamePaths, ensureDir } from "./fs-helpers.mjs";
+import { ensureDir } from "./fs-helpers.mjs";
 
 function defaultSettings() {
-  const defaults = defaultGamePaths();
   return {
-    gameCampaignPath: defaults.gameCampaignPath,
-    userCampaignPath: defaults.userCampaignPath,
+    gameCampaignPath: "",
+    userCampaignPath: "",
     preferredCampaignId: "silent_meridian",
     preferredPackageId: "silent_meridian",
     preferredPackageSourceDir: "",

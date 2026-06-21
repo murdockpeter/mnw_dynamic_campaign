@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Beta Tester Feature Overview | MNW Dynamic Campaign Console</title>
+  <style>
+    :root {
+      --bg: #081018;
+      --bg-2: #0d1822;
+      --panel: rgba(14, 30, 41, 0.9);
+      --panel-strong: rgba(18, 38, 52, 0.96);
+      --line: rgba(119, 211, 255, 0.18);
+      --text: #eef8fc;
+      --muted: #9db9c8;
+      --accent: #79d8ff;
+      --accent-2: #64e2bb;
+      --accent-3: #ffc870;
+      --danger: #ff9a8f;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.34);
+      --radius-xl: 28px;
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --content-width: 1220px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(100, 226, 187, 0.12), transparent 22%),
+        radial-gradient(circle at top right, rgba(121, 216, 255, 0.16), transparent 24%),
+        linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 46%, var(--bg) 100%);
+      font: 16px/1.7 "Segoe UI", "Aptos", system-ui, sans-serif;
+    }
+
+    a {
+      color: var(--accent);
+    }
+
+    code,
+    pre {
+      font-family: "Cascadia Code", Consolas, monospace;
+    }
+
+    .page {
+      width: min(calc(100% - 32px), var(--content-width));
+      margin: 0 auto;
+      padding: 24px 0 56px;
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      padding: 34px;
+      background:
+        linear-gradient(135deg, rgba(14, 31, 44, 0.98), rgba(8, 20, 30, 0.98)),
+        radial-gradient(circle at 100% 0%, rgba(121, 216, 255, 0.08), transparent 30%);
+      box-shadow: var(--shadow);
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      right: -90px;
+      bottom: -90px;
+      width: 240px;
+      height: 240px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(100, 226, 187, 0.15), transparent 70%);
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      color: var(--accent);
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      font-size: 12px;
+      margin-bottom: 10px;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4 {
+      margin: 0;
+      line-height: 1.1;
+    }
+
+    h1 {
+      font-size: clamp(2.4rem, 5vw, 4.2rem);
+      max-width: 12ch;
+    }
+
+    .hero-copy {
+      margin-top: 14px;
+      max-width: 760px;
+      color: var(--muted);
+      font-size: 1.05rem;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.3fr) minmax(310px, 0.7fr);
+      gap: 22px;
+      margin-top: 28px;
+      align-items: end;
+    }
+
+    .stat-grid,
+    .mini-grid,
+    .feature-grid,
+    .workspace-grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .stat-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .workspace-grid,
+    .feature-grid,
+    .mini-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(260px, 300px) minmax(0, 1fr);
+      gap: 22px;
+      margin-top: 22px;
+      align-items: start;
+    }
+
+    .toc,
+    .card,
+    .stat,
+    .mini-card,
+    .callout,
+    .workspace-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .toc,
+    .card {
+      padding: 24px;
+    }
+
+    .toc {
+      position: sticky;
+      top: 18px;
+      background: linear-gradient(180deg, rgba(17, 36, 49, 0.95), rgba(10, 23, 34, 0.98));
+    }
+
+    .toc h2,
+    .card h2 {
+      font-size: 1rem;
+      color: var(--accent);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    .toc ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      gap: 10px;
+    }
+
+    .toc a {
+      display: block;
+      padding: 10px 12px;
+      color: var(--text);
+      text-decoration: none;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid transparent;
+    }
+
+    .toc a:hover,
+    .toc a:focus-visible {
+      border-color: rgba(100, 226, 187, 0.26);
+      color: var(--accent-2);
+      outline: none;
+    }
+
+    .content {
+      display: grid;
+      gap: 22px;
+    }
+
+    .card h3 {
+      font-size: 1.55rem;
+      margin-bottom: 14px;
+    }
+
+    .lead {
+      margin-top: 0;
+      color: var(--muted);
+    }
+
+    .stat,
+    .mini-card,
+    .workspace-card {
+      padding: 18px;
+      background: linear-gradient(180deg, rgba(18, 40, 55, 0.9), rgba(11, 26, 38, 0.98));
+    }
+
+    .stat-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    .stat-value {
+      margin-top: 8px;
+      font-size: 1.45rem;
+      font-weight: 700;
+      color: var(--accent-2);
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .pill strong {
+      color: var(--text);
+    }
+
+    .workspace-card h4,
+    .mini-card h4 {
+      font-size: 1.05rem;
+      margin-bottom: 10px;
+    }
+
+    .callout {
+      padding: 18px;
+      background: linear-gradient(180deg, rgba(18, 44, 60, 0.9), rgba(12, 31, 43, 0.98));
+    }
+
+    .callout strong {
+      display: block;
+      color: var(--accent-3);
+      margin-bottom: 8px;
+    }
+
+    .bullet-list,
+    .number-list {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    .bullet-list li,
+    .number-list li {
+      margin: 8px 0;
+    }
+
+    .path-block,
+    .status-block {
+      margin-top: 14px;
+      padding: 14px 16px;
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(121, 216, 255, 0.14);
+      background: rgba(6, 16, 24, 0.66);
+    }
+
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 16px;
+    }
+
+    .status-block strong {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--text);
+    }
+
+    .status-good {
+      color: var(--accent-2);
+    }
+
+    .status-partial {
+      color: var(--accent-3);
+    }
+
+    .status-limited {
+      color: var(--danger);
+    }
+
+    .feature-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      overflow: hidden;
+      border-radius: var(--radius-md);
+    }
+
+    .feature-table th,
+    .feature-table td {
+      text-align: left;
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(121, 216, 255, 0.12);
+      vertical-align: top;
+    }
+
+    .feature-table th {
+      color: var(--accent);
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .feature-table tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .footer {
+      margin-top: 22px;
+      color: var(--muted);
+      font-size: 14px;
+      text-align: center;
+    }
+
+    @media (max-width: 980px) {
+      .layout,
+      .hero-grid,
+      .workspace-grid,
+      .feature-grid,
+      .mini-grid,
+      .status-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .toc {
+        position: static;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="eyebrow">Beta Tester Summary</div>
+      <h1>MNW Dynamic Campaign Console</h1>
+      <p class="hero-copy">
+        This page itemizes the current full functionality of the desktop app and campaign tooling as of version <strong>0.1.2</strong>.
+        It is written for beta testers: what works now, what is experimental, and what still has deliberate limits.
+      </p>
+      <div class="hero-grid">
+        <div class="stat-grid">
+          <div class="stat">
+            <div class="stat-label">Primary Role</div>
+            <div class="stat-value">Author, Build, Track</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Campaign Style</div>
+            <div class="stat-value">Deterministic</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Live Integration</div>
+            <div class="stat-value">Optional AIS Feed</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Persistence</div>
+            <div class="stat-value">External JSON Runtime</div>
+          </div>
+        </div>
+        <div class="callout">
+          <strong>Short version</strong>
+          <p>
+            The app now handles setup, path detection, campaign generation, package build and deploy, runtime tracking, manual result
+            saving, debrief parsing, continuation generation, operational-map viewing, and optional AIS-backed civilian traffic seeding.
+          </p>
+        </div>
+      </div>
+    </header>
+
+    <div class="layout">
+      <nav class="toc" aria-label="Table of contents">
+        <h2>Contents</h2>
+        <ul>
+          <li><a href="#overview">Overall App Scope</a></li>
+          <li><a href="#setup">Workspace 1: Setup</a></li>
+          <li><a href="#authoring">Workspace 2: Authoring</a></li>
+          <li><a href="#tracking">Workspace 3: Campaign Tracking</a></li>
+          <li><a href="#generator">Generator And Mission Logic</a></li>
+          <li><a href="#theaters">Supported Theaters And Mission Types</a></li>
+          <li><a href="#experimental">Experimental Track</a></li>
+          <li><a href="#limits">Current Limits</a></li>
+          <li><a href="#tester-notes">What Beta Testers Should Focus On</a></li>
+        </ul>
+      </nav>
+
+      <main class="content">
+        <section id="overview" class="card">
+          <h2>Overall App Scope</h2>
+          <h3>What The Desktop App Does Today</h3>
+          <p class="lead">
+            The app is split into three real workspaces and is meant to cover the full campaign loop around MNW without pretending to be the game itself.
+          </p>
+          <div class="workspace-grid">
+            <article class="workspace-card">
+              <h4>Setup</h4>
+              <p>Find MNW paths, store defaults, configure campaign and package IDs, and optionally enable AISStream.</p>
+            </article>
+            <article class="workspace-card">
+              <h4>Authoring</h4>
+              <p>Generate deterministic campaigns, write package files, build the `.kyt`, deploy it, and monitor the workflow.</p>
+            </article>
+            <article class="workspace-card">
+              <h4>Campaign Tracking</h4>
+              <p>Inspect exported runtime state, save mission results, parse debrief text, refresh AIS samples, and continue the campaign.</p>
+            </article>
+            <article class="workspace-card">
+              <h4>Persistence Model</h4>
+              <p>Track state outside MNW using JSON so the dynamic campaign logic can evolve without modifying the game’s native save structure.</p>
+            </article>
+          </div>
+          <div class="pill-row">
+            <div class="pill"><strong>No AI required</strong> for baseline generation</div>
+            <div class="pill"><strong>Electron desktop app</strong> for setup, build, deploy, and tracking</div>
+            <div class="pill"><strong>Real runtime data only</strong> in Campaign Tracking</div>
+          </div>
+        </section>
+
+        <section id="setup" class="card">
+          <h2>Workspace 1</h2>
+          <h3>Setup</h3>
+          <p class="lead">
+            The setup page is now meant to be usable by testers who are not comfortable with Windows paths.
+          </p>
+          <div class="mini-grid">
+            <article class="mini-card">
+              <h4>Automatic Path Detection</h4>
+              <ul class="bullet-list">
+                <li>Attempts to detect the installed MNW game campaign folder.</li>
+                <li>Attempts to detect the user campaign folder under the local Windows profile.</li>
+                <li>Fills the package source and output paths from the app’s writable workspace.</li>
+                <li>Runs automatically on first launch if the path fields are empty.</li>
+              </ul>
+            </article>
+            <article class="mini-card">
+              <h4>Manual Recovery</h4>
+              <ul class="bullet-list">
+                <li><code>Find Paths</code> reruns detection manually.</li>
+                <li><code>Save Desktop Settings</code> persists the final values.</li>
+                <li><code>Use Latest Generated Campaign</code> repoints setup defaults to the latest authored package tree.</li>
+              </ul>
+            </article>
+          </div>
+          <div class="feature-grid">
+            <article class="mini-card">
+              <h4>Saved Defaults</h4>
+              <ul class="bullet-list">
+                <li>Game campaign path</li>
+                <li>User campaign path</li>
+                <li>Preferred runtime campaign ID</li>
+                <li>Preferred package ID</li>
+                <li>Preferred package source dir</li>
+                <li>Preferred package output path</li>
+              </ul>
+            </article>
+            <article class="mini-card">
+              <h4>AIS Settings</h4>
+              <ul class="bullet-list">
+                <li>Enable or disable AISStream access</li>
+                <li>Store AIS API token locally in desktop settings</li>
+                <li>Set the query radius used for live contact pulls</li>
+                <li>Keep AIS credentials out of generated campaign package files</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <section id="authoring" class="card">
+          <h2>Workspace 2</h2>
+          <h3>Authoring</h3>
+          <p class="lead">
+            Authoring is for building a campaign package end to end, not for editing runtime state after play.
+          </p>
+          <div class="mini-grid">
+            <article class="mini-card">
+              <h4>Campaign Wizard Inputs</h4>
+              <ul class="bullet-list">
+                <li>Campaign title and campaign ID</li>
+                <li>Theater</li>
+                <li>Campaign climate</li>
+                <li>Mission type</li>
+                <li>Scenario count</li>
+                <li>Mission stance</li>
+                <li>Rules of engagement</li>
+                <li>Start year</li>
+                <li>Player unit name</li>
+                <li>Optional max scenario radius constraint</li>
+              </ul>
+            </article>
+            <article class="mini-card">
+              <h4>Authoring Actions</h4>
+              <ul class="bullet-list">
+                <li><code>Write Campaign Files</code></li>
+                <li><code>Build Package</code></li>
+                <li><code>Deploy Package</code></li>
+                <li><code>Start Over</code></li>
+              </ul>
+            </article>
+          </div>
+          <div class="callout">
+            <strong>Authoring flow guidance</strong>
+            <p>
+              The app includes a step-driven workflow view that indicates whether setup is saved, files are written, the package is built,
+              the package is deployed, and whether a runtime snapshot is ready to inspect.
+            </p>
+          </div>
+          <div class="mini-grid">
+            <article class="mini-card">
+              <h4>Package Generation</h4>
+              <ul class="bullet-list">
+                <li>Writes campaign source files into the workspace package tree.</li>
+                <li>Builds a `.kyt` package for MNW.</li>
+                <li>Deploys the package into game and user campaign folders if configured.</li>
+              </ul>
+            </article>
+            <article class="mini-card">
+              <h4>Campaign Bootstrap</h4>
+              <ul class="bullet-list">
+                <li>Initializes Campaign Tracking state for the first mission.</li>
+                <li>Creates the persistence files needed for follow-on runtime tracking.</li>
+                <li>Preserves a reserved next mission slot for continuation flow.</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <section id="tracking" class="card">
+          <h2>Workspace 3</h2>
+          <h3>Campaign Tracking</h3>
+          <p class="lead">
+            Campaign Tracking now shows real exported runtime state only. It does not load fake sample data anymore.
+          </p>
+          <div class="feature-grid">
+            <article class="mini-card">
+              <h4>Runtime Summary</h4>
+              <ul class="bullet-list">
+                <li>Campaign, theater, current mission, and campaign clock</li>
+                <li>Campaign climate, mission type, mission stance, ROE, escalation</li>
+                <li>Experimental feature state when applicable</li>
+              </ul>
+            </article>
+            <article class="mini-card">
+              <h4>Persistence Summary</h4>
+              <ul class="bullet-list">
+                <li>Enabled modules</li>
+                <li>Tracked units and readiness</li>
+                <li>Damage and ammo persistence</li>
+                <li>Mission-history driven next-step generation</li>
+              </ul>
+            </article>
+          </div>
+          <div class="feature-grid">
+            <article class="mini-card">
+              <h4>Mission Result Tools</h4>
+              <ul class="bullet-list">
+                <li>Manual result builder</li>
+                <li>Debrief-text parser into draft result payloads</li>
+                <li>Save result directly and refresh tracking state</li>
+              </ul>
+            </article>
+            <article class="mini-card">
+              <h4>Continuation Tools</h4>
+              <ul class="bullet-list">
+                <li>Continue Campaign by rewriting the reserved next mission</li>
+                <li>Keep one additional reserved slot chained behind it</li>
+                <li>Regenerate tasking, geometry, and support bias from the latest result</li>
+              </ul>
+            </article>
+          </div>
+          <div class="feature-grid">
+            <article class="mini-card">
+              <h4>Operational Context</h4>
+              <ul class="bullet-list">
+                <li>Embedded theater operational map links</li>
+                <li>Order of battle and theater debug view</li>
+                <li>Runtime snapshot export and reload support</li>
+              </ul>
+            </article>
+            <article class="mini-card">
+              <h4>Live AIS Feed</h4>
+              <ul class="bullet-list">
+                <li>Optional AISStream pull from the backend only</li>
+                <li>Live contact sampling around the current theater center</li>
+                <li>Debug payload display for what the feed returned</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <section id="generator" class="card">
+          <h2>Generator And Mission Logic</h2>
+          <h3>What The Campaign Generator Currently Models</h3>
+          <p class="lead">
+            The campaign generator is deterministic and rule-based. It does not require an LLM to create the baseline missions.
+          </p>
+          <table class="feature-table">
+            <thead>
+              <tr>
+                <th>Area</th>
+                <th>What It Does</th>
+                <th>Tester-Relevant Result</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Campaign Climate</td>
+                <td>Sets the opening political and operational state of the arc.</td>
+                <td>Players start in peacetime patrol, high alert, or open warfare conditions instead of a generic tone label.</td>
+              </tr>
+              <tr>
+                <td>Escalation</td>
+                <td>Tracks <code>peacetime</code>, <code>heightened_tension</code>, <code>crisis</code>, and <code>open_warfare</code>.</td>
+                <td>Briefings, tension settings, mission framing, and continuation behavior reflect prior outcomes.</td>
+              </tr>
+              <tr>
+                <td>ROE</td>
+                <td>Separates engagement authority from mission type.</td>
+                <td>A surveillance mission can still occur under tense rules, and attack authority is spelled out explicitly.</td>
+              </tr>
+              <tr>
+                <td>Mission Orders</td>
+                <td>Builds clearer primary task, target, expected action, and end-state language.</td>
+                <td>Testers should be able to answer what they are looking for, what they may shoot, and what ends the mission.</td>
+              </tr>
+              <tr>
+                <td>Command Flavor</td>
+                <td>Uses theater command authorities such as <code>COMSUBPAC</code> and <code>COMSUBLANT</code>.</td>
+                <td>Completion and command text are less generic.</td>
+              </tr>
+              <tr>
+                <td>Continuation</td>
+                <td>Builds follow-on missions from saved result state.</td>
+                <td>Mission N+1 should feel like a response to Mission N instead of a disconnected reroll.</td>
+              </tr>
+              <tr>
+                <td>AIS Seeding</td>
+                <td>Can bias some civilian merchant traffic from live AIS samples.</td>
+                <td>Optional real-world civilian traffic flavor is available when AIS is enabled.</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="theaters" class="card">
+          <h2>Supported Content</h2>
+          <h3>Theaters, Mission Types, And Operational Controls</h3>
+          <div class="mini-grid">
+            <article class="mini-card">
+              <h4>Current Theater Set</h4>
+              <ul class="bullet-list">
+                <li>Luzon Strait</li>
+                <li>South China Sea</li>
+                <li>Norwegian Sea</li>
+              </ul>
+            </article>
+            <article class="mini-card">
+              <h4>Current Mission-Type Set</h4>
+              <ul class="bullet-list">
+                <li>ASW</li>
+                <li>ASuW Military Only</li>
+                <li>ASuW Escorted Convoy</li>
+                <li>Submerged Escort</li>
+                <li>Civilian Defense</li>
+                <li>Blockade Relief</li>
+              </ul>
+            </article>
+          </div>
+          <div class="mini-grid">
+            <article class="mini-card">
+              <h4>Player-Facing Operational Controls</h4>
+              <ul class="bullet-list">
+                <li>Campaign climate</li>
+                <li>Mission type</li>
+                <li>Mission stance</li>
+                <li>Rules of engagement</li>
+                <li>Scenario radius constraint</li>
+              </ul>
+            </article>
+            <article class="mini-card">
+              <h4>Examples Of Arc End States</h4>
+              <ul class="bullet-list">
+                <li>Classify and trail</li>
+                <li>Reacquire contact</li>
+                <li>Hold barrier</li>
+                <li>Designated strike on an HVT</li>
+                <li>Break contact and escape</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <section id="experimental" class="card">
+          <h2>Experimental Track</h2>
+          <h3>What Is Behind The Toggle Right Now</h3>
+          <p class="lead">
+            Experimental content is intentionally gated in the UI so testers can turn it on or off if it causes interim issues.
+          </p>
+          <div class="status-grid">
+            <div class="status-block">
+              <strong class="status-good">Implemented</strong>
+              <p>Curated plot seeds are available and intentionally replace any idea of open-ended movie or news scraping.</p>
+            </div>
+            <div class="status-block">
+              <strong class="status-partial">Partial</strong>
+              <p><code>spec_ops</code>, <code>counter_piracy</code>, and <code>counter_terror</code> are tracked as experimental mission families.</p>
+            </div>
+            <div class="status-block">
+              <strong class="status-limited">Still Limited</strong>
+              <p>Experimental mission families currently bias briefings and force mix but do not yet have fully bespoke MNW mission-script families.</p>
+            </div>
+          </div>
+          <div class="mini-grid">
+            <article class="mini-card">
+              <h4>Current Plot Seeds</h4>
+              <ul class="bullet-list">
+                <li>Grey-Zone Smuggling Crackdown</li>
+                <li>Hostage Recovery Window</li>
+                <li>Blockade Relief Corridor</li>
+                <li>Littoral Special Recon</li>
+              </ul>
+            </article>
+            <article class="mini-card">
+              <h4>Land Attack Status</h4>
+              <p>
+                <code>land_attack</code> is still intentionally gated because it is not technically supported by the current generator and MNW mission-script pipeline.
+                It falls back safely instead of claiming support it does not have.
+              </p>
+            </article>
+          </div>
+        </section>
+
+        <section id="limits" class="card">
+          <h2>Current Limits</h2>
+          <h3>What Beta Testers Should Understand Up Front</h3>
+          <div class="status-grid">
+            <div class="status-block">
+              <strong class="status-limited">Not Yet A Full Dynamic War Engine</strong>
+              <p>The persistence system is real, but the gameplay ruleset is still a scaffold compared to a mature simulation campaign layer.</p>
+            </div>
+            <div class="status-block">
+              <strong class="status-limited">No Full Bespoke Mission Families Yet</strong>
+              <p>Several mission families are still implemented as meaningful biasing layers rather than totally distinct authored mission frameworks.</p>
+            </div>
+            <div class="status-block">
+              <strong class="status-limited">Installer QA Still Matters</strong>
+              <p>The first-launch path detection and setup flow still benefit from broad testing on clean user machines.</p>
+            </div>
+          </div>
+          <div class="callout">
+            <strong>Important</strong>
+            <p>
+              The app’s goal right now is to make campaign authoring, deployment, and state tracking workable and understandable. It is not claiming that every future mission family or warfare domain is fully realized yet.
+            </p>
+          </div>
+        </section>
+
+        <section id="tester-notes" class="card">
+          <h2>Tester Notes</h2>
+          <h3>What Feedback Is Most Useful Right Now</h3>
+          <div class="mini-grid">
+            <article class="mini-card">
+              <h4>Usability</h4>
+              <ul class="bullet-list">
+                <li>Did setup-path detection work without confusion?</li>
+                <li>Were the setup, authoring, and tracking workspaces easy to understand?</li>
+                <li>Did the workflow steps make it obvious what to do next?</li>
+              </ul>
+            </article>
+            <article class="mini-card">
+              <h4>Mission Clarity</h4>
+              <ul class="bullet-list">
+                <li>Was the primary task obvious?</li>
+                <li>Was engagement authority obvious?</li>
+                <li>Was the end condition obvious?</li>
+              </ul>
+            </article>
+            <article class="mini-card">
+              <h4>Campaign Continuity</h4>
+              <ul class="bullet-list">
+                <li>Did the next mission feel connected to the last result?</li>
+                <li>Did escalation and ROE shifts feel believable?</li>
+                <li>Did command flavor and targeting orders feel plausible?</li>
+              </ul>
+            </article>
+            <article class="mini-card">
+              <h4>Experimental Track</h4>
+              <ul class="bullet-list">
+                <li>Did the experimental plot seeds add useful flavor?</li>
+                <li>Did the warnings make the experimental limitations clear enough?</li>
+                <li>Would you keep the experimental toggle visible in normal use?</li>
+              </ul>
+            </article>
+          </div>
+          <div class="path-block">
+            <strong>Suggested placement</strong>
+            <p>
+              This file is meant to be published directly as a GitHub-viewable HTML document or served via GitHub Pages:
+              <code>docs/beta-tester-feature-overview.html</code>
+            </p>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div class="footer">
+      MNW Dynamic Campaign Console · Beta tester overview · Version 0.1.2
+    </div>
+  </div>
+</body>
+</html>

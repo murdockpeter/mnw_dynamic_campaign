@@ -820,6 +820,48 @@ function collectDesktopSettingsForm() {
   };
 }
 
+function mergeDetectedDesktopSettings(settings = {}, detected = {}) {
+  return {
+    ...settings,
+    gameCampaignPath: settings.gameCampaignPath || detected.gameCampaignPath || "",
+    userCampaignPath: settings.userCampaignPath || detected.userCampaignPath || "",
+    preferredCampaignId: settings.preferredCampaignId || detected.preferredCampaignId || "silent_meridian",
+    preferredPackageId: settings.preferredPackageId || detected.preferredPackageId || settings.preferredCampaignId || detected.preferredCampaignId || "silent_meridian",
+    preferredPackageSourceDir: settings.preferredPackageSourceDir || detected.preferredPackageSourceDir || "",
+    preferredPackageOutputPath: settings.preferredPackageOutputPath || detected.preferredPackageOutputPath || ""
+  };
+}
+
+function applyDetectedDesktopPaths(detected = {}) {
+  if (detected.gameCampaignPath) {
+    document.getElementById("settings-game-path").value = detected.gameCampaignPath;
+  }
+  if (detected.userCampaignPath) {
+    document.getElementById("settings-user-path").value = detected.userCampaignPath;
+  }
+  if (detected.preferredCampaignId && !document.getElementById("settings-campaign-id").value.trim()) {
+    document.getElementById("settings-campaign-id").value = detected.preferredCampaignId;
+  }
+  if (detected.preferredPackageId && (!document.getElementById("settings-package-id").value.trim() || packageIdSyncEnabled)) {
+    document.getElementById("settings-package-id").value = detected.preferredPackageId;
+  }
+  if (detected.preferredPackageSourceDir) {
+    document.getElementById("settings-source-dir").value = detected.preferredPackageSourceDir;
+  }
+  if (detected.preferredPackageOutputPath) {
+    document.getElementById("settings-output-path").value = detected.preferredPackageOutputPath;
+  }
+  syncDesktopOpsDefaults({
+    preferredCampaignId: document.getElementById("settings-campaign-id").value.trim(),
+    preferredPackageId: document.getElementById("settings-package-id").value.trim()
+  });
+  syncAuthoringDefaults({
+    preferredCampaignId: document.getElementById("settings-campaign-id").value.trim()
+  }, {
+    syncTitle: false
+  });
+}
+
 function setSettingsStatus(message) {
   document.getElementById("settings-status").textContent = message;
 }
@@ -1280,14 +1322,23 @@ async function initializeDesktopOps() {
 
 async function initializeDesktopSettings() {
   const fallbackSettings = {
-    ...(desktopInfo?.defaults || {}),
     preferredCampaignId: "silent_meridian",
     preferredPackageId: "silent_meridian",
     preferredPackageSourceDir: desktopInfo ? `${desktopInfo.workspaceRoot}/src/packages/silent_meridian` : "",
     preferredPackageOutputPath: desktopInfo ? `${desktopInfo.workspaceRoot}/dist/silent_meridian.kyt` : "",
     firstLaunchComplete: false
   };
-  const settings = desktopApi ? await desktopApi.loadSettings() : fallbackSettings;
+  let settings = desktopApi ? await desktopApi.loadSettings() : fallbackSettings;
+  if (desktopApi?.detectDesktopPaths) {
+    const shouldAutoDetect = !settings.gameCampaignPath
+      || !settings.userCampaignPath
+      || !settings.preferredPackageSourceDir
+      || !settings.preferredPackageOutputPath;
+    if (shouldAutoDetect) {
+      const detected = await desktopApi.detectDesktopPaths();
+      settings = mergeDetectedDesktopSettings(settings, detected);
+    }
+  }
   renderSettingsPreview(settings);
   syncPackageIdFromCampaign();
   document.getElementById("mode-setup")?.addEventListener("click", () => setWorkspaceMode("setup"));
@@ -1325,6 +1376,21 @@ async function initializeDesktopSettings() {
     await refreshWorkflowStatus();
   });
 
+  document.getElementById("settings-find-paths")?.addEventListener("click", async () => {
+    if (!desktopApi?.detectDesktopPaths) {
+      setSettingsStatus("Path detection is only available in the Electron desktop app.");
+      return;
+    }
+    setSettingsStatus("Scanning for Steam, MNW campaign folders, and workspace defaults...");
+    const detected = await desktopApi.detectDesktopPaths();
+    applyDetectedDesktopPaths(detected);
+    const findings = Array.isArray(detected.findings) ? detected.findings.join(" ") : "Path scan completed.";
+    const followUp = detected.status?.gameCampaignFound && detected.status?.userCampaignFound
+      ? "Review the filled paths, then save settings."
+      : "Review the filled paths carefully, adjust any that look wrong, then save settings.";
+    setSettingsStatus(`${findings} ${followUp}`);
+  });
+
   document.getElementById("settings-use-generated")?.addEventListener("click", async () => {
     const campaignId = document.getElementById("wizard-campaign-id")?.value.trim() || "generated_campaign";
     const baseRoot = desktopInfo?.workspaceRoot || "";
@@ -1357,7 +1423,11 @@ async function initializeDesktopSettings() {
 
   if (!settings.firstLaunchComplete) {
     setWorkspaceMode("setup");
-    setSettingsStatus("First launch detected. Confirm the MNW paths and preferred IDs, then save settings once.");
+    if (desktopApi?.detectDesktopPaths) {
+      setSettingsStatus("First launch detected. Automatic path detection has filled the common MNW folders and workspace paths. Review them, then save settings once.");
+    } else {
+      setSettingsStatus("First launch detected. Confirm the MNW paths and preferred IDs, then save settings once.");
+    }
   } else {
     setWorkspaceMode("authoring");
     setSettingsStatus("Desktop settings loaded.");

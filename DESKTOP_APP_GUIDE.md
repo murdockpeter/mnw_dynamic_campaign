@@ -28,7 +28,7 @@ You do not need:
 
 On Windows, use:
 
-- `MNW Dynamic Campaign Console Setup 0.1.1.exe`
+- `MNW Dynamic Campaign Console Setup 0.1.2.exe`
 
 On macOS, use:
 
@@ -63,7 +63,15 @@ User campaign path is usually:
 C:\Users\<YourUser>\AppData\LocalLow\WaveOps\ModernNavalWarfare\Scenarios\Packages\Campaigns
 ```
 
-Save these once and the app will reuse them.
+On first launch, the app will try to detect these automatically before you save anything.
+
+If you want to run the scan again, use the `Find Paths` button on the `Setup` page. It will try to:
+
+- find the installed MNW campaign folder from the local Steam install
+- find your user campaign folder under the current Windows profile
+- fill the package source and output paths from the app's writable workspace
+
+After that, review the filled paths and click `Save Desktop Settings`.
 
 ## Understanding The Three Workspaces
 
@@ -88,6 +96,7 @@ Notes:
 
 - the AIS token is stored in desktop settings on your machine
 - the token is not written into generated campaign package files
+- the `Find Paths` button can auto-fill the most common Windows path fields before you save
 - the `Use Latest Generated Campaign` button can repoint the saved defaults to the newest generated package tree
 
 ### Authoring

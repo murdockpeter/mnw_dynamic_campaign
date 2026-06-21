@@ -1,6 +1,6 @@
 {
   "name": "mnw-dynamic-campaign",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Modern Naval Warfare dynamic campaign generator with legacy scripts and a portable Electron path.",
   "main": "electron/main.cjs",
   "license": "MIT",

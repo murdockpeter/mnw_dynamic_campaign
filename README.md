@@ -27,8 +27,8 @@ Start with:
 
 Typical player artifacts:
 
-- `dist\MNW Dynamic Campaign Console Setup 0.1.1.exe`
-- `dist\MNW Dynamic Campaign Console Setup 0.1.1.exe.blockmap`
+- `dist\MNW Dynamic Campaign Console Setup 0.1.2.exe`
+- `dist\MNW Dynamic Campaign Console Setup 0.1.2.exe.blockmap`
 - `dist\latest.yml`
 - `dist\*.dmg` when a macOS build is produced
 
