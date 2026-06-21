@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-import { buildCampaignBlueprint } from "../../shared/campaign-generator.mjs";
+import { buildCampaignBlueprint, getTheaterCommandAuthority } from "../../shared/campaign-generator.mjs";
 function toBase64Utf8(value) {
   return Buffer.from(String(value || ""), "utf8").toString("base64");
 }
@@ -155,8 +155,51 @@ function factionRuntimeId(faction) {
   return 236;
 }
 
+function operationTypeForScenario(blueprint, scenario) {
+  if (scenario.missionType === "asw") {
+    return "ASW";
+  }
+  return blueprint.family === "sub_hunt" ? "ASW" : "ASuW";
+}
+
+function tensionLevelForScenario(scenario) {
+  switch (scenario?.escalationKey) {
+    case "peacetime":
+      return "Peace";
+    case "heightened_tension":
+      return "ColdWar";
+    case "crisis":
+      return "Increased";
+    case "open_warfare":
+      return "War";
+    default:
+      return "Increased";
+  }
+}
+
+function missionRoeForScenario(scenario) {
+  switch (scenario?.roeKey) {
+    case "weapons_tight":
+      return "Hold";
+    case "designated_targets_only":
+      return "Tight";
+    case "military_targets_of_opportunity":
+      return "Tight";
+    case "hostile_flagged_free_fire":
+      return "Free";
+    default:
+      return "Free";
+  }
+}
+
+function diplomacyLineForScenario(scenario) {
+  return `_diplomacy.SetTensionLevel(TensionLevel.${tensionLevelForScenario(scenario)}).SetMissionROE(RulesOfEngagement.${missionRoeForScenario(scenario)})`;
+}
+
 function buildSurfaceMissionScript(blueprint, scenario) {
   const g = scenario.geometry;
+  const operationType = operationTypeForScenario(blueprint, scenario);
+  const diplomacyLine = diplomacyLineForScenario(scenario);
   const additionalBarrier = scenario.index >= 1;
   const annotationPoiLines = buildAnnotationPoiList(scenario.tasking?.annotations || []);
   const annotationPoiAttachList = buildAnnotationPoiAttachList(scenario.tasking?.annotations || []);
@@ -195,7 +238,7 @@ _debug_mode = False
 _version = "0.0.0"
 _msv = "0.113.1"
 _author = "MNW Desktop Wizard"
-_operation_type = OperationType.ASuW
+_operation_type = OperationType.${operationType}
 _date_time = "${scenario.startMnw}"
 _weather = EnvTools.GetRandomWeatherParameters()
 
@@ -237,7 +280,7 @@ battle_area_center = ${formatGc(g.center)}
 withdrawal_poi_pos = ${formatGc(g.withdrawal)}
 
 _diplomacy.AddFactions([civ_fact, us_fact, ch_fact])
-_diplomacy.SetTensionLevel(TensionLevel.Increased).SetMissionROE(RulesOfEngagement.Free)
+${diplomacyLine}
 _diplomacy.SetStatus(civ_fact).SetStatus(us_fact).SetStatus(ch_fact, CoalitionStatus.Enemy)
 
 objectives = [
@@ -357,6 +400,8 @@ end_transmission_process = _P.Element.Radio(end_message_process, sat_element, en
 
 function buildSubHuntMissionScript(blueprint, scenario) {
   const g = scenario.geometry;
+  const operationType = operationTypeForScenario(blueprint, scenario);
+  const diplomacyLine = diplomacyLineForScenario(scenario);
   const supportUnits = Math.max(1, scenario.geometry.density);
   // Keep generated subs safely submerged without assuming deep-water bathymetry.
   // Stock MNW missions commonly use about -50 ft for initial sub spawns, so we stay
@@ -465,7 +510,7 @@ _debug_mode = False
 _version = "0.0.0"
 _msv = "0.113.1"
 _author = "MNW Desktop Wizard"
-_operation_type = OperationType.ASW
+_operation_type = OperationType.${operationType}
 _date_time = "${scenario.startMnw}"
 _weather = EnvTools.GetRandomWeatherParameters()
 
@@ -507,7 +552,7 @@ egress_pos = ${formatGc(g.egress)}
 withdrawal_zone_pos = ${formatGc(g.withdrawal)}
 
 _diplomacy.AddFactions([civ_fact, us_fact, rus_fact, ch_fact])
-_diplomacy.SetTensionLevel(TensionLevel.Increased).SetMissionROE(RulesOfEngagement.Free)
+${diplomacyLine}
 _diplomacy.SetStatus(civ_fact).SetStatus(us_fact).SetStatus(rus_fact, CoalitionStatus.Enemy).SetStatus(ch_fact, CoalitionStatus.Enemy)
 
 objectives = [
@@ -651,17 +696,23 @@ export function buildQuestScript(campaignMissionIds) {
 
 export function buildScenarioPackageArtifacts({ blueprint, scenario }) {
   const isReservedScenario = Boolean(scenario.reserved || scenario.continuation?.reserved);
+  const commandAuthority = getTheaterCommandAuthority(blueprint.theaterId);
   const intelLine = scenario.intel?.prose || "Enemy activity is assessed along the current route family, but cueing remains imprecise.";
   const taskLine = scenario.tasking?.primaryTask?.objectiveLine || "Build the tactical picture and preserve the boat.";
   const mapIntentLine = scenario.tasking?.primaryTask?.mapIntent || "Use the marked cues as geometry aids rather than exact truth.";
-  const postureLine = scenario.tasking?.posture?.cue || "Command expects you to use the available route and contact cues with judgment.";
+  const stanceLine = scenario.tasking?.missionStance?.cue || scenario.tasking?.posture?.cue || "Command expects disciplined use of the available route and contact cues.";
+  const escalationLine = scenario.tasking?.escalation?.cue || "The theater remains contested and may change quickly.";
+  const roeLine = scenario.tasking?.rulesOfEngagement?.cue || scenario.tasking?.roe?.cue || "Weapons release remains under command control.";
+  const endConditionLine = scenario.tasking?.primaryTask?.endCondition || "Recover when the objective is complete and the boat is combat effective.";
+  const designatedTargetLine = scenario.tasking?.primaryTask?.designatedTarget || "No specific target designated beyond ROE and commander intent.";
+  const missionTypeLine = scenario.tasking?.missionType?.label || blueprint.missionTypeLabel || "General Submarine Patrol";
   const annotationLines = buildAnnotationBriefLines(scenario.tasking?.annotations || []);
   const messages = {
-    mission_from: blueprint.theaterId === "luzon_strait" ? "COMSUBPAC" : "COMSUBLANT",
+    mission_from: commandAuthority,
     mission_to: blueprint.player.name.toUpperCase(),
     mission_objectives: isReservedScenario
       ? `BT\nSUBJ: ${scenario.name.toUpperCase()} - PLACEHOLDER\n\n1. This mission slot is reserved so the campaign chain always has a valid next node.\n\n2. If you do not want to continue the campaign, treat the previous mission as the campaign conclusion.\n\n3. If you do want to continue, do not play this scenario yet.\n\n4. Return to Campaign Tracking.\n\n5. Save the result from the previous mission.\n\n6. Click Continue Campaign so the app can rewrite this scenario with updated tasking, geometry, and supporting forces.\n\n7. Rebuild and redeploy if prompted.\n\n8. Launch this scenario only after the tracker confirms it was regenerated.\n\n9. Current placeholder route summary:\n   ${scenario.geometry.routeSummary}\n\n10. Current placeholder enemy transit:\n   ${scenario.geometry.enemyTransitSummary}`
-      : `BT\nSUBJ: ${scenario.name.toUpperCase()}\n\n1. ${scenario.summary}\n\n2. Primary Task:\n   ${taskLine}\n\n3. Posture:\n   ${postureLine}\n\n4. Intel Cue:\n   ${intelLine}\n\n5. Marked Cues:\n   ${annotationLines || "No additional marked cues."}\n\n6. Player Guidance:\n   ${mapIntentLine}\n\n7. Route Summary:\n   ${scenario.geometry.routeSummary}\n\n8. Enemy Transit:\n   ${scenario.geometry.enemyTransitSummary}\n\n9. Keep your submarine combat effective and raise antennas when you are ready to conclude the mission.`,
+      : `BT\nSUBJ: ${scenario.name.toUpperCase()}\n\n1. Situation:\n   ${scenario.summary}\n\n2. Mission Type:\n   ${missionTypeLine}\n\n3. Primary Task:\n   ${taskLine}\n\n4. Alert State:\n   ${scenario.tasking?.escalation?.label || "Operational Patrol"}\n   ${escalationLine}\n\n5. Rules Of Engagement:\n   ${scenario.tasking?.rulesOfEngagement?.label || "Command Controlled"}\n   ${roeLine}\n\n6. Mission Stance:\n   ${scenario.tasking?.missionStance?.label || scenario.tasking?.posture?.label || "Deliberate Search"}\n   ${stanceLine}\n\n7. Designated Target:\n   ${designatedTargetLine}\n\n8. Intel Cue:\n   ${intelLine}\n\n9. Marked Cues:\n   ${annotationLines || "No additional marked cues."}\n\n10. Expected Action:\n   ${mapIntentLine}\n\n11. End State:\n   ${endConditionLine}\n\n12. Route Summary:\n   ${scenario.geometry.routeSummary}\n\n13. Enemy Transit:\n   ${scenario.geometry.enemyTransitSummary}\n\n14. Report to ${commandAuthority} only after the ordered task is complete and the boat remains combat effective.`,
     mission_success: `BT\nSUBJ: MISSION STATUS - SUCCESS\n\n${scenario.successText}`
   };
   const metadata = missionMetadataRecord(
@@ -725,7 +776,12 @@ export async function buildGeneratedCampaignFiles({ templateRoot, spec }) {
     theater: blueprint.theaterName,
     description: blueprint.description,
     active_persistence_system: "baseline_modular",
-    authoring_constraints: blueprint.authoringConstraints
+    authoring_constraints: blueprint.authoringConstraints,
+    experimental_features: blueprint.experimentalFeatures || { enabled: false, plotSeed: "none", plotSeedLabel: "None" },
+    campaign_climate: blueprint.campaignClimate || blueprint.tone,
+    mission_type: blueprint.missionType || null,
+    mission_stance: blueprint.missionStance || blueprint.posture,
+    rules_of_engagement: blueprint.requestedRoe || "weapons_tight"
   };
 
   const bootstrapState = {
@@ -757,12 +813,18 @@ export async function buildGeneratedCampaignFiles({ templateRoot, spec }) {
     },
     mission_history: [],
     world_state: {
-      escalation_level: 1,
+      escalation_level: blueprint.scenarios[0]?.escalationLevel ?? 0,
+      escalation_key: blueprint.scenarios[0]?.escalationKey || "peacetime",
+      campaign_climate: blueprint.campaignClimate || blueprint.tone,
+      mission_type: blueprint.missionType || null,
       tone: blueprint.tone,
+      mission_stance: blueprint.missionStance || blueprint.posture,
       posture: blueprint.posture,
+      rules_of_engagement: blueprint.requestedRoe || "weapons_tight",
       route_family: blueprint.family,
       theater_picture: blueprint.theaterPicture,
-      authoring_constraints: blueprint.authoringConstraints
+      authoring_constraints: blueprint.authoringConstraints,
+      experimental_features: blueprint.experimentalFeatures || { enabled: false, plotSeed: "none", plotSeedLabel: "None" }
     },
     module_state: {
       damage: {

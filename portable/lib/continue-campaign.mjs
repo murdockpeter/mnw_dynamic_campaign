@@ -88,8 +88,14 @@ export async function appendContinuationScenario({
     lastOutcome: latestResult?.outcome || "success",
     theaterPicture: state.world_state?.theater_picture || null,
     posture: state.world_state?.posture || "wide_area_search",
+    missionStance: state.world_state?.mission_stance || state.world_state?.posture || "wide_area_search",
+    missionType: state.world_state?.mission_type || campaignConfig.mission_type || null,
+    campaignClimate: state.world_state?.campaign_climate || campaignConfig.campaign_climate || campaignConfig.tone || "surveillance",
+    currentEscalation: state.world_state?.escalation_key || null,
+    requestedRoe: state.world_state?.rules_of_engagement || campaignConfig.rules_of_engagement || null,
     authoringConstraints: state.world_state?.authoring_constraints || campaignConfig.authoring_constraints || {},
-    aisSnapshot
+    aisSnapshot,
+    experimental: state.world_state?.experimental_features || campaignConfig.experimental_features || { enabled: false, plotSeed: "none" }
   });
   const tailScenario = hasTailSlot ? null : buildContinuationScenario({
     campaignId,
@@ -106,9 +112,15 @@ export async function appendContinuationScenario({
     lastOutcome: "success",
     theaterPicture: scenario.theaterPicture || state.world_state?.theater_picture || null,
     posture: state.world_state?.posture || "wide_area_search",
+    missionStance: state.world_state?.mission_stance || state.world_state?.posture || "wide_area_search",
+    missionType: state.world_state?.mission_type || campaignConfig.mission_type || null,
+    campaignClimate: state.world_state?.campaign_climate || campaignConfig.campaign_climate || campaignConfig.tone || "surveillance",
+    currentEscalation: scenario.escalationKey || state.world_state?.escalation_key || null,
+    requestedRoe: scenario.roeKey || state.world_state?.rules_of_engagement || campaignConfig.rules_of_engagement || null,
     authoringConstraints: state.world_state?.authoring_constraints || campaignConfig.authoring_constraints || {},
     reserved: true,
-    aisSnapshot
+    aisSnapshot,
+    experimental: state.world_state?.experimental_features || campaignConfig.experimental_features || { enabled: false, plotSeed: "none" }
   });
 
   const blueprint = {
@@ -149,7 +161,20 @@ export async function appendContinuationScenario({
   state.current_mission_id = scenario.missionId;
   state.world_state.theater_picture = scenario.theaterPicture || state.world_state.theater_picture || {};
   state.world_state.posture = scenario.continuation?.posture || state.world_state.posture || "wide_area_search";
+  state.world_state.mission_stance = scenario.continuation?.posture || state.world_state.mission_stance || state.world_state.posture || "wide_area_search";
+  state.world_state.mission_type = scenario.continuation?.missionType || state.world_state.mission_type || campaignConfig.mission_type || null;
+  state.world_state.campaign_climate = scenario.continuation?.campaignClimate || state.world_state.campaign_climate || campaignConfig.campaign_climate || campaignConfig.tone || "surveillance";
+  state.world_state.escalation_key = scenario.continuation?.escalationKey || state.world_state.escalation_key || "peacetime";
+  state.world_state.escalation_level = scenario.escalationLevel ?? state.world_state.escalation_level ?? 0;
+  state.world_state.rules_of_engagement = scenario.continuation?.roeKey || state.world_state.rules_of_engagement || campaignConfig.rules_of_engagement || "weapons_tight";
   state.world_state.authoring_constraints = state.world_state.authoring_constraints || campaignConfig.authoring_constraints || {};
+  state.world_state.experimental_features = scenario.continuation?.experimentalEnabled
+    ? {
+      enabled: true,
+      plotSeed: scenario.continuation?.plotSeed || "none",
+      plotSeedLabel: scenario.continuation?.plotSeedLabel || null
+    }
+    : state.world_state.experimental_features || campaignConfig.experimental_features || { enabled: false, plotSeed: "none", plotSeedLabel: "None" };
   state.world_state.continuation_count = Number(state.world_state.continuation_count || 0) + 1;
   state.world_state.last_extension_choice = {
     objective,

@@ -38,3 +38,195 @@ Do not expand scope beyond these items until all are implemented and tested work
 
 - Smoke test passed via `python -m unittest tests.test_persistence_smoke`.
 - The current implementation is a scaffold for pluggable persistence systems, not a final gameplay ruleset.
+
+## Beta Feedback Backlog
+
+This is the next implementation track after the persistence milestone. The focus is mission clarity, realistic terminology, stronger operational arcs, and explicit player tasking.
+
+Work these top to bottom. Do not start lower-priority generator expansion until the language and expectation-setting problems are fixed and tested.
+
+### 1. Replace abstract campaign labels with operational language
+
+- [x] Rename or reframe `tone` in the authoring UI and generated metadata to a player-facing escalation concept such as `Alert Level`, `Conflict State`, or `Campaign Climate`.
+- [x] Rename or reframe `posture` in the authoring UI and generated briefs to a player-facing `Rules of Engagement` or `Mission Stance` concept where appropriate.
+- [x] Audit generated labels, help text, and docs so the player can infer expected behavior without understanding internal generator jargon.
+- [x] Keep backward compatibility for stored specs and continuation state where possible, even if the displayed labels change first.
+
+Implementation targets:
+- `ui/index.html`
+- `ui/app.js`
+- `shared/campaign-generator.mjs`
+- `portable/generate-campaign.mjs`
+- `DEVELOPER_GUIDE.md`
+- `DESKTOP_APP_GUIDE.md`
+
+Acceptance checks:
+- Wizard labels describe what the player is expected to do.
+- Generated mission briefing text no longer relies on unexplained `tone` or `posture` wording.
+- Existing saved campaigns still load without manual migration.
+
+Status:
+- Implemented in UI, generator metadata, runtime state, CLI args, and docs.
+
+### 2. Introduce explicit escalation states across a campaign arc
+
+- [x] Define a campaign escalation model such as `peacetime`, `heightened_tension`, `crisis`, `open_warfare`.
+- [x] Persist escalation state in generated campaign metadata and runtime continuation state.
+- [x] Make continuation logic capable of escalating, holding, or de-escalating state based on mission outcomes.
+- [x] Reflect escalation state in mission briefings, diplomacy settings, objective framing, and scenario composition.
+
+Implementation targets:
+- `shared/campaign-generator.mjs`
+- `portable/lib/continue-campaign.mjs`
+- `portable/lib/generated-campaign-files.mjs`
+- `portable/lib/runtime.mjs`
+- `tests/`
+
+Acceptance checks:
+- Mission N+1 can reflect mission N outcome in briefing language and scenario setup.
+- State progression is visible in runtime JSON and generated campaign files.
+- Failure and success paths both produce believable next-step states.
+
+Status:
+- Generator, continuation state, runtime payloads, briefings, and mission scripts now carry escalation.
+- Mission-script tension mapping is validated against stock MNW campaign and single-mission content from the installed game.
+
+### 3. Add explicit Rules of Engagement modeling
+
+- [x] Define ROE states such as `weapons_tight`, `targets_of_opportunity`, `free_fire_on_hostile_flagged_units`.
+- [x] Separate ROE from mission objective type so a surveillance mission can still occur under a tense ROE and vice versa.
+- [x] Map generated ROE state to briefing language and, where possible, mission script diplomacy settings.
+- [x] Make ROE visible in campaign tracking and generated debug payloads.
+
+Implementation targets:
+- `shared/campaign-generator.mjs`
+- `portable/lib/generated-campaign-files.mjs`
+- `portable/lib/runtime.mjs`
+- `ui/app.js`
+
+Acceptance checks:
+- Briefings state engagement authority clearly.
+- Generated scenarios can differ meaningfully between surveillance-only and engagement-authorized missions.
+- Runtime/debug output exposes the selected ROE for inspection.
+
+Status:
+- ROE modeling is implemented in generation, state, tracking, and mission scripts.
+- Mission-script ROE mapping is validated against stock MNW campaign and single-mission content from the installed game.
+
+### 4. Make attack orders explicit and mission-ending guidance specific
+
+- [x] Audit mission order generation to ensure some arcs culminate in explicit attack directives, not only surveillance language.
+- [x] Add objective templates for stalk, classify, trail, sink designated HVT, break contact, and escape/evasion.
+- [x] Ensure the generated orders identify the target class or named target when the mission requires destruction.
+- [x] Add post-attack escape or withdrawal tasking where appropriate.
+
+Implementation targets:
+- `shared/campaign-generator.mjs`
+- `portable/lib/generated-campaign-files.mjs`
+- generated scenario content under `src/package*` and `src/packages/*`
+
+Acceptance checks:
+- At least one supported arc can culminate in a clearly worded kill mission.
+- Attack missions name the target and desired result in the orders.
+- Follow-on missions can shift to evasion, regroup, or battle damage exploitation.
+
+Status:
+- Implemented in generator logic and mission briefings.
+- Still worth regression testing as new mission types and command flavor are added.
+
+### 5. Improve command flavor text by theater
+
+- [x] Replace generic completion text like `Higher command` with theater-appropriate command authorities.
+- [x] Centralize authority mapping such as `COMSUBPAC` for Pacific and `COMSUBLANT` for Atlantic theaters.
+- [x] Audit mission-from headers, completion text, and follow-on summaries for consistency.
+
+Implementation targets:
+- `shared/campaign-generator.mjs`
+- `portable/lib/generated-campaign-files.mjs`
+- `src/package/locale.csv`
+- `src/packages/*/locale.csv`
+
+Acceptance checks:
+- Pacific theaters consistently use `COMSUBPAC`.
+- Atlantic/Norwegian theaters consistently use `COMSUBLANT`.
+- No generated completion string uses generic `Higher command` where a command authority is known.
+
+Status:
+- Implemented in generator output, package writing, and seeded locale content.
+
+### 6. Add mission-type selection as an authoring control
+
+- [x] Add a mission-type selector in the wizard for options such as `ASW`, `ASuW military`, `ASuW convoy`, `submerged escort`, `civilian defense`, `blockade relief`, `land attack`.
+- [x] Define which mission types are currently supported, partially supported, or future placeholders.
+- [x] Use mission type to bias force composition, objectives, and briefing language.
+- [x] Validate unsupported combinations cleanly instead of silently generating a weak fit.
+
+Implementation targets:
+- `ui/index.html`
+- `ui/app.js`
+- `shared/campaign-generator.mjs`
+- `portable/generate-campaign.mjs`
+- docs
+
+Acceptance checks:
+- The wizard exposes mission type as a first-class choice.
+- Generated forces and tasks differ materially by selected mission type.
+- Unsupported mission types are labeled clearly in UI and docs.
+
+Status:
+- Implemented with support levels (`supported`, `partial`, `future`) and fallback warnings.
+- Current mission-type biasing is meaningful but still lightweight compared to a future fully bespoke mission-family system.
+
+### 7. Strengthen generated orders and player expectation-setting
+
+- [x] Rewrite briefing templates so the primary task, engagement authority, and end condition are unambiguous.
+- [x] Reduce generic phrasing like `use judgment` unless paired with concrete objectives.
+- [x] Add examples of expected player actions in the briefing language where it improves clarity.
+- [x] Review summary text, mission completion text, and tracking panels for player-facing clarity.
+
+Implementation targets:
+- `portable/lib/generated-campaign-files.mjs`
+- `shared/campaign-generator.mjs`
+- `ui/app.js`
+
+Acceptance checks:
+- A tester can read the briefing and answer: what am I looking for, what may I shoot, what ends the mission?
+- Mission completion text reflects what happened operationally, not only that a report was received.
+
+Status:
+- Implemented in generated mission objectives, success text, and tracking summaries.
+
+### 8. Add test coverage for generator language and state transitions
+
+- [x] Add fixture-based tests for briefing text, command authority naming, escalation state, and ROE rendering.
+- [x] Add continuation tests that verify mission outcome can alter follow-on escalation and tasking.
+- [x] Add snapshot-style tests for at least one surveillance arc and one strike arc.
+- [x] Add manual QA scripts for reading generated orders in the desktop flow.
+
+Implementation targets:
+- `tests/`
+- `generated/ui/*.json` fixtures as needed
+- docs for manual QA
+
+Acceptance checks:
+- Automated tests fail if generic or invalid command language regresses.
+- Automated tests cover both initial generation and continuation generation.
+- Manual QA checklist exists for the briefing clarity pass.
+
+Status:
+- Implemented via `tests/test_campaign_generation.mjs`, snapshot fixtures, and `docs/briefing-qa-checklist.md`.
+
+### 9. Research backlog and deferred ideas
+
+- [x] Evaluate whether external plot seeding should come from curated templates rather than open-ended movie/news scraping.
+- [x] Track future mission families such as spec ops, counter-piracy, and counter-terror separately from the current supported set.
+- [x] Confirm whether land attack is technically supportable in the current game scripting pipeline before exposing it as fully supported.
+
+Notes:
+- External news/movie ingestion is out of scope for the next implementation pass.
+- New mission families should be gated behind concrete support in mission generation and MNW scripting, not only prompt ideas.
+
+Status:
+- Implemented as an experimental-content track with an explicit UI toggle and curated plot-seed catalog.
+- Experimental mission families now remain separate from the stable supported set and surface warnings instead of silent weak-fit generation.
+- Land attack is now called out as not technically supported by the current generator or MNW mission-script pipeline and continues to fall back safely.

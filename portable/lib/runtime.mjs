@@ -105,6 +105,13 @@ function buildTheaterDebugPayload(campaignConfig, state) {
     theaterLabel: theater.label,
     theaterName: theater.theaterName,
     family: theater.family,
+    escalationKey: state.world_state?.escalation_key || null,
+    escalationLevel: Number.isFinite(Number(state.world_state?.escalation_level)) ? Number(state.world_state.escalation_level) : null,
+    campaignClimate: state.world_state?.campaign_climate || state.world_state?.tone || null,
+    missionType: state.world_state?.mission_type || null,
+    experimentalFeatures: state.world_state?.experimental_features || null,
+    missionStance: state.world_state?.mission_stance || state.world_state?.posture || null,
+    rulesOfEngagement: state.world_state?.rules_of_engagement || null,
     source: picture.units ? "runtime" : "seed",
     sectors,
     units

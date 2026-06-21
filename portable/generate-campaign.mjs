@@ -15,8 +15,28 @@ function parseArgs(argv) {
     } else if (key === "--theater") {
       args.spec.theater = next;
       i += 1;
+    } else if (key === "--campaign-climate") {
+      args.spec.campaignClimate = next;
+      args.spec.tone = next;
+      i += 1;
     } else if (key === "--tone") {
       args.spec.tone = next;
+      args.spec.campaignClimate = next;
+      i += 1;
+    } else if (key === "--mission-stance") {
+      args.spec.missionStance = next;
+      args.spec.posture = next;
+      i += 1;
+    } else if (key === "--mission-type") {
+      args.spec.missionType = next;
+      i += 1;
+    } else if (key === "--posture") {
+      args.spec.posture = next;
+      args.spec.missionStance = next;
+      i += 1;
+    } else if (key === "--roe" || key === "--rules-of-engagement") {
+      args.spec.roe = next;
+      args.spec.rulesOfEngagement = next;
       i += 1;
     } else if (key === "--year") {
       args.spec.year = Number(next);

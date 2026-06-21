@@ -1,0 +1,6 @@
+{
+  "summary": "The breakout is boxed into a narrow seam. Kill the designated submarine or lead escort before it slips through the gate.",
+  "objective": "Positively identify Yasen Kazan, attack it, and withdraw before the escorts can localize your firing point. Hostile military targets of opportunity may be engaged. Stalk from the marked likely contact area, use the route gate to predict the turn, fire from advantage, then exit along the withdrawal axis. End the mission only after Yasen Kazan is destroyed or the attack opportunity is lost and you have disengaged cleanly. enemy submarine activity is most likely north-east of your ingress track near Scarborough Sweep. Treat that as high-confidence cueing (84% assessed confidence), not precise localization.",
+  "success": "Yasen Kazan was struck and the boat cleared the retaliation envelope. COMSUBPAC can now build the next move around your attack report.",
+  "missionType": "asw"
+}

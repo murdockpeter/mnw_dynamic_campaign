@@ -187,8 +187,12 @@
                 <select id="wizard-theater"></select>
               </label>
               <label>
-                <span>Tone</span>
-                <select id="wizard-tone"></select>
+                <span>Campaign Climate</span>
+                <select id="wizard-climate"></select>
+              </label>
+              <label>
+                <span>Mission Type</span>
+                <select id="wizard-mission-type"></select>
               </label>
               <label>
                 <span>Start Year</span>
@@ -199,8 +203,20 @@
                 <input id="wizard-scenario-count" type="number" min="2" max="8" step="1" value="2">
               </label>
               <label>
-                <span>Mission Posture</span>
-                <select id="wizard-posture"></select>
+                <span>Mission Stance</span>
+                <select id="wizard-stance"></select>
+              </label>
+              <label>
+                <span>Rules Of Engagement</span>
+                <select id="wizard-roe"></select>
+              </label>
+              <label>
+                <span>Experimental Content</span>
+                <input id="wizard-experimental-enabled" type="checkbox">
+              </label>
+              <label>
+                <span>Experimental Plot Seed</span>
+                <select id="wizard-plot-seed"></select>
               </label>
               <label>
                 <span>Max Scenario Radius (km)</span>
@@ -264,12 +280,20 @@
                 opposing force roster all come from the selected theater template.
               </p>
               <p>
-                Tone selection changes mission archetype order, not national sides. That keeps the generated campaign coherent while still
-                varying the sequence of scout, route-bend, containment, and closing scenarios.
+                Campaign climate sets the starting political and operational state for the arc. It biases whether the package begins as
+                restrained patrol work, high-alert interdiction, or open combat.
               </p>
               <p>
-                Mission posture is the player-agency bias for the generated package. It tells the generator whether to favor forward intercepts,
+                Mission type tells the generator what operational problem to emphasize. Some options are fully supported now, others are
+                partial placeholders that bias the package while signaling their current limits.
+              </p>
+              <p>
+                Mission stance is the player-agency bias for the generated package. It tells the generator whether to favor forward intercepts,
                 quiet offset shadowing, broader search geometry, or support-backed barrier play.
+              </p>
+              <p>
+                Rules of engagement are separate from mission stance. The briefing should tell you both what command wants you to do and
+                what you are actually authorized to shoot.
               </p>
             </div>
           </article>

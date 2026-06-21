@@ -1,9 +1,12 @@
 import {
   buildCampaignBlueprint,
-  getAuthoringPostureCatalog,
+  getExperimentalPlotSeedCatalog,
+  getCampaignClimateCatalog,
   getContinuationChoiceCatalog,
+  getMissionStanceCatalog,
+  getMissionTypeCatalog,
+  getRoeCatalog,
   getTheaterTemplates,
-  getToneCatalog
 } from "../shared/campaign-generator.mjs";
 
 const desktopApi = globalThis.mnwDesktop ?? null;
@@ -52,10 +55,17 @@ function setWorkspaceMode(mode) {
 
 function renderCampaignSummary(data) {
   const root = document.getElementById("campaign-summary");
+  const worldState = data.state.world_state || {};
   const items = [
     ["Campaign", data.state.metadata.title],
     ["Campaign ID", data.state.metadata.campaign_id],
     ["Theater", data.state.metadata.theater],
+    ["Campaign Climate", worldState.campaign_climate || worldState.tone || "-"],
+    ["Mission Type", worldState.mission_type || data.state.metadata.mission_type || "-"],
+    ["Experimental", worldState.experimental_features?.enabled ? `On (${worldState.experimental_features.plotSeedLabel || worldState.experimental_features.plotSeed || "Custom"})` : "Off"],
+    ["Mission Stance", worldState.mission_stance || worldState.posture || "-"],
+    ["ROE", worldState.rules_of_engagement || "-"],
+    ["Escalation", worldState.escalation_key || "-"],
     ["Persistence", data.state.metadata.active_persistence_system],
     ["Current Mission", data.state.current_mission_id],
     ["Clock", data.state.campaign_clock]
@@ -311,11 +321,15 @@ function renderRuntimeUnavailable(reason) {
 
 function renderHeroStats(data) {
   const root = document.getElementById("hero-stats");
+  const worldState = data.state.world_state || {};
   const stats = [
     ["Tracked Units", Object.keys(data.state.order_of_battle).length],
     ["Destroyed Units", Object.values(data.state.order_of_battle).filter((unit) => unit.destroyed).length],
     ["Active Modules", data.modules.enabled_modules.length],
-    ["Generation Directives", data.plan.directives.length]
+    ["Generation Directives", data.plan.directives.length],
+    ["Escalation", worldState.escalation_key || "-"],
+    ["Mission Type", worldState.mission_type || "-"],
+    ["ROE", worldState.rules_of_engagement || "-"]
   ];
   root.innerHTML = stats.map(([label, value]) => `
     <div class="stat">
@@ -812,20 +826,34 @@ function setSettingsStatus(message) {
 
 function refreshCurrentWizardBlueprint() {
   currentWizardBlueprint = buildCampaignBlueprint(collectWizardSpec());
+  if (currentWizardBlueprint?.warnings?.length) {
+    setWizardStatus(currentWizardBlueprint.warnings.join(" "));
+  }
   return currentWizardBlueprint;
 }
 
 function collectWizardSpec() {
   const maxTargetDistanceValue = document.getElementById("wizard-max-target-distance-km").value;
+  const experimentalEnabled = Boolean(document.getElementById("wizard-experimental-enabled")?.checked);
+  const plotSeed = document.getElementById("wizard-plot-seed")?.value || "none";
   return {
     title: document.getElementById("wizard-title").value.trim(),
     campaignId: document.getElementById("wizard-campaign-id").value.trim(),
     theater: document.getElementById("wizard-theater").value,
-    tone: document.getElementById("wizard-tone").value,
-    posture: document.getElementById("wizard-posture").value,
+    campaignClimate: document.getElementById("wizard-climate").value,
+    tone: document.getElementById("wizard-climate").value,
+    missionType: document.getElementById("wizard-mission-type").value,
+    missionStance: document.getElementById("wizard-stance").value,
+    posture: document.getElementById("wizard-stance").value,
+    rulesOfEngagement: document.getElementById("wizard-roe").value,
+    roe: document.getElementById("wizard-roe").value,
     year: Number(document.getElementById("wizard-year").value || 2028),
     scenarioCount: Number(document.getElementById("wizard-scenario-count").value || 2),
     playerName: document.getElementById("wizard-player-name").value.trim(),
+    experimentalFeatures: {
+      enabled: experimentalEnabled,
+      plotSeed
+    },
     authoringConstraints: {
       maxDistanceToPrimaryTargetKm: maxTargetDistanceValue ? Number(maxTargetDistanceValue) : null
     }
@@ -980,7 +1008,7 @@ function renderContinuationPlanner(data) {
       <div class="wizard-block">
         <strong>Campaign State</strong>
         <div class="wizard-meta">Current mission: ${currentMissionId}</div>
-        <div class="muted">${missionCount} mission result${missionCount === 1 ? "" : "s"} recorded. The reserved next mission will be regenerated from the latest result, and one additional slot will stay chained behind it.</div>
+        <div class="muted">${missionCount} mission result${missionCount === 1 ? "" : "s"} recorded. Climate: ${data.state.world_state?.campaign_climate || data.state.world_state?.tone || "-"}. Mission type: ${data.state.world_state?.mission_type || "-"}. Experimental: ${data.state.world_state?.experimental_features?.enabled ? data.state.world_state?.experimental_features?.plotSeedLabel || data.state.world_state?.experimental_features?.plotSeed || "On" : "Off"}. ROE: ${data.state.world_state?.rules_of_engagement || "-"}. Escalation: ${data.state.world_state?.escalation_key || "-"}. The reserved next mission will be regenerated from the latest result, and one additional slot will stay chained behind it.</div>
       </div>
       <div class="wizard-block">
         <strong>Command Intent</strong>
@@ -1020,23 +1048,60 @@ function renderContinuationPlanner(data) {
 
 function populateWizardSelectors() {
   const theaterSelect = document.getElementById("wizard-theater");
-  const toneSelect = document.getElementById("wizard-tone");
-  const postureSelect = document.getElementById("wizard-posture");
-  if (!theaterSelect || !toneSelect || !postureSelect) {
+  const climateSelect = document.getElementById("wizard-climate");
+  const missionTypeSelect = document.getElementById("wizard-mission-type");
+  const stanceSelect = document.getElementById("wizard-stance");
+  const roeSelect = document.getElementById("wizard-roe");
+  const experimentalEnabled = Boolean(document.getElementById("wizard-experimental-enabled")?.checked);
+  const plotSeedSelect = document.getElementById("wizard-plot-seed");
+  if (!theaterSelect || !climateSelect || !missionTypeSelect || !stanceSelect || !roeSelect || !plotSeedSelect) {
     return;
   }
+  const previousTheater = theaterSelect.value || "luzon_strait";
+  const previousClimate = climateSelect.value || "surveillance";
+  const previousMissionType = missionTypeSelect.value;
+  const previousStance = stanceSelect.value || "wide_area_search";
+  const previousRoe = roeSelect.value || "weapons_tight";
+  const previousPlotSeed = plotSeedSelect.value || "none";
   theaterSelect.innerHTML = Object.values(getTheaterTemplates()).map((theater) => `
     <option value="${theater.id}">${theater.label}</option>
   `).join("");
-  toneSelect.innerHTML = Object.entries(getToneCatalog()).map(([key, tone]) => `
-    <option value="${key}">${tone.label}</option>
+  climateSelect.innerHTML = Object.entries(getCampaignClimateCatalog()).map(([key, climate]) => `
+    <option value="${key}">${climate.label}</option>
   `).join("");
-  postureSelect.innerHTML = Object.entries(getAuthoringPostureCatalog()).map(([key, posture]) => `
+  missionTypeSelect.innerHTML = Object.entries(getMissionTypeCatalog())
+    .filter(([, missionType]) => experimentalEnabled || missionType.availability !== "experimental")
+    .map(([key, missionType]) => `
+    <option value="${key}">${missionType.label}${missionType.availability === "experimental" ? " [Experimental]" : ""}</option>
+  `).join("");
+  plotSeedSelect.innerHTML = Object.entries(getExperimentalPlotSeedCatalog()).map(([key, plotSeed]) => `
+    <option value="${key}">${plotSeed.label}</option>
+  `).join("");
+  stanceSelect.innerHTML = Object.entries(getMissionStanceCatalog()).map(([key, posture]) => `
     <option value="${key}">${posture.label}</option>
   `).join("");
-  theaterSelect.value = "luzon_strait";
-  toneSelect.value = "surveillance";
-  postureSelect.value = "wide_area_search";
+  roeSelect.innerHTML = Object.entries(getRoeCatalog()).map(([key, roe]) => `
+    <option value="${key}">${roe.label}</option>
+  `).join("");
+  theaterSelect.value = theaterSelect.querySelector(`option[value="${previousTheater}"]`)
+    ? previousTheater
+    : "luzon_strait";
+  climateSelect.value = climateSelect.querySelector(`option[value="${previousClimate}"]`)
+    ? previousClimate
+    : "surveillance";
+  missionTypeSelect.value = previousMissionType && missionTypeSelect.querySelector(`option[value="${previousMissionType}"]`)
+    ? previousMissionType
+    : "asuw_military";
+  stanceSelect.value = stanceSelect.querySelector(`option[value="${previousStance}"]`)
+    ? previousStance
+    : "wide_area_search";
+  roeSelect.value = roeSelect.querySelector(`option[value="${previousRoe}"]`)
+    ? previousRoe
+    : "weapons_tight";
+  plotSeedSelect.value = experimentalEnabled && plotSeedSelect.querySelector(`option[value="${previousPlotSeed}"]`)
+    ? previousPlotSeed
+    : "none";
+  plotSeedSelect.disabled = !experimentalEnabled;
 }
 
 function syncWizardDefaultsWithTheater() {
@@ -1050,6 +1115,10 @@ function syncWizardDefaultsWithTheater() {
   }
   document.getElementById("wizard-year").value = theater.defaultYear;
   document.getElementById("wizard-player-name").value = theater.player.name;
+  const missionTypeSelect = document.getElementById("wizard-mission-type");
+  if (missionTypeSelect) {
+    missionTypeSelect.value = theater.family === "sub_hunt" ? "asw" : "asuw_military";
+  }
 }
 
 function toggleDesktopOnlyButtons(enabled) {
@@ -1125,9 +1194,14 @@ async function initializeWizard() {
     syncWizardDefaultsWithTheater();
     refreshCurrentWizardBlueprint();
   };
-  ["wizard-title", "wizard-campaign-id", "wizard-tone", "wizard-posture", "wizard-year", "wizard-scenario-count", "wizard-player-name", "wizard-max-target-distance-km"].forEach((id) => {
+  ["wizard-title", "wizard-campaign-id", "wizard-climate", "wizard-mission-type", "wizard-stance", "wizard-roe", "wizard-year", "wizard-scenario-count", "wizard-player-name", "wizard-max-target-distance-km"].forEach((id) => {
     document.getElementById(id).oninput = () => refreshCurrentWizardBlueprint();
   });
+  document.getElementById("wizard-experimental-enabled").onchange = () => {
+    populateWizardSelectors();
+    refreshCurrentWizardBlueprint();
+  };
+  document.getElementById("wizard-plot-seed").onchange = () => refreshCurrentWizardBlueprint();
   document.getElementById("wizard-start-over").onclick = () => {
     resetAuthoringFlow();
   };

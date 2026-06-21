@@ -72,7 +72,7 @@ node .\portable\build-package.mjs
 node .\portable\deploy-package.mjs
 node .\portable\export-ui-state.mjs --campaign-id iron_archipelago
 node .\portable\ingest-result.mjs --campaign-id iron_archipelago --result .\parsers\manual_result_example.json
-node .\portable\generate-campaign.mjs --campaign-id demo_surface_chain --title "Demo Surface Chain" --theater luzon_strait --tone surveillance --scenario-count 3
+node .\portable\generate-campaign.mjs --campaign-id demo_surface_chain --title "Demo Surface Chain" --theater luzon_strait --campaign-climate surveillance --mission-type asuw_military --scenario-count 3
 ```
 
 Desktop shell commands:
@@ -148,8 +148,8 @@ Each theater template defines route corridors such as:
 
 For each scenario, the generator:
 
-1. picks a mission archetype sequence from the selected tone
-2. derives a stable seed from campaign ID, theater, tone, year, scenario count, and player name
+1. picks a mission archetype sequence from the selected campaign climate
+2. derives a stable seed from campaign ID, theater, campaign climate, mission stance, ROE, year, scenario count, and player name
 3. applies bounded jitter to corridor anchor points
 4. creates derived geometry such as player spawn, initial datum, lead enemy contact, escort positions, barrier or egress points, support stations, and withdrawal legs
 5. advances scenario start times and contact density
@@ -163,10 +163,12 @@ The `Authoring` workspace currently exposes:
 - campaign title
 - campaign ID
 - theater
-- tone
+- campaign climate
+- mission type
 - start year
 - scenario count
-- mission posture
+- mission stance
+- rules of engagement
 - player unit name
 - optional `Max Scenario Radius (km)`
 

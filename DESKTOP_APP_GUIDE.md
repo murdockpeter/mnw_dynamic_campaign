@@ -99,10 +99,12 @@ This workspace lets you:
 - choose a campaign title
 - choose a campaign ID
 - choose a theater
-- choose a tone
+- choose a campaign climate
+- choose a mission type
 - choose a start year
 - choose a scenario count
-- choose a mission posture
+- choose a mission stance
+- choose rules of engagement
 - choose a player unit name
 - optionally set `Max Scenario Radius (km)` to compress generated mission geometry around the player start
 - write campaign files
@@ -190,7 +192,7 @@ Each theater defines route corridors for things like:
 
 The app then:
 
-1. chooses a mission sequence based on the selected tone
+1. chooses a mission sequence based on the selected campaign climate
 2. creates a stable seed from your campaign settings
 3. jitters the corridor anchor points within bounded limits
 4. derives spawn points, contact datums, escorts, barrier or egress points, and withdrawal legs

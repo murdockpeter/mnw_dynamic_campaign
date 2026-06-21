@@ -97,6 +97,7 @@ After ingesting a result, the operator can choose:
 - next objective
 - risk posture
 - operational tempo
+- the follow-on mission keeps the saved campaign climate, mission type, ROE, and escalation state unless continuation logic changes them
 
 Then `Continue Campaign` will:
 

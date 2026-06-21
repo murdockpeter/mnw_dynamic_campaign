@@ -2,75 +2,294 @@ const DEFAULT_SCENARIO_COUNT = 3;
 const MIN_TARGET_DISTANCE_KM = 20;
 const MAX_TARGET_DISTANCE_KM = 500;
 
-const TONE_CATALOG = {
+const ESCALATION_CATALOG = {
+  peacetime: {
+    label: "Peacetime Patrol",
+    level: 0,
+    cue: "National command authority wants presence, classification, and restraint while the battlespace stays below open conflict."
+  },
+  heightened_tension: {
+    label: "High Alert",
+    level: 1,
+    cue: "The theater is under military pressure. Command wants rapid warning, clean classification, and readiness to strike if ordered."
+  },
+  crisis: {
+    label: "Crisis Response",
+    level: 2,
+    cue: "The situation is unstable and may break into combat on short notice. Seize initiative without losing the boat."
+  },
+  open_warfare: {
+    label: "Open Warfare",
+    level: 3,
+    cue: "Hostilities are underway. Destroy hostile combat power, survive the counterattack, and keep pressure on the theater objective."
+  }
+};
+
+const CAMPAIGN_CLIMATE_CATALOG = {
   surveillance: {
-    label: "Surveillance Escalation",
+    label: "Peacetime Patrol",
+    description: "Start with presence, classification, and shadowing before the theater heats up.",
+    defaultEscalation: "peacetime",
+    defaultRoe: "weapons_tight",
     sequence: ["initial_scout", "crosscurrent", "barrier_tide", "closing_arc"]
   },
   breakout_hunt: {
-    label: "Breakout Hunt",
+    label: "High Alert Interdiction",
+    description: "Start under pressure and build toward a deliberate strike against a breakout or convoy route.",
+    defaultEscalation: "heightened_tension",
+    defaultRoe: "military_targets_of_opportunity",
     sequence: ["first_vector", "datum_shift", "containment_run", "closing_window"]
   },
   sea_denial: {
-    label: "Sea Denial",
+    label: "Open Warfare Sea Denial",
+    description: "Start in combat conditions with authority to attack hostile forces and shape the sea lanes by force.",
+    defaultEscalation: "open_warfare",
+    defaultRoe: "hostile_flagged_free_fire",
     sequence: ["screen_probe", "route_bend", "kill_box", "terminal_shadow"]
   }
 };
 
-const AUTHORING_POSTURES = {
+const MISSION_STANCE_CATALOG = {
   aggressive_intercept: {
     label: "Aggressive Intercept",
-    cue: "Bias the boat forward, compress the intercept geometry, and accept higher exposure for sharper contact quality."
+    cue: "Get forward on the route, compress the intercept geometry, and accept more exposure to force a firing solution sooner."
   },
   quiet_shadow: {
     label: "Quiet Shadow",
-    cue: "Favor offset positions, preserve stealth, and work the contact picture from the edge of certainty."
+    cue: "Stay offset, preserve stealth, and keep contact from the edge of certainty instead of forcing a close prosecution."
   },
   wide_area_search: {
-    label: "Wide-Area Search",
-    cue: "Trade immediacy for broader search coverage and more room to re-orient when the first cue is wrong."
+    label: "Broad Area Search",
+    cue: "Trade immediacy for wider search coverage so you can rebuild the picture when the first cue is wrong."
   },
   barrier_support: {
     label: "Barrier Support",
-    cue: "Lean on support geometry and hold the likely seam instead of chasing every ambiguous contact."
+    cue: "Use support geometry, hold the likely seam, and turn the problem into a prepared interception instead of a chase."
   }
 };
+
+const ROE_CATALOG = {
+  weapons_tight: {
+    label: "Weapons Tight",
+    cue: "Self-defense only unless command issues a specific strike order against a designated hostile unit.",
+    attackAuthority: "Self-defense only.",
+    briefingLine: "Hold fire except in self-defense."
+  },
+  designated_targets_only: {
+    label: "Designated Targets Only",
+    cue: "You may attack only the specifically designated hostile target once classification is solid.",
+    attackAuthority: "Attack only the designated target after positive identification.",
+    briefingLine: "Attack authority applies only to the designated hostile unit."
+  },
+  military_targets_of_opportunity: {
+    label: "Military Targets Of Opportunity",
+    cue: "You may engage hostile military contacts of opportunity, but avoid wasting weapons on neutral or civilian traffic.",
+    attackAuthority: "Hostile military targets of opportunity may be engaged.",
+    briefingLine: "Hostile military targets of opportunity may be engaged."
+  },
+  hostile_flagged_free_fire: {
+    label: "Free Fire On Hostile-Flagged Units",
+    cue: "Any hostile-flagged enemy unit may be attacked once detected. Civilian and neutral traffic remain protected.",
+    attackAuthority: "Engage any hostile-flagged enemy unit.",
+    briefingLine: "Engage any hostile-flagged enemy unit."
+  }
+};
+
+const MISSION_TYPE_CATALOG = {
+  asw: {
+    label: "ASW",
+    description: "Hunt hostile submarines, rebuild contact, contain the breakout, and strike the designated sub or screen when ordered.",
+    operationType: "ASW",
+    availability: "stable",
+    supportByFamily: {
+      sub_hunt: "supported",
+      surface_shadow: "unsupported"
+    }
+  },
+  asuw_military: {
+    label: "ASuW Military Only",
+    description: "Track and attack hostile military units while minimizing interaction with civilian traffic.",
+    operationType: "ASuW",
+    availability: "stable",
+    supportByFamily: {
+      surface_shadow: "supported",
+      sub_hunt: "partial"
+    }
+  },
+  asuw_convoy: {
+    label: "ASuW Escorted Convoy",
+    description: "Shadow escorted traffic, identify the decisive ship, and strike through or around the screen.",
+    operationType: "ASuW",
+    availability: "stable",
+    supportByFamily: {
+      surface_shadow: "supported",
+      sub_hunt: "partial"
+    }
+  },
+  submerged_escort: {
+    label: "Submerged Escort",
+    description: "Screen a friendly surface group from below, build warning, and break up threats before they reach the force.",
+    operationType: "ASuW",
+    availability: "stable",
+    supportByFamily: {
+      surface_shadow: "partial",
+      sub_hunt: "partial"
+    }
+  },
+  civilian_defense: {
+    label: "Civilian Defense",
+    description: "Protect civilian or neutral shipping while identifying and suppressing hostile threats around the route.",
+    operationType: "ASuW",
+    availability: "stable",
+    supportByFamily: {
+      surface_shadow: "partial",
+      sub_hunt: "unsupported"
+    }
+  },
+  blockade_relief: {
+    label: "Blockade Relief",
+    description: "Keep a sea lane open long enough for relief traffic to pass under escort and submarine cover.",
+    operationType: "ASuW",
+    availability: "stable",
+    supportByFamily: {
+      surface_shadow: "partial",
+      sub_hunt: "unsupported"
+    }
+  },
+  spec_ops: {
+    label: "Spec Ops",
+    description: "Experimental mission family. Biases the briefing toward insertion, reconnaissance, or covert shoreline support without changing the core combat geometry yet.",
+    operationType: "Special Operations",
+    availability: "experimental",
+    supportByFamily: {
+      surface_shadow: "partial",
+      sub_hunt: "unsupported"
+    }
+  },
+  counter_piracy: {
+    label: "Counter-Piracy",
+    description: "Experimental mission family. Biases the mission toward vessel protection, interception, and selective surface engagement.",
+    operationType: "Maritime Security",
+    availability: "experimental",
+    supportByFamily: {
+      surface_shadow: "partial",
+      sub_hunt: "unsupported"
+    }
+  },
+  counter_terror: {
+    label: "Counter-Terror",
+    description: "Experimental mission family. Biases the mission toward interdiction of designated hostile cells, facilitators, or disguised logistics traffic.",
+    operationType: "Maritime Security",
+    availability: "experimental",
+    supportByFamily: {
+      surface_shadow: "partial",
+      sub_hunt: "unsupported"
+    }
+  },
+  land_attack: {
+    label: "Land Attack",
+    description: "Experimental placeholder. The current mission generation and MNW scripting path do not yet place or prosecute land targets.",
+    operationType: "Land Attack",
+    availability: "experimental",
+    supportByFamily: {
+      surface_shadow: "future",
+      sub_hunt: "future"
+    }
+  }
+};
+
+const EXPERIMENTAL_PLOT_SEED_CATALOG = {
+  none: {
+    label: "None",
+    description: "No experimental plot overlay. Use the stable mission arc only."
+  },
+  grey_zone_smuggling_crackdown: {
+    label: "Grey-Zone Smuggling Crackdown",
+    description: "Frames the operation around deniable maritime logistics, suspect auxiliaries, and escalation pressure below declared war.",
+    summaryPrefix: "Signals traffic points to a grey-zone logistics network operating under naval cover.",
+    cuePrefix: "Expect disguised traffic, politically sensitive identification, and pressure to build a prosecutable contact picture before any attack.",
+    commandIntent: "Command wants actionable attribution before the logistics chain can shift or disperse."
+  },
+  hostage_recovery_window: {
+    label: "Hostage Recovery Window",
+    description: "Frames the operation around a short-duration recovery opportunity tied to a convoy, ferry, or covert transfer point.",
+    summaryPrefix: "A short hostage-recovery opportunity has opened inside the wider naval picture.",
+    cuePrefix: "Timing matters more than attrition. Build contact cleanly and be ready to isolate the decisive vessel fast.",
+    commandIntent: "Command wants the recovery window preserved until the designated intervention point is confirmed."
+  },
+  blockade_relief_corridor: {
+    label: "Blockade Relief Corridor",
+    description: "Frames the operation around keeping a relief corridor open long enough for escorted traffic to pass.",
+    summaryPrefix: "Relief shipping needs a temporary corridor through contested water.",
+    cuePrefix: "Expect pressure from screening forces and hostile pickets trying to close the lane before the convoy clears.",
+    commandIntent: "Command wants enough sea room created for relief traffic to move without exposing the boat unnecessarily."
+  },
+  littoral_special_recon: {
+    label: "Littoral Special Recon",
+    description: "Frames the operation around covert reconnaissance, submerged delivery, and discreet exfiltration support near the shoreline.",
+    summaryPrefix: "A covert littoral reconnaissance task is tied into the wider submarine patrol.",
+    cuePrefix: "Avoid theatrical escalation. The mission should feel like intelligence support until command explicitly shifts to attack.",
+    commandIntent: "Command wants clean reconnaissance support and a survivable exfiltration path if the shoreline picture turns hostile."
+  }
+};
+
+const TONE_CATALOG = CAMPAIGN_CLIMATE_CATALOG;
+const AUTHORING_POSTURES = MISSION_STANCE_CATALOG;
 
 const TASK_CATALOG = {
   classify_trail: {
     label: "Classify And Trail",
     objectiveLine: "Classify the likely main contact and trail without forcing a premature attack.",
-    mapIntent: "Use the marked probable contact area and support cueing to build a clean track."
+    mapIntent: "Use the marked probable contact area and support cueing to build a clean track.",
+    endCondition: "Recover with the contact picture intact and enough reporting to drive the next operation."
   },
   reacquire_contact: {
     label: "Re-Acquire Contact",
     objectiveLine: "Rebuild the contact picture inside the marked search area and restore a usable trail.",
-    mapIntent: "Work the search area first, then pivot to the likely egress line only if the picture firms up."
+    mapIntent: "Work the search area first, then pivot to the likely egress line only if the picture firms up.",
+    endCondition: "Recover after restoring a usable trail or after exhausting the marked search geometry."
   },
   hold_barrier: {
     label: "Hold Barrier",
     objectiveLine: "Hold the marked barrier line and prevent a clean transit through the seam.",
-    mapIntent: "Treat the intercept gate and barrier station as decision points rather than exact target positions."
+    mapIntent: "Treat the intercept gate and barrier station as decision points rather than exact target positions.",
+    endCondition: "Recover once the barrier picture is clear and the enemy route has been forced to resolve."
   },
   intercept_gate: {
     label: "Intercept Gate",
     objectiveLine: "Cut ahead of the marked route and challenge the transit at the likely gate.",
-    mapIntent: "Use the likely egress marker to get in front of the movement instead of chasing the datum."
+    mapIntent: "Use the likely egress marker to get in front of the movement instead of chasing the datum.",
+    endCondition: "Recover once you have classified the route choice and denied an easy transit."
   },
   confirm_route: {
     label: "Confirm Route",
     objectiveLine: "Confirm which corridor is real and leave a clean handoff for follow-on forces.",
-    mapIntent: "Compare the likely contact area against the marked route decision point before committing."
+    mapIntent: "Compare the likely contact area against the marked route decision point before committing.",
+    endCondition: "Recover once command has a clear route picture for follow-on forces."
   },
   classify_screen: {
     label: "Classify The Screen",
     objectiveLine: "Probe the screen edges, identify escorts, and avoid getting sucked into the wrong layer.",
-    mapIntent: "Use the support and barrier markers to understand where the screen is strongest."
+    mapIntent: "Use the support and barrier markers to understand where the screen is strongest.",
+    endCondition: "Recover once you can describe the escort layout and main screen axis."
   },
   trail_handoff: {
     label: "Trail To Handoff",
     objectiveLine: "Carry contact into the terminal phase and preserve a clean handoff for support forces.",
-    mapIntent: "Stay connected to the marked route and barrier cues long enough to hand the picture forward."
+    mapIntent: "Stay connected to the marked route and barrier cues long enough to hand the picture forward.",
+    endCondition: "Recover after preserving contact long enough for the handoff."
+  },
+  designated_strike: {
+    label: "Designated Strike",
+    objectiveLine: "Classify the designated high-value target, attack it, and leave the area before the counter-search closes.",
+    mapIntent: "Use the marked route and search cues to stalk the formation, identify the target, fire from advantage, and exit along the withdrawal geometry.",
+    endCondition: "Mission ends when the designated target is destroyed or the strike window is clearly lost and you withdraw intact."
+  },
+  break_contact_escape: {
+    label: "Break Contact And Escape",
+    objectiveLine: "Break contact, clear the enemy search geometry, and exit the area with the boat intact.",
+    mapIntent: "Treat the withdrawal line as a real escape axis and avoid re-entering the search net once you disengage.",
+    endCondition: "Mission ends when you clear the pursuit geometry and recover with the boat combat effective."
   }
 };
 
@@ -89,15 +308,15 @@ const MISSION_LIBRARY = {
   },
   barrier_tide: {
     name: "Barrier Tide",
-    summary: "The battlespace thickens into a barrier problem. Track the turn and stay ahead of the containment line.",
-    cue: "The route is bending toward a constricted approach. Escorts will favor layered search arcs.",
-    taskType: "hold_barrier"
+    summary: "The route is bending into a constrained firing window. Identify the designated high-value unit, sink it, and get clear before the barrier closes.",
+    cue: "Command has shifted from surveillance to attack. Classification must be positive before you fire.",
+    taskType: "designated_strike"
   },
   closing_arc: {
     name: "Closing Arc",
-    summary: "The operation reaches its containment phase. Confirm the decisive route and survive the endgame.",
-    cue: "Support is forward, but the player submarine still has to hold the decisive geometry.",
-    taskType: "confirm_route"
+    summary: "The enemy screen is fully alerted. Break contact, survive the search, and preserve the boat after the strike phase.",
+    cue: "Assume retaliation geometry is active and use the withdrawal axis as your real objective.",
+    taskType: "break_contact_escape"
   },
   first_vector: {
     name: "First Vector",
@@ -113,15 +332,15 @@ const MISSION_LIBRARY = {
   },
   containment_run: {
     name: "Containment Run",
-    summary: "Barrier forces tighten while the target tries to slip through the seam.",
-    cue: "Plan for heavier support, denser contacts, and a more defined egress route.",
-    taskType: "hold_barrier"
+    summary: "The breakout is boxed into a narrow seam. Kill the designated submarine or lead escort before it slips through the gate.",
+    cue: "The strike order is active. Delay will let the target cross under a tighter screen.",
+    taskType: "designated_strike"
   },
   closing_window: {
     name: "Closing Window",
-    summary: "The final opportunity to seal the route before the operational picture resets.",
-    cue: "Any late exposure will draw aggressive screening behavior.",
-    taskType: "trail_handoff"
+    summary: "The enemy is reacting to your attack. Clear the search geometry and preserve combat power for the next decision cycle.",
+    cue: "Counter-detection risk is high. Recover only after you have broken pursuit.",
+    taskType: "break_contact_escape"
   },
   screen_probe: {
     name: "Screen Probe",
@@ -137,15 +356,15 @@ const MISSION_LIBRARY = {
   },
   kill_box: {
     name: "Kill Box",
-    summary: "Contain the movement inside a prepared geometry and survive the counter-search.",
-    cue: "The generated path now favors a barrier-like prosecution problem.",
-    taskType: "hold_barrier"
+    summary: "Contain the movement inside prepared geometry, destroy the decisive hostile unit, and survive the immediate response.",
+    cue: "You already have broad attack authority. Use it against the designated combatant before the formation disperses.",
+    taskType: "designated_strike"
   },
   terminal_shadow: {
     name: "Terminal Shadow",
-    summary: "Carry contact into the final phase and leave a clean handoff for follow-on forces.",
-    cue: "The route is now constrained, but exposure risk is highest.",
-    taskType: "trail_handoff"
+    summary: "The strike is complete or imminent. Break away, spoil the counter-search, and exit with the boat intact.",
+    cue: "Open warfare conditions still apply, but survival now matters as much as additional kills.",
+    taskType: "break_contact_escape"
   }
 };
 
@@ -929,8 +1148,190 @@ function plusHours(baseIso, hours) {
   };
 }
 
-function pickArchetypes(tone, count) {
-  const selectedTone = TONE_CATALOG[tone] || TONE_CATALOG.surveillance;
+function normalizeCampaignClimateKey(value) {
+  if (CAMPAIGN_CLIMATE_CATALOG[value]) {
+    return value;
+  }
+  return "surveillance";
+}
+
+function normalizeMissionStanceKey(value) {
+  if (MISSION_STANCE_CATALOG[value]) {
+    return value;
+  }
+  return "wide_area_search";
+}
+
+function normalizeEscalationKey(value, fallback = "peacetime") {
+  if (ESCALATION_CATALOG[value]) {
+    return value;
+  }
+  return fallback;
+}
+
+function escalationLevelForKey(value) {
+  return ESCALATION_CATALOG[normalizeEscalationKey(value)].level;
+}
+
+function escalationKeyForLevel(level) {
+  const numeric = Math.max(0, Math.min(3, Number.isFinite(level) ? Math.round(level) : 0));
+  return Object.entries(ESCALATION_CATALOG).find(([, item]) => item.level === numeric)?.[0] || "peacetime";
+}
+
+function deriveInitialEscalationKey(climateKey, index = 0) {
+  const climate = CAMPAIGN_CLIMATE_CATALOG[normalizeCampaignClimateKey(climateKey)];
+  const baseLevel = escalationLevelForKey(climate.defaultEscalation);
+  const additionalLevels = climateKey === "sea_denial"
+    ? Math.min(index, 1)
+    : Math.min(index, 2);
+  return escalationKeyForLevel(baseLevel + additionalLevels);
+}
+
+function deriveContinuationEscalationKey(currentKey, lastOutcome = "success", objective = "pursue_contact", riskPosture = "balanced") {
+  let nextLevel = escalationLevelForKey(currentKey);
+  if (objective === "defend_chokepoint" || objective === "intercept_route") {
+    nextLevel += 1;
+  }
+  if (objective === "break_contact") {
+    nextLevel -= 1;
+  }
+  if (riskPosture === "aggressive") {
+    nextLevel += 1;
+  }
+  if (riskPosture === "cautious") {
+    nextLevel -= 1;
+  }
+  if (lastOutcome === "failure") {
+    nextLevel += 1;
+  }
+  if (lastOutcome === "success" && objective === "shadow_safely") {
+    nextLevel -= 1;
+  }
+  return escalationKeyForLevel(nextLevel);
+}
+
+function normalizeRoeKey(value, fallback = "weapons_tight") {
+  if (ROE_CATALOG[value]) {
+    return value;
+  }
+  return fallback;
+}
+
+function deriveRoeKey({ requestedRoe, climateKey, escalationKey, taskType }) {
+  if (taskType === "designated_strike") {
+    if (requestedRoe === "hostile_flagged_free_fire" || requestedRoe === "military_targets_of_opportunity") {
+      return requestedRoe;
+    }
+    return escalationKey === "open_warfare"
+      ? "hostile_flagged_free_fire"
+      : "designated_targets_only";
+  }
+  if (taskType === "break_contact_escape") {
+    return "weapons_tight";
+  }
+  if (ROE_CATALOG[requestedRoe]) {
+    return requestedRoe;
+  }
+  const climate = CAMPAIGN_CLIMATE_CATALOG[normalizeCampaignClimateKey(climateKey)];
+  const defaultRoe = normalizeRoeKey(climate?.defaultRoe, "weapons_tight");
+  if (escalationKey === "open_warfare") {
+    return "hostile_flagged_free_fire";
+  }
+  if (escalationKey === "crisis" && defaultRoe === "weapons_tight") {
+    return "military_targets_of_opportunity";
+  }
+  return defaultRoe;
+}
+
+function defaultMissionTypeForFamily(family) {
+  return family === "sub_hunt" ? "asw" : "asuw_military";
+}
+
+function normalizeExperimentalSettings(spec = {}) {
+  const enabled = Boolean(
+    spec.experimentalFeatures?.enabled
+    || spec.experimental?.enabled
+    || spec.experimentalGeneration
+    || spec.enableExperimentalContent
+  );
+  const requestedPlotSeed = spec.experimentalFeatures?.plotSeed
+    || spec.experimental?.plotSeed
+    || spec.plotSeed
+    || "none";
+  const plotSeed = enabled && EXPERIMENTAL_PLOT_SEED_CATALOG[requestedPlotSeed]
+    ? requestedPlotSeed
+    : "none";
+  return {
+    enabled,
+    plotSeed
+  };
+}
+
+function normalizeMissionTypeKey(value, family = "surface_shadow", experimental = { enabled: false }) {
+  const requested = MISSION_TYPE_CATALOG[value] ? value : defaultMissionTypeForFamily(family);
+  if (MISSION_TYPE_CATALOG[requested]?.availability === "experimental" && !experimental.enabled) {
+    return defaultMissionTypeForFamily(family);
+  }
+  const support = MISSION_TYPE_CATALOG[requested]?.supportByFamily?.[family] || "unsupported";
+  if (support === "unsupported" || support === "future") {
+    return defaultMissionTypeForFamily(family);
+  }
+  return requested;
+}
+
+function resolveMissionTypeSupport(value, family = "surface_shadow", experimental = { enabled: false }) {
+  const requestedKey = MISSION_TYPE_CATALOG[value] ? value : defaultMissionTypeForFamily(family);
+  const requestedDef = MISSION_TYPE_CATALOG[requestedKey] || MISSION_TYPE_CATALOG[defaultMissionTypeForFamily(family)];
+  const requiresExperimental = requestedDef.availability === "experimental";
+  if (requiresExperimental && !experimental.enabled) {
+    const resolvedKey = defaultMissionTypeForFamily(family);
+    const resolvedDef = MISSION_TYPE_CATALOG[resolvedKey];
+    return {
+      requestedKey,
+      requestedDef,
+      support: "experimental",
+      resolvedKey,
+      resolvedDef,
+      warning: `${requestedDef.label} is experimental and currently disabled. Turn on Experimental Content to try it, or continue with ${resolvedDef.label}.`
+    };
+  }
+  const support = requestedDef.supportByFamily?.[family] || "unsupported";
+  const resolvedKey = support === "unsupported" || support === "future"
+    ? defaultMissionTypeForFamily(family)
+    : requestedKey;
+  const resolvedDef = MISSION_TYPE_CATALOG[resolvedKey];
+  let warning = resolvedKey !== requestedKey
+    ? `${requestedDef.label} is ${support} for ${family}. Falling back to ${resolvedDef.label}.`
+    : support === "partial"
+      ? `${requestedDef.label} is only partially supported for ${family}. Briefings and force mix are biased accordingly.`
+      : null;
+  if (requestedKey === "land_attack") {
+    warning = support === "future"
+      ? "Land Attack is not technically supported by the current generator or MNW scripting path. It remains a gated placeholder and will fall back to a surface-attack mission."
+      : warning;
+  } else if (requestedDef.availability === "experimental" && resolvedKey === requestedKey) {
+    warning = warning
+      ? `${warning} Experimental content is enabled, but this mission family still uses narrative overlays on top of the existing geometry.`
+      : `${requestedDef.label} is experimental. The current implementation biases briefing language and force mix, but it does not yet have a bespoke mission script family.`;
+  }
+  return {
+    requestedKey,
+    requestedDef,
+    support,
+    resolvedKey,
+    resolvedDef,
+    warning
+  };
+}
+
+function commandAuthorityForTheater(theaterId) {
+  return theaterId === "luzon_strait" || theaterId === "south_china_sea"
+    ? "COMSUBPAC"
+    : "COMSUBLANT";
+}
+
+function pickArchetypes(climateKey, count) {
+  const selectedTone = TONE_CATALOG[normalizeCampaignClimateKey(climateKey)] || TONE_CATALOG.surveillance;
   return selectedTone.sequence.slice(0, count).map((key) => ({
     slug: key,
     ...MISSION_LIBRARY[key]
@@ -1242,22 +1643,22 @@ function bearingLabelFromDegrees(degrees) {
   return labels[index];
 }
 
-function estimateIntelConfidence(template, geometry, index, rng, postureKey = "wide_area_search") {
+function estimateIntelConfidence(template, geometry, index, rng, missionStanceKey = "wide_area_search") {
   const base = template.family === "surface_shadow" ? 72 : 64;
   const densityModifier = Number(geometry?.density || 1) >= 3 ? 6 : 0;
   const progressionModifier = Math.min(10, index * 3);
-  const postureModifier = postureKey === "aggressive_intercept"
+  const postureModifier = missionStanceKey === "aggressive_intercept"
     ? 6
-    : postureKey === "quiet_shadow"
+    : missionStanceKey === "quiet_shadow"
       ? -4
-      : postureKey === "barrier_support"
+      : missionStanceKey === "barrier_support"
         ? 3
         : 0;
   const noise = Math.round((rng() - 0.5) * 14);
   return Math.max(42, Math.min(91, base + densityModifier + progressionModifier + postureModifier + noise));
 }
 
-function buildScenarioIntel(template, geometry, forces, index, rng, postureKey = "wide_area_search") {
+function buildScenarioIntel(template, geometry, forces, index, rng, missionStanceKey = "wide_area_search") {
   const playerReference = geometry.playerSpawn;
   const likelyContact = template.family === "surface_shadow"
     ? geometry.lead
@@ -1265,7 +1666,7 @@ function buildScenarioIntel(template, geometry, forces, index, rng, postureKey =
   const axisReference = template.family === "surface_shadow"
     ? geometry.destination
     : geometry.egress;
-  const confidence = estimateIntelConfidence(template, geometry, index, rng, postureKey);
+  const confidence = estimateIntelConfidence(template, geometry, index, rng, missionStanceKey);
   const likelyBearing = bearingLabelFromDegrees(approximateBearingDegrees(playerReference, likelyContact));
   const axisBearing = bearingLabelFromDegrees(approximateBearingDegrees(playerReference, axisReference));
   const sectorLabel = geometry.routeVariantLabel || forces?.sector || "main axis";
@@ -1292,9 +1693,51 @@ function buildScenarioIntel(template, geometry, forces, index, rng, postureKey =
   };
 }
 
-function buildScenarioAnnotations(template, geometry, forces, missionDef, postureKey, intel) {
+function resolveScenarioTarget(template, forces = {}) {
+  const prioritizedTargets = template.family === "surface_shadow"
+    ? [...(forces.enemyPrimary || [])].sort((left, right) => {
+      const leftPriority = /lead|flag|command|capital|ddg|cg|carrier/i.test(left?.name || "") ? 1 : 0;
+      const rightPriority = /lead|flag|command|capital|ddg|cg|carrier/i.test(right?.name || "") ? 1 : 0;
+      return rightPriority - leftPriority;
+    })
+    : (forces.enemyPrimary || []).filter((unit) => unit.role === "target" || unit.notes?.role === "target");
+  const fallbackTargets = template.family === "surface_shadow"
+    ? forces.enemyPrimary || []
+    : forces.enemyPrimary || [];
+  const target = prioritizedTargets[0] || fallbackTargets[0] || null;
+  return {
+    unit: target,
+    name: target?.name || (template.family === "surface_shadow" ? "enemy flagship" : "enemy breakout submarine")
+  };
+}
+
+function experimentalPlotSeedDefinition(key) {
+  return EXPERIMENTAL_PLOT_SEED_CATALOG[key] || EXPERIMENTAL_PLOT_SEED_CATALOG.none;
+}
+
+function buildPlotSeedOverlay(experimental = {}) {
+  if (!experimental.enabled || !experimental.plotSeed || experimental.plotSeed === "none") {
+    return null;
+  }
+  const seed = experimentalPlotSeedDefinition(experimental.plotSeed);
+  return {
+    key: experimental.plotSeed,
+    label: seed.label,
+    description: seed.description,
+    summaryPrefix: seed.summaryPrefix,
+    cuePrefix: seed.cuePrefix,
+    commandIntent: seed.commandIntent
+  };
+}
+
+function buildScenarioAnnotations(template, geometry, forces, missionDef, missionStanceKey, intel, options = {}) {
   const task = TASK_CATALOG[missionDef.taskType] || TASK_CATALOG.classify_trail;
   const annotations = [];
+  const missionStance = MISSION_STANCE_CATALOG[normalizeMissionStanceKey(missionStanceKey)] || MISSION_STANCE_CATALOG.wide_area_search;
+  const escalation = ESCALATION_CATALOG[normalizeEscalationKey(options.escalationKey, "peacetime")] || ESCALATION_CATALOG.peacetime;
+  const roe = ROE_CATALOG[normalizeRoeKey(options.roeKey, "weapons_tight")] || ROE_CATALOG.weapons_tight;
+  const missionType = MISSION_TYPE_CATALOG[normalizeMissionTypeKey(options.missionTypeKey, template.family)] || MISSION_TYPE_CATALOG[defaultMissionTypeForFamily(template.family)];
+  const scenarioTarget = resolveScenarioTarget(template, forces);
   const likelyContactPoint = template.family === "surface_shadow"
     ? geometry.datum
     : geometry.yasen;
@@ -1337,14 +1780,61 @@ function buildScenarioAnnotations(template, geometry, forces, missionDef, postur
     detail: "Useful holding point if you choose to turn the mission into a containment problem."
   });
 
+  if (task === TASK_CATALOG.designated_strike) {
+    annotations.push({
+      id: "designated_target",
+      label: "Designated Target",
+      kind: "target",
+      point: template.family === "surface_shadow" ? geometry.lead : geometry.yasen,
+      detail: `Command strike authority applies to ${scenarioTarget.name} once classification is positive.`
+    });
+    annotations.push({
+      id: "withdrawal_axis",
+      label: "Withdrawal Axis",
+      kind: "withdrawal",
+      point: geometry.withdrawal,
+      detail: "After the attack, break away on this axis instead of circling back into the screen."
+    });
+  }
+
+  if (task === TASK_CATALOG.break_contact_escape) {
+    annotations.push({
+      id: "withdrawal_axis",
+      label: "Withdrawal Axis",
+      kind: "withdrawal",
+      point: geometry.withdrawal,
+      detail: "Use this as a real escape geometry and avoid re-entering the enemy search net."
+    });
+  }
+
+  const objectiveLine = task === TASK_CATALOG.designated_strike
+    ? `Positively identify ${scenarioTarget.name}, attack it, and withdraw before the escorts can localize your firing point.`
+    : task.objectiveLine;
+  const mapIntent = task === TASK_CATALOG.designated_strike
+    ? `Stalk from the marked likely contact area, use the route gate to predict the turn, fire from advantage, then exit along the withdrawal axis.`
+    : task.mapIntent;
+  const endCondition = task === TASK_CATALOG.designated_strike
+    ? `End the mission only after ${scenarioTarget.name} is destroyed or the attack opportunity is lost and you have disengaged cleanly.`
+    : task === TASK_CATALOG.break_contact_escape
+      ? "End the mission after you have opened distance, cleared the search geometry, and recovered with the boat intact."
+      : task.endCondition;
+
   return {
     primaryTask: {
       key: missionDef.taskType || "classify_trail",
       label: task.label,
-      objectiveLine: task.objectiveLine,
-      mapIntent: task.mapIntent
+      objectiveLine,
+      mapIntent,
+      endCondition,
+      designatedTarget: task === TASK_CATALOG.designated_strike ? scenarioTarget.name : null,
+      attackRequired: task === TASK_CATALOG.designated_strike
     },
-    posture: AUTHORING_POSTURES[postureKey] || AUTHORING_POSTURES.wide_area_search,
+    missionType,
+    missionStance,
+    posture: missionStance,
+    escalation,
+    rulesOfEngagement: roe,
+    roe,
     annotations
   };
 }
@@ -1569,36 +2059,46 @@ function buildAisMerchantTraffic(family, geometry, density, authoringConstraints
   }));
 }
 
-function buildScenarioForces(template, geometry, index, theaterPicture, rng, authoringConstraints = {}, aisSnapshot = null) {
+function buildScenarioForces(template, geometry, index, theaterPicture, rng, authoringConstraints = {}, aisSnapshot = null, missionTypeKey = null) {
   const pools = THEATER_FORCE_POOLS[template.id] || {};
   const scenarioSector = pickScenarioSector(template, geometry, index);
   const density = Number(geometry?.density || 1);
+  const resolvedMissionType = normalizeMissionTypeKey(missionTypeKey, template.family);
   const aisMerchantTraffic = buildAisMerchantTraffic(template.family, geometry, density, authoringConstraints, aisSnapshot);
 
   if (template.family === "surface_shadow") {
+    const desiredPrimaryCount = resolvedMissionType === "submerged_escort" ? 1 : 2;
     const enemyPrimary = selectUnitsForMission(
       [...(pools.enemySurface || [])],
       theaterPicture,
       scenarioSector,
-      2,
+      desiredPrimaryCount,
       index
     );
     const usedEnemyIds = new Set(enemyPrimary.map((unit) => unit.unitId));
     const barrierCandidates = (pools.enemySurface || []).filter((unit) => !usedEnemyIds.has(unit.unitId));
-    const enemySecondary = density >= 2
-      ? selectUnitsForMission(barrierCandidates, theaterPicture, scenarioSector, 1, index)
+    const enemySecondary = density >= 2 || resolvedMissionType === "asuw_convoy" || resolvedMissionType === "civilian_defense" || resolvedMissionType === "blockade_relief"
+      ? selectUnitsForMission(barrierCandidates, theaterPicture, scenarioSector, resolvedMissionType === "asuw_convoy" ? 2 : 1, index)
       : [];
     const enemyAir = selectUnitsForMission(pools.enemyAir || [], theaterPicture, scenarioSector, 1, index);
-    const friendlySurface = selectUnitsForMission(pools.friendlySurface || [], theaterPicture, scenarioSector, 1, index);
+    const friendlySurface = selectUnitsForMission(
+      pools.friendlySurface || [],
+      theaterPicture,
+      scenarioSector,
+      resolvedMissionType === "submerged_escort" || resolvedMissionType === "blockade_relief" ? 2 : 1,
+      index
+    );
     const friendlyAir = selectUnitsForMission(pools.friendlyAir || [], theaterPicture, scenarioSector, 1, index);
+    const extraMerchantTraffic = resolvedMissionType === "asuw_convoy" || resolvedMissionType === "civilian_defense" || resolvedMissionType === "blockade_relief" ? 3 : 0;
     return {
       sector: scenarioSector,
+      missionType: resolvedMissionType,
       friendlySurface,
       friendlyAir,
       enemyPrimary,
       enemySecondary,
       enemyAir,
-      ambientMerchantCount: Math.max(3, density + 2 + Math.floor(rng() * 2)),
+      ambientMerchantCount: Math.max(3, density + 2 + Math.floor(rng() * 2) + extraMerchantTraffic),
       aisMerchantTraffic,
       ambientBiologicCount: 3 + Math.floor(rng() * 2),
       offstageEnemy: summarizeOffstageUnits([...(pools.enemySurface || []), ...(pools.enemyAir || [])], [...enemyPrimary, ...enemySecondary, ...enemyAir]),
@@ -1622,16 +2122,23 @@ function buildScenarioForces(template, geometry, index, theaterPicture, rng, aut
   const enemyAir = density >= 2
     ? selectUnitsForMission(pools.enemyAir || [], theaterPicture, scenarioSector, 1, index)
     : [];
-  const friendlySurface = selectUnitsForMission(pools.friendlySurface || [], theaterPicture, scenarioSector, 1, index);
+  const friendlySurface = selectUnitsForMission(
+    pools.friendlySurface || [],
+    theaterPicture,
+    scenarioSector,
+    resolvedMissionType === "submerged_escort" ? 2 : 1,
+    index
+  );
   const friendlyAir = selectUnitsForMission(pools.friendlyAir || [], theaterPicture, scenarioSector, 1, index);
   return {
     sector: scenarioSector,
+    missionType: resolvedMissionType,
     friendlySurface,
     friendlyAir,
     enemyPrimary,
     enemySurfaceSupport,
     enemyAir,
-    ambientMerchantCount: Math.max(3, density + 2 + Math.floor(rng() * 2)),
+    ambientMerchantCount: Math.max(3, density + 2 + Math.floor(rng() * 2) + (resolvedMissionType === "submerged_escort" ? 1 : 0)),
     aisMerchantTraffic,
     ambientBiologicCount: 4 + Math.floor(rng() * 2),
     offstageEnemy: summarizeOffstageUnits(
@@ -1643,7 +2150,7 @@ function buildScenarioForces(template, geometry, index, theaterPicture, rng, aut
 }
 
 function applyAuthoringPostureToGeometry(template, family, geometry, postureKey) {
-  const posture = AUTHORING_POSTURES[postureKey] || AUTHORING_POSTURES.wide_area_search;
+  const posture = AUTHORING_POSTURES[normalizeMissionStanceKey(postureKey)] || AUTHORING_POSTURES.wide_area_search;
   const next = { ...geometry };
   const contactReference = family === "surface_shadow" ? geometry.lead : geometry.yasen;
   const routeGate = family === "surface_shadow" ? geometry.destination : geometry.egress;
@@ -1676,8 +2183,8 @@ function applyAuthoringPostureToGeometry(template, family, geometry, postureKey)
       break;
   }
 
-  next.posture = {
-    key: postureKey,
+  next.missionStance = {
+    key: normalizeMissionStanceKey(postureKey),
     label: posture.label,
     cue: posture.cue
   };
@@ -1783,7 +2290,8 @@ function buildScenarioRecord(
   authoringConstraints = {},
   slotNumber = index + 1,
   reserved = false,
-  aisSnapshot = null
+  aisSnapshot = null,
+  options = {}
 ) {
   const startBase = template.id === "luzon_strait"
     ? `${year}-04-02T04:20:00Z`
@@ -1792,28 +2300,50 @@ function buildScenarioRecord(
   const rawGeometry = template.family === "surface_shadow"
     ? buildSurfaceShadowGeometry(template, index, count, rng)
     : buildSubHuntGeometry(template, index, count, rng);
-  const postureGeometry = applyAuthoringPostureToGeometry(template, template.family, rawGeometry, postureKey);
+  const normalizedMissionStance = normalizeMissionStanceKey(postureKey);
+  const experimental = options?.experimental || { enabled: false, plotSeed: "none" };
+  const resolvedMissionType = normalizeMissionTypeKey(options?.missionTypeKey, template.family, experimental);
+  const commandAuthority = commandAuthorityForTheater(template.id);
+  const escalationKey = deriveInitialEscalationKey(options?.campaignClimateKey || "surveillance", index);
+  const roeKey = deriveRoeKey({
+    requestedRoe: options?.requestedRoeKey || null,
+    climateKey: options?.campaignClimateKey || "surveillance",
+    escalationKey,
+    taskType: missionDef.taskType
+  });
+  const postureGeometry = applyAuthoringPostureToGeometry(template, template.family, rawGeometry, normalizedMissionStance);
   const geometry = finalizeScenarioGeometry(template.id, template.family, postureGeometry, rng, authoringConstraints);
-  const forces = buildScenarioForces(template, geometry, index, theaterPicture, rng, authoringConstraints, aisSnapshot);
-  const intel = buildScenarioIntel(template, geometry, forces, index, rng, postureKey);
-  const tasking = buildScenarioAnnotations(template, geometry, forces, missionDef, postureKey, intel);
+  const forces = buildScenarioForces(template, geometry, index, theaterPicture, rng, authoringConstraints, aisSnapshot, resolvedMissionType);
+  const intel = buildScenarioIntel(template, geometry, forces, index, rng, normalizedMissionStance);
+  const tasking = buildScenarioAnnotations(template, geometry, forces, missionDef, normalizedMissionStance, intel, {
+    escalationKey,
+    roeKey,
+    missionTypeKey: resolvedMissionType
+  });
+  const plotSeedOverlay = buildPlotSeedOverlay(experimental);
   const slug = scenarioSlotSlug(slotNumber);
   const missionKey = `${campaignId}.${campaignId}.${slug}`;
   const summary = reserved
     ? "Reserved follow-on mission slot. Update the previous mission result in Campaign Tracking before playing this scenario."
-    : missionDef.summary;
+    : plotSeedOverlay?.summaryPrefix
+      ? `${plotSeedOverlay.summaryPrefix} ${missionDef.summary}`
+      : missionDef.summary;
   const cue = reserved
     ? "This mission slot exists so the campaign chain always has a valid next mission available inside MNW."
-    : missionDef.cue;
+    : plotSeedOverlay?.cuePrefix
+      ? `${plotSeedOverlay.cuePrefix} ${missionDef.cue}`
+      : missionDef.cue;
   const description = reserved
     ? `${summary} This placeholder exists so MNW always has a valid next mission, but its content is intended to be rewritten before play.`
-    : `${missionDef.summary} ${missionDef.cue} Task: ${tasking.primaryTask.objectiveLine} Intel cue: ${intel.prose}`;
+    : `${summary} ${cue} Escalation: ${tasking.escalation.label}. ROE: ${tasking.rulesOfEngagement.label}. Task: ${tasking.primaryTask.objectiveLine} ${plotSeedOverlay?.commandIntent ? `Command intent: ${plotSeedOverlay.commandIntent} ` : ""}Intel cue: ${intel.prose}`;
   const objectiveText = reserved
     ? "This is a reserved follow-on mission slot. If you want to continue the campaign, return to Campaign Tracking, save the result from the previous mission, and use Continue Campaign to regenerate this scenario before play. If you do not want to continue, treat the previous mission as the campaign conclusion."
-    : `${tasking.primaryTask.objectiveLine} ${tasking.primaryTask.mapIntent} ${intel.prose}`;
+    : `${plotSeedOverlay?.commandIntent ? `${plotSeedOverlay.commandIntent} ` : ""}${tasking.primaryTask.objectiveLine} ${tasking.rulesOfEngagement.briefingLine} ${tasking.primaryTask.mapIntent} ${tasking.primaryTask.endCondition} ${intel.prose}`;
   const successText = reserved
     ? `Scenario ${slotNumber} placeholder completed.`
-    : `${missionDef.name} surveillance is complete. Higher command has the refined route picture and can posture the next move using your report.`;
+    : tasking.primaryTask.attackRequired
+      ? `${tasking.primaryTask.designatedTarget} was struck and the boat cleared the retaliation envelope. ${commandAuthority} can now build the next move around your attack report.`
+      : `${missionDef.name} is complete. ${commandAuthority} has the updated route picture and can shape the next operation from your report.`;
 
   return {
     slug,
@@ -1835,8 +2365,21 @@ function buildScenarioRecord(
     objectiveText,
     successText,
     reserved,
+    campaignClimate: options?.campaignClimateKey || "surveillance",
+    missionType: resolvedMissionType,
+    missionStance: normalizedMissionStance,
+    experimental: {
+      enabled: experimental.enabled,
+      plotSeed: experimental.plotSeed,
+      plotSeedLabel: plotSeedOverlay?.label || null
+    },
+    escalationKey,
+    escalationLevel: tasking.escalation.level,
+    roeKey,
     continuation: {
-      reserved
+      reserved,
+      escalationKey,
+      roeKey
     }
   };
 }
@@ -1849,8 +2392,36 @@ export function getToneCatalog() {
   return TONE_CATALOG;
 }
 
+export function getCampaignClimateCatalog() {
+  return CAMPAIGN_CLIMATE_CATALOG;
+}
+
 export function getAuthoringPostureCatalog() {
   return AUTHORING_POSTURES;
+}
+
+export function getMissionStanceCatalog() {
+  return MISSION_STANCE_CATALOG;
+}
+
+export function getMissionTypeCatalog() {
+  return MISSION_TYPE_CATALOG;
+}
+
+export function getExperimentalPlotSeedCatalog() {
+  return EXPERIMENTAL_PLOT_SEED_CATALOG;
+}
+
+export function getRoeCatalog() {
+  return ROE_CATALOG;
+}
+
+export function getEscalationCatalog() {
+  return ESCALATION_CATALOG;
+}
+
+export function getTheaterCommandAuthority(theaterId) {
+  return commandAuthorityForTheater(theaterId);
 }
 
 export function findTheaterTemplateByName(name) {
@@ -1881,12 +2452,19 @@ export function buildContinuationScenario({
   lastOutcome = "success",
   theaterPicture: previousTheaterPicture = null,
   posture = "wide_area_search",
+  missionStance = null,
+  missionType = null,
+  campaignClimate = "surveillance",
+  currentEscalation = null,
+  requestedRoe = null,
   authoringConstraints = {},
   reserved = false,
-  aisSnapshot = null
+  aisSnapshot = null,
+  experimental = { enabled: false, plotSeed: "none" }
 } = {}) {
   const theater = THEATER_TEMPLATES[theaterId] || THEATER_TEMPLATES.luzon_strait;
   const family = theater.family;
+  const commandAuthority = commandAuthorityForTheater(theater.id);
   const objectiveDef = CONTINUATION_OBJECTIVES[objective] || CONTINUATION_OBJECTIVES.pursue_contact;
   const riskDef = RISK_POSTURES[riskPosture] || RISK_POSTURES.balanced;
   const tempoDef = OPERATIONAL_TEMPOS[operationalTempo] || OPERATIONAL_TEMPOS.deliberate;
@@ -1910,24 +2488,48 @@ export function buildContinuationScenario({
   const rawGeometry = family === "surface_shadow"
     ? buildSurfaceShadowGeometry(theater, missionIndex, densityCount, rng)
     : buildSubHuntGeometry(theater, missionIndex, densityCount, rng);
-  const postureGeometry = applyAuthoringPostureToGeometry(theater, family, rawGeometry, posture);
+  const normalizedMissionStance = normalizeMissionStanceKey(missionStance || posture);
+  const resolvedMissionType = normalizeMissionTypeKey(missionType, family, experimental);
+  const escalationKey = deriveContinuationEscalationKey(
+    normalizeEscalationKey(currentEscalation, deriveInitialEscalationKey(campaignClimate, missionIndex)),
+    lastOutcome,
+    objective,
+    riskPosture
+  );
+  const postureGeometry = applyAuthoringPostureToGeometry(theater, family, rawGeometry, normalizedMissionStance);
   const normalizedAuthoringConstraints = normalizeAuthoringConstraints({ authoringConstraints });
   const geometry = finalizeScenarioGeometry(theater.id, family, postureGeometry, rng, normalizedAuthoringConstraints);
-  const forces = buildScenarioForces(theater, geometry, missionIndex, theaterPicture, rng, normalizedAuthoringConstraints, aisSnapshot);
-  const derivedTaskType = objective === "defend_chokepoint"
-    ? "hold_barrier"
-    : objective === "intercept_route"
-      ? "intercept_gate"
-      : objective === "break_contact"
-        ? "trail_handoff"
-        : objective === "shadow_safely"
-          ? "classify_trail"
-          : "reacquire_contact";
+  const forces = buildScenarioForces(theater, geometry, missionIndex, theaterPicture, rng, normalizedAuthoringConstraints, aisSnapshot, resolvedMissionType);
+  let derivedTaskType = "reacquire_contact";
+  if (objective === "break_contact") {
+    derivedTaskType = "break_contact_escape";
+  } else if (objective === "intercept_route" && escalationLevelForKey(escalationKey) >= 2) {
+    derivedTaskType = "designated_strike";
+  } else if (objective === "defend_chokepoint" && escalationLevelForKey(escalationKey) >= 3) {
+    derivedTaskType = "designated_strike";
+  } else if (objective === "defend_chokepoint") {
+    derivedTaskType = "hold_barrier";
+  } else if (objective === "intercept_route") {
+    derivedTaskType = "intercept_gate";
+  } else if (objective === "shadow_safely") {
+    derivedTaskType = "classify_trail";
+  }
   const continuationMissionDef = {
     taskType: derivedTaskType
   };
-  const intel = buildScenarioIntel(theater, geometry, forces, missionIndex, rng, posture);
-  const tasking = buildScenarioAnnotations(theater, geometry, forces, continuationMissionDef, posture, intel);
+  const roeKey = deriveRoeKey({
+    requestedRoe,
+    climateKey: campaignClimate,
+    escalationKey,
+    taskType: derivedTaskType
+  });
+  const intel = buildScenarioIntel(theater, geometry, forces, missionIndex, rng, normalizedMissionStance);
+  const tasking = buildScenarioAnnotations(theater, geometry, forces, continuationMissionDef, normalizedMissionStance, intel, {
+    escalationKey,
+    roeKey,
+    missionTypeKey: resolvedMissionType
+  });
+  const plotSeedOverlay = buildPlotSeedOverlay(experimental);
   const outcomeLine = lastOutcome === "failure"
     ? "The previous mission ended badly, so the next operation is framed around regaining control without losing the boat."
     : lastOutcome === "partial_success"
@@ -1936,22 +2538,26 @@ export function buildContinuationScenario({
   const name = `Scenario ${slotNumber}`;
   const summary = reserved
     ? "Reserved follow-on mission slot. Update the previous mission result in Campaign Tracking before playing this scenario."
-    : (objectiveDef.summaries[family] || objectiveDef.summaries.surface_shadow);
+    : plotSeedOverlay?.summaryPrefix
+      ? `${plotSeedOverlay.summaryPrefix} ${objectiveDef.summaries[family] || objectiveDef.summaries.surface_shadow}`
+      : (objectiveDef.summaries[family] || objectiveDef.summaries.surface_shadow);
   const cue = reserved
     ? "This mission slot exists so the campaign chain always has a valid next mission available inside MNW."
-    : `${riskDef.cue} ${outcomeLine}`;
+    : `${plotSeedOverlay?.cuePrefix ? `${plotSeedOverlay.cuePrefix} ` : ""}${riskDef.cue} ${outcomeLine}`;
   const description = reserved
     ? `${summary} This placeholder exists so MNW always has a valid next mission, but its content is intended to be rewritten before play.`
-    : `${summary} ${cue} Task: ${tasking.primaryTask.objectiveLine} Intel cue: ${intel.prose}`;
+    : `${summary} ${cue} Escalation: ${tasking.escalation.label}. ROE: ${tasking.rulesOfEngagement.label}. Task: ${tasking.primaryTask.objectiveLine} ${plotSeedOverlay?.commandIntent ? `Command intent: ${plotSeedOverlay.commandIntent} ` : ""}Intel cue: ${intel.prose}`;
   const missionId = `${campaignId}.${campaignId}.${slug}`;
   const objectiveText = reserved
     ? "This is a reserved follow-on mission slot. If you want to continue the campaign, return to Campaign Tracking, save the result from the previous mission, and use Continue Campaign to regenerate this scenario before play. If you do not want to continue, treat the previous mission as the campaign conclusion."
     : family === "surface_shadow"
-      ? `${tasking.primaryTask.objectiveLine} ${tasking.primaryTask.mapIntent} Keep your submarine combat effective, preserve the track picture, and raise antennas when you are ready to conclude the mission. ${intel.prose}`
-      : `${tasking.primaryTask.objectiveLine} ${tasking.primaryTask.mapIntent} Keep your submarine combat effective, contain the breakout geometry, and raise antennas when you are ready to conclude the mission. ${intel.prose}`;
+      ? `${plotSeedOverlay?.commandIntent ? `${plotSeedOverlay.commandIntent} ` : ""}${tasking.primaryTask.objectiveLine} ${tasking.rulesOfEngagement.briefingLine} ${tasking.primaryTask.mapIntent} ${tasking.primaryTask.endCondition} Keep your submarine combat effective and recover when ready. ${intel.prose}`
+      : `${plotSeedOverlay?.commandIntent ? `${plotSeedOverlay.commandIntent} ` : ""}${tasking.primaryTask.objectiveLine} ${tasking.rulesOfEngagement.briefingLine} ${tasking.primaryTask.mapIntent} ${tasking.primaryTask.endCondition} Keep your submarine combat effective and recover when ready. ${intel.prose}`;
   const successText = reserved
     ? `${name} placeholder completed.`
-    : `${name} is complete. Higher command can roll your updated track, damage, and readiness picture into the next decision cycle.`;
+    : tasking.primaryTask.attackRequired
+      ? `${tasking.primaryTask.designatedTarget} was destroyed and the boat disengaged. ${commandAuthority} can now exploit the strike results in the next cycle.`
+      : `${name} is complete. ${commandAuthority} can roll your updated track, damage, and readiness picture into the next decision cycle.`;
 
   return {
     slug,
@@ -1973,6 +2579,17 @@ export function buildContinuationScenario({
     successText,
     reserved,
     theaterPicture,
+    campaignClimate,
+    missionType: resolvedMissionType,
+    missionStance: normalizedMissionStance,
+    experimental: {
+      enabled: experimental.enabled,
+      plotSeed: experimental.plotSeed,
+      plotSeedLabel: plotSeedOverlay?.label || null
+    },
+    escalationKey,
+    escalationLevel: tasking.escalation.level,
+    roeKey,
     continuation: {
       objective,
       objectiveLabel: objectiveDef.label,
@@ -1981,8 +2598,18 @@ export function buildContinuationScenario({
       operationalTempo,
       tempoLabel: tempoDef.label,
       advanceHours: tempoDef.advanceHours,
-      posture,
-      postureLabel: (AUTHORING_POSTURES[posture] || AUTHORING_POSTURES.wide_area_search).label,
+      posture: normalizedMissionStance,
+      postureLabel: (AUTHORING_POSTURES[normalizedMissionStance] || AUTHORING_POSTURES.wide_area_search).label,
+      campaignClimate,
+      missionType: resolvedMissionType,
+      missionTypeLabel: (MISSION_TYPE_CATALOG[resolvedMissionType] || MISSION_TYPE_CATALOG[defaultMissionTypeForFamily(family)]).label,
+      experimentalEnabled: experimental.enabled,
+      plotSeed: experimental.plotSeed,
+      plotSeedLabel: plotSeedOverlay?.label || null,
+      escalationKey,
+      escalationLabel: tasking.escalation.label,
+      roeKey,
+      roeLabel: tasking.rulesOfEngagement.label,
       reserved
     }
   };
@@ -1993,12 +2620,17 @@ export function buildCampaignBlueprint(spec = {}) {
   const theater = THEATER_TEMPLATES[spec.theater] || THEATER_TEMPLATES.luzon_strait;
   const scenarioCount = clampScenarioCount(spec.scenarioCount);
   const title = String(spec.title || theater.label).trim() || "Generated Campaign";
-  const tone = TONE_CATALOG[spec.tone] ? spec.tone : "surveillance";
+  const tone = normalizeCampaignClimateKey(spec.campaignClimate || spec.tone);
   const year = Number(spec.year || theater.defaultYear || 2028);
   const playerName = String(spec.playerName || theater.player.name).trim() || theater.player.name;
-  const posture = AUTHORING_POSTURES[spec.posture] ? spec.posture : "wide_area_search";
+  const posture = normalizeMissionStanceKey(spec.missionStance || spec.posture);
+  const experimental = normalizeExperimentalSettings(spec);
+  const missionTypeSupport = resolveMissionTypeSupport(spec.missionType, theater.family, experimental);
+  const missionType = missionTypeSupport.resolvedKey;
+  const requestedRoe = normalizeRoeKey(spec.rulesOfEngagement || spec.roe || CAMPAIGN_CLIMATE_CATALOG[tone].defaultRoe);
   const authoringConstraints = normalizeAuthoringConstraints(spec);
-  const seed = hashSeed(`${campaignId}:${theater.id}:${tone}:${year}:${scenarioCount}:${playerName}`);
+  const warnings = missionTypeSupport.warning ? [missionTypeSupport.warning] : [];
+  const seed = hashSeed(`${campaignId}:${theater.id}:${tone}:${posture}:${missionType}:${requestedRoe}:${year}:${scenarioCount}:${playerName}`);
   const rng = mulberry32(seed);
   const archetypes = pickArchetypes(tone, scenarioCount);
   const theaterUnits = buildTheaterUnitCatalog(theater, playerName);
@@ -2018,7 +2650,13 @@ export function buildCampaignBlueprint(spec = {}) {
       authoringConstraints,
       index + 1,
       reserved,
-      spec.aisSnapshot || null
+      spec.aisSnapshot || null,
+      {
+        campaignClimateKey: tone,
+        requestedRoeKey: requestedRoe,
+        missionTypeKey: missionType,
+        experimental
+      }
     );
   });
 
@@ -2030,10 +2668,27 @@ export function buildCampaignBlueprint(spec = {}) {
     theaterLabel: theater.label,
     theaterName: theater.theaterName,
     description: spec.description || `${title} is a ${TONE_CATALOG[tone].label.toLowerCase()} campaign set in the ${theater.theaterName}.`,
+    campaignClimate: tone,
+    campaignClimateLabel: TONE_CATALOG[tone].label,
+    missionType,
+    missionTypeLabel: MISSION_TYPE_CATALOG[missionType].label,
+    missionTypeSupport: missionTypeSupport.support,
+    requestedMissionType: missionTypeSupport.requestedKey,
+    experimentalFeatures: {
+      enabled: experimental.enabled,
+      plotSeed: experimental.plotSeed,
+      plotSeedLabel: experimentalPlotSeedDefinition(experimental.plotSeed).label
+    },
     tone,
     toneLabel: TONE_CATALOG[tone].label,
+    missionStance: posture,
+    missionStanceLabel: AUTHORING_POSTURES[posture].label,
     posture,
     postureLabel: AUTHORING_POSTURES[posture].label,
+    requestedRoe,
+    requestedRoeLabel: ROE_CATALOG[requestedRoe].label,
+    rulesOfEngagement: requestedRoe,
+    rulesOfEngagementLabel: ROE_CATALOG[requestedRoe].label,
     authoringConstraints,
     year,
     family: theater.family,
@@ -2045,6 +2700,7 @@ export function buildCampaignBlueprint(spec = {}) {
     theaterUnits,
     theaterPicture,
     scenarios,
+    warnings,
     packageNamespace: `${campaignId}.${campaignId}`
   };
 }
