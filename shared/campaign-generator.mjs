@@ -1122,7 +1122,7 @@ function hashSeed(value) {
 
 function clampScenarioCount(value) {
   const count = Number(value || DEFAULT_SCENARIO_COUNT);
-  return Math.max(2, Math.min(4, Math.round(count)));
+  return Math.max(1, Math.min(4, Math.round(count)));
 }
 
 function sanitizeCampaignId(value) {
@@ -2618,7 +2618,8 @@ export function buildContinuationScenario({
 export function buildCampaignBlueprint(spec = {}) {
   const campaignId = sanitizeCampaignId(spec.campaignId || spec.title);
   const theater = THEATER_TEMPLATES[spec.theater] || THEATER_TEMPLATES.luzon_strait;
-  const scenarioCount = clampScenarioCount(spec.scenarioCount);
+  const playableScenarioCount = clampScenarioCount(spec.scenarioCount);
+  const totalScenarioCount = playableScenarioCount + 1;
   const title = String(spec.title || theater.label).trim() || "Generated Campaign";
   const tone = normalizeCampaignClimateKey(spec.campaignClimate || spec.tone);
   const year = Number(spec.year || theater.defaultYear || 2028);
@@ -2630,26 +2631,26 @@ export function buildCampaignBlueprint(spec = {}) {
   const requestedRoe = normalizeRoeKey(spec.rulesOfEngagement || spec.roe || CAMPAIGN_CLIMATE_CATALOG[tone].defaultRoe);
   const authoringConstraints = normalizeAuthoringConstraints(spec);
   const warnings = missionTypeSupport.warning ? [missionTypeSupport.warning] : [];
-  const seed = hashSeed(`${campaignId}:${theater.id}:${tone}:${posture}:${missionType}:${requestedRoe}:${year}:${scenarioCount}:${playerName}`);
+  const seed = hashSeed(`${campaignId}:${theater.id}:${tone}:${posture}:${missionType}:${requestedRoe}:${year}:${playableScenarioCount}:${playerName}`);
   const rng = mulberry32(seed);
-  const archetypes = pickArchetypes(tone, scenarioCount);
+  const playableArchetypes = pickArchetypes(tone, playableScenarioCount);
+  const reservedArchetype = pickArchetypes(tone, Math.min(playableScenarioCount + 1, 4))[playableScenarioCount]
+    || playableArchetypes[playableArchetypes.length - 1];
   const theaterUnits = buildTheaterUnitCatalog(theater, playerName);
   const theaterPicture = initializeTheaterPicture(theater, theaterUnits, rng);
-  const scenarios = archetypes.map((missionDef, index) => {
-    const reserved = index === scenarioCount - 1;
-    return buildScenarioRecord(
+  const scenarios = playableArchetypes.map((missionDef, index) => buildScenarioRecord(
       theater,
       campaignId,
       missionDef,
       index,
-      scenarioCount,
+      playableScenarioCount,
       year,
       rng,
       theaterPicture,
       posture,
       authoringConstraints,
       index + 1,
-      reserved,
+      false,
       spec.aisSnapshot || null,
       {
         campaignClimateKey: tone,
@@ -2657,8 +2658,28 @@ export function buildCampaignBlueprint(spec = {}) {
         missionTypeKey: missionType,
         experimental
       }
-    );
-  });
+    ));
+  scenarios.push(buildScenarioRecord(
+    theater,
+    campaignId,
+    reservedArchetype,
+    playableScenarioCount,
+    totalScenarioCount,
+    year,
+    rng,
+    theaterPicture,
+    posture,
+    authoringConstraints,
+    totalScenarioCount,
+    true,
+    spec.aisSnapshot || null,
+    {
+      campaignClimateKey: tone,
+      requestedRoeKey: requestedRoe,
+      missionTypeKey: missionType,
+      experimental
+    }
+  ));
 
   return {
     seed,
@@ -2668,6 +2689,8 @@ export function buildCampaignBlueprint(spec = {}) {
     theaterLabel: theater.label,
     theaterName: theater.theaterName,
     description: spec.description || `${title} is a ${TONE_CATALOG[tone].label.toLowerCase()} campaign set in the ${theater.theaterName}.`,
+    scenarioCount: playableScenarioCount,
+    totalScenarioCount,
     campaignClimate: tone,
     campaignClimateLabel: TONE_CATALOG[tone].label,
     missionType,

@@ -76,6 +76,10 @@
                 On first launch, the app will try to locate the installed game campaign folder, your user campaign folder, and the local
                 workspace output paths automatically. Use <strong>Find Paths</strong> to run that scan again if needed.
               </p>
+              <p class="muted">
+                Path detection uses the Windows profile that is currently running the app. It does not search other users' personal
+                <code>AppData\LocalLow</code> campaign folders.
+              </p>
               <div class="field-grid">
                 <label>
                   <span>Game Campaign Path</span>
@@ -205,7 +209,7 @@
               </label>
               <label>
                 <span>Scenario Count</span>
-                <input id="wizard-scenario-count" type="number" min="2" max="8" step="1" value="2">
+                <input id="wizard-scenario-count" type="number" min="1" max="4" step="1" value="2">
               </label>
               <label>
                 <span>Mission Stance</span>

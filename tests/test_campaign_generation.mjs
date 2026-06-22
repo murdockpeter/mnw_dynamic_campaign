@@ -27,10 +27,13 @@ test("initial blueprint exposes campaign climate, ROE, escalation, and strike ar
   assert.equal(blueprint.campaignClimate, "surveillance");
   assert.equal(blueprint.missionStance, "quiet_shadow");
   assert.equal(blueprint.rulesOfEngagement, "weapons_tight");
+  assert.equal(blueprint.scenarioCount, 4);
+  assert.equal(blueprint.totalScenarioCount, 5);
   assert.equal(blueprint.scenarios[0].tasking.escalation.label, "Peacetime Patrol");
   assert.equal(blueprint.scenarios[0].tasking.rulesOfEngagement.label, "Weapons Tight");
   assert.equal(blueprint.scenarios[2].tasking.primaryTask.attackRequired, true);
   assert.match(blueprint.scenarios[2].objectiveText, /Attack authority applies only to the designated hostile unit/i);
+  assert.equal(blueprint.scenarios[4].reserved, true);
 });
 
 test("continuation generation can escalate into an explicit strike mission", () => {
@@ -212,6 +215,63 @@ test("land attack remains a gated placeholder even when experimental content is 
   assert.equal(blueprint.requestedMissionType, "land_attack");
   assert.equal(blueprint.missionType, "asuw_military");
   assert.match(blueprint.warnings[0], /not technically supported/i);
+});
+
+test("scenario count now means playable scenarios and always appends one reserved tail slot", () => {
+  const singleBlueprint = buildCampaignBlueprint({
+    title: "Single Mission",
+    campaignId: "single_mission",
+    theater: "norwegian_sea",
+    scenarioCount: 1
+  });
+  assert.equal(singleBlueprint.scenarioCount, 1);
+  assert.equal(singleBlueprint.totalScenarioCount, 2);
+  assert.equal(singleBlueprint.scenarios.length, 2);
+  assert.equal(singleBlueprint.scenarios[0].reserved, false);
+  assert.equal(singleBlueprint.scenarios[1].reserved, true);
+
+  const doubleBlueprint = buildCampaignBlueprint({
+    title: "Double Mission",
+    campaignId: "double_mission",
+    theater: "norwegian_sea",
+    scenarioCount: 2
+  });
+  assert.equal(doubleBlueprint.scenarioCount, 2);
+  assert.equal(doubleBlueprint.totalScenarioCount, 3);
+  assert.equal(doubleBlueprint.scenarios.length, 3);
+  assert.equal(doubleBlueprint.scenarios[0].reserved, false);
+  assert.equal(doubleBlueprint.scenarios[1].reserved, false);
+  assert.equal(doubleBlueprint.scenarios[2].reserved, true);
+});
+
+test("sub-hunt support groups anchor to a defined plot", () => {
+  const blueprint = buildCampaignBlueprint({
+    title: "Support Anchor",
+    campaignId: "support_anchor",
+    theater: "norwegian_sea",
+    missionType: "asw",
+    scenarioCount: 1,
+    playerName: "USS Test"
+  });
+  const scenario = {
+    ...blueprint.scenarios[0],
+    forces: {
+      ...blueprint.scenarios[0].forces,
+      enemySurfaceSupport: [
+        { name: "Support DDG", dbid: 3883, faction: "RU" }
+      ],
+      enemyAir: [
+        { name: "Support Helo", dbid: 60, faction: "RU" }
+      ]
+    }
+  };
+  const artifacts = buildScenarioPackageArtifacts({ blueprint, scenario });
+  const scriptPath = Object.keys(artifacts.files).find((key) => key.endsWith(`${scenario.slug}.mis`));
+  const script = artifacts.files[scriptPath];
+
+  assert.match(script, /support_plot_anchor = escort_plot/);
+  assert.doesNotMatch(script, /support_plot_anchor = russian_plot/);
+  assert.match(script, /support_surface_0_spawn = _P\.Element\.Spawn\(support_plot_anchor,/);
 });
 
 test("surveillance snapshot remains stable", async () => {

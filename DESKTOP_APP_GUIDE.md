@@ -71,6 +71,11 @@ If you want to run the scan again, use the `Find Paths` button on the `Setup` pa
 - find your user campaign folder under the current Windows profile
 - fill the package source and output paths from the app's writable workspace
 
+Important:
+
+- the user-folder scan uses the Windows account that is currently running the app
+- it does not search other users' personal `AppData\LocalLow` campaign folders
+
 After that, review the filled paths and click `Save Desktop Settings`.
 
 ## Understanding The Three Workspaces

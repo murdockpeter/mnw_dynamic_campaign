@@ -480,7 +480,7 @@ cargo_element = Element(cargo_props).SetHeading(random.randrange(200, 280))
 _P.Element.Spawn(p8_spawn, cargo_element, cargo_element.Position)`).join("\n");
   const supportGroupBlock = enemySupportSurface.length || enemySupportAir.length
     ? `
-support_plot_anchor = russian_plot
+support_plot_anchor = escort_plot
 ${enemySupportSurface.map((unit, index) => {
   const variable = `support_surface_${index}`;
   const spawnAnchor = index === 0 ? "support_plot_anchor" : `support_surface_${index - 1}_plot`;
