@@ -1,4 +1,4 @@
-const DEFAULT_SCENARIO_COUNT = 3;
+const DEFAULT_SCENARIO_COUNT = 1;
 const MIN_TARGET_DISTANCE_KM = 20;
 const MAX_TARGET_DISTANCE_KM = 500;
 
@@ -755,17 +755,22 @@ const THEATER_FORCE_POOLS = {
     friendlySurface: [
       { unitId: "uss_truxtun", name: "USS Truxtun", faction: "US", platformType: "surface_combatant", dbid: 294, sectors: ["bear_island_gap", "nordkapp_seam"] },
       { unitId: "uss_laboon", name: "USS Laboon", faction: "US", platformType: "surface_combatant", dbid: 294, sectors: ["lofoten_wall", "jan_mayen_arc"] },
-      { unitId: "uss_ross", name: "USS Ross", faction: "US", platformType: "surface_combatant", dbid: 294, sectors: ["faroe_shetland_exit", "jan_mayen_arc"] }
+      { unitId: "uss_ross", name: "USS Ross", faction: "US", platformType: "surface_combatant", dbid: 294, sectors: ["faroe_shetland_exit", "jan_mayen_arc"] },
+      { unitId: "uss_porter", name: "USS Porter", faction: "US", platformType: "surface_combatant", dbid: 294, sectors: ["faroe_shetland_exit", "lofoten_wall"] },
+      { unitId: "uss_gravely", name: "USS Gravely", faction: "US", platformType: "surface_combatant", dbid: 294, sectors: ["barents_bastion_edge", "nordkapp_seam"] }
     ],
     friendlyAir: [
       { unitId: "p8_nord_watch", name: "P-8A Nord Watch", faction: "US", platformType: "maritime_patrol_aircraft", dbid: 2705, sectors: ["bear_island_gap", "nordkapp_seam", "barents_bastion_edge"] },
-      { unitId: "p8_giuk_scout", name: "P-8A GIUK Scout", faction: "US", platformType: "maritime_patrol_aircraft", dbid: 2705, sectors: ["faroe_shetland_exit", "jan_mayen_arc", "lofoten_wall"] }
+      { unitId: "p8_giuk_scout", name: "P-8A GIUK Scout", faction: "US", platformType: "maritime_patrol_aircraft", dbid: 2705, sectors: ["faroe_shetland_exit", "jan_mayen_arc", "lofoten_wall"] },
+      { unitId: "p8_bastion_shadow", name: "P-8A Bastion Shadow", faction: "US", platformType: "maritime_patrol_aircraft", dbid: 2705, sectors: ["barents_bastion_edge", "bear_island_gap", "jan_mayen_arc"] }
     ],
     enemySubsurface: [
       { unitId: "yasen_severodvinsk", name: "Yasen Severodvinsk", faction: "RU", platformType: "submarine", dbid: 667, sectors: ["bear_island_gap", "barents_bastion_edge"], role: "target" },
       { unitId: "yasen_kazan", name: "Yasen Kazan", faction: "RU", platformType: "submarine", dbid: 667, sectors: ["nordkapp_seam", "barents_bastion_edge"], role: "target" },
+      { unitId: "yasen_novosibirsk", name: "Yasen Novosibirsk", faction: "RU", platformType: "submarine", dbid: 667, sectors: ["faroe_shetland_exit", "jan_mayen_arc"], role: "target" },
       { unitId: "akula_screen", name: "Akula Screen", faction: "RU", platformType: "submarine", dbid: 34, sectors: ["bear_island_gap", "lofoten_wall"], role: "screen" },
-      { unitId: "akula_gatekeeper", name: "Akula Gatekeeper", faction: "RU", platformType: "submarine", dbid: 34, sectors: ["faroe_shetland_exit", "jan_mayen_arc"], role: "screen" }
+      { unitId: "akula_gatekeeper", name: "Akula Gatekeeper", faction: "RU", platformType: "submarine", dbid: 34, sectors: ["faroe_shetland_exit", "jan_mayen_arc"], role: "screen" },
+      { unitId: "akula_bastion_screen", name: "Akula Bastion Screen", faction: "RU", platformType: "submarine", dbid: 34, sectors: ["barents_bastion_edge", "nordkapp_seam"], role: "screen" }
     ]
   }
 };
@@ -1391,6 +1396,78 @@ function jitterPoint([lat, lon], rng, latDelta = 0.08, lonDelta = 0.12) {
   return [Number((lat + latOffset).toFixed(6)), Number((lon + lonOffset).toFixed(6))];
 }
 
+function averagePoint(points = []) {
+  if (!Array.isArray(points) || !points.length) {
+    return [0, 0];
+  }
+  const total = points.reduce((accumulator, [lat, lon]) => {
+    accumulator.lat += lat;
+    accumulator.lon += lon;
+    return accumulator;
+  }, { lat: 0, lon: 0 });
+  return [
+    Number((total.lat / points.length).toFixed(6)),
+    Number((total.lon / points.length).toFixed(6))
+  ];
+}
+
+function rotatePointAround([lat, lon], [centerLat, centerLon], degrees) {
+  const radians = degrees * (Math.PI / 180);
+  const x = lon - centerLon;
+  const y = lat - centerLat;
+  const rotatedX = (x * Math.cos(radians)) - (y * Math.sin(radians));
+  const rotatedY = (x * Math.sin(radians)) + (y * Math.cos(radians));
+  return [
+    Number((centerLat + rotatedY).toFixed(6)),
+    Number((centerLon + rotatedX).toFixed(6))
+  ];
+}
+
+function transformCorridor(points = [], { center, rotationDegrees = 0, reverse = false }) {
+  const working = reverse ? [...points].reverse() : [...points];
+  if (!rotationDegrees) {
+    return working.map((point) => [...point]);
+  }
+  return working.map((point) => rotatePointAround(point, center, rotationDegrees));
+}
+
+function routeAspectProfile(index, rng, variantIndex = 0) {
+  const rotationPalette = [-18, -12, -7, 0, 7, 12, 18];
+  const reverse = (((variantIndex + index) % 2) === 1) && rng() > 0.35;
+  const rotationDegrees = rotationPalette[(Math.floor(rng() * rotationPalette.length) + index + variantIndex) % rotationPalette.length];
+  return {
+    reverse,
+    rotationDegrees
+  };
+}
+
+function buildRouteSetGeometry(routeSet, index, rng) {
+  const allPoints = [
+    ...(routeSet.playerCorridor || []),
+    ...(routeSet.enemyCorridor || []),
+    ...(routeSet.supportCorridor || []),
+    ...(routeSet.heloCorridor || []),
+    ...(routeSet.airCorridor || [])
+  ];
+  const center = averagePoint(allPoints);
+  const aspect = routeAspectProfile(index, rng, routeSet.variantIndex || 0);
+  return {
+    ...routeSet,
+    playerCorridor: transformCorridor(routeSet.playerCorridor || [], { center, ...aspect }),
+    enemyCorridor: transformCorridor(routeSet.enemyCorridor || [], { center, ...aspect }),
+    supportCorridor: transformCorridor(routeSet.supportCorridor || [], { center, ...aspect }),
+    heloCorridor: transformCorridor(routeSet.heloCorridor || [], { center, ...aspect }),
+    airCorridor: transformCorridor(routeSet.airCorridor || [], { center, ...aspect }),
+    routeAspect: {
+      reverse: aspect.reverse,
+      rotationDegrees: aspect.rotationDegrees,
+      label: aspect.reverse
+        ? `reverse flow, ${aspect.rotationDegrees} deg offset`
+        : `forward flow, ${aspect.rotationDegrees} deg offset`
+    }
+  };
+}
+
 function moveToward([latA, lonA], [latB, lonB], fraction = 0.25) {
   return [
     Number((latA + ((latB - latA) * fraction)).toFixed(6)),
@@ -1946,28 +2023,47 @@ function pickScenarioSector(template, geometry, index) {
   return sectors[index % sectors.length]?.id || sectors[0]?.id || "main_axis";
 }
 
-function selectUnitsForMission(pool = [], theaterPicture, scenarioSector, desiredCount, missionIndex) {
+function selectUnitsForMission(pool = [], theaterPicture, scenarioSector, desiredCount, missionIndex, rng = Math.random) {
   if (!Array.isArray(pool) || !pool.length || desiredCount <= 0) {
     return [];
   }
 
-  const ranked = [...pool].sort((left, right) => {
-    const leftTrack = theaterPicture.units[left.unitId] || {};
-    const rightTrack = theaterPicture.units[right.unitId] || {};
-    const leftSector = leftTrack.current_sector === scenarioSector ? 1 : 0;
-    const rightSector = rightTrack.current_sector === scenarioSector ? 1 : 0;
-    if (leftSector !== rightSector) {
-      return rightSector - leftSector;
+  const available = [...pool];
+  const selected = [];
+  while (available.length && selected.length < Math.min(desiredCount, available.length + selected.length)) {
+    const ranked = available
+      .map((unit) => {
+        const track = theaterPicture.units[unit.unitId] || {};
+        const sectors = Array.isArray(unit.sectors) ? unit.sectors : [];
+        const exactSector = sectors.includes(scenarioSector) || track.current_sector === scenarioSector;
+        const recentlyUsed = Number.isFinite(track.last_assigned_index) ? Math.max(0, missionIndex - track.last_assigned_index) : 8;
+        const recencyScore = Math.min(8, recentlyUsed);
+        const availabilityScore = track.availability === "available" ? 2 : 0;
+        const jitter = rng();
+        const score = (exactSector ? 100 : 40) + (recencyScore * 5) + availabilityScore + jitter;
+        return { unit, score, exactSector, recentIndex: track.last_assigned_index ?? -1 };
+      })
+      .sort((left, right) => {
+        if (left.score !== right.score) {
+          return right.score - left.score;
+        }
+        if (left.recentIndex !== right.recentIndex) {
+          return left.recentIndex - right.recentIndex;
+        }
+        return left.unit.name.localeCompare(right.unit.name);
+      });
+    const pickWindow = ranked.filter((entry) => entry.score >= ranked[0].score - 8);
+    const picked = pickWindow[Math.floor(rng() * pickWindow.length)]?.unit || ranked[0]?.unit;
+    if (!picked) {
+      break;
     }
-    const leftRecent = Number.isFinite(leftTrack.last_assigned_index) ? leftTrack.last_assigned_index : -1;
-    const rightRecent = Number.isFinite(rightTrack.last_assigned_index) ? rightTrack.last_assigned_index : -1;
-    if (leftRecent !== rightRecent) {
-      return leftRecent - rightRecent;
+    selected.push({ ...picked });
+    const pickedIndex = available.findIndex((unit) => unit.unitId === picked.unitId);
+    if (pickedIndex >= 0) {
+      available.splice(pickedIndex, 1);
     }
-    return left.name.localeCompare(right.name);
-  });
+  }
 
-  const selected = ranked.slice(0, Math.min(desiredCount, ranked.length)).map((unit) => ({ ...unit }));
   selected.forEach((unit) => {
     theaterPicture.units[unit.unitId] = {
       ...(theaterPicture.units[unit.unitId] || {}),
@@ -2073,22 +2169,24 @@ function buildScenarioForces(template, geometry, index, theaterPicture, rng, aut
       theaterPicture,
       scenarioSector,
       desiredPrimaryCount,
-      index
+      index,
+      rng
     );
     const usedEnemyIds = new Set(enemyPrimary.map((unit) => unit.unitId));
     const barrierCandidates = (pools.enemySurface || []).filter((unit) => !usedEnemyIds.has(unit.unitId));
     const enemySecondary = density >= 2 || resolvedMissionType === "asuw_convoy" || resolvedMissionType === "civilian_defense" || resolvedMissionType === "blockade_relief"
-      ? selectUnitsForMission(barrierCandidates, theaterPicture, scenarioSector, resolvedMissionType === "asuw_convoy" ? 2 : 1, index)
+      ? selectUnitsForMission(barrierCandidates, theaterPicture, scenarioSector, resolvedMissionType === "asuw_convoy" ? 2 : 1, index, rng)
       : [];
-    const enemyAir = selectUnitsForMission(pools.enemyAir || [], theaterPicture, scenarioSector, 1, index);
+    const enemyAir = selectUnitsForMission(pools.enemyAir || [], theaterPicture, scenarioSector, 1, index, rng);
     const friendlySurface = selectUnitsForMission(
       pools.friendlySurface || [],
       theaterPicture,
       scenarioSector,
       resolvedMissionType === "submerged_escort" || resolvedMissionType === "blockade_relief" ? 2 : 1,
-      index
+      index,
+      rng
     );
-    const friendlyAir = selectUnitsForMission(pools.friendlyAir || [], theaterPicture, scenarioSector, 1, index);
+    const friendlyAir = selectUnitsForMission(pools.friendlyAir || [], theaterPicture, scenarioSector, 1, index, rng);
     const extraMerchantTraffic = resolvedMissionType === "asuw_convoy" || resolvedMissionType === "civilian_defense" || resolvedMissionType === "blockade_relief" ? 3 : 0;
     return {
       sector: scenarioSector,
@@ -2109,27 +2207,29 @@ function buildScenarioForces(template, geometry, index, theaterPicture, rng, aut
   const targetPool = (pools.enemySubsurface || []).filter((unit) => unit.role === "target");
   const screenPool = (pools.enemySubsurface || []).filter((unit) => unit.role !== "target");
   const enemyPrimary = [
-    ...selectUnitsForMission(targetPool, theaterPicture, scenarioSector, 1, index),
-    ...selectUnitsForMission(screenPool, theaterPicture, scenarioSector, 1, index)
+    ...selectUnitsForMission(targetPool, theaterPicture, scenarioSector, 1, index, rng),
+    ...selectUnitsForMission(screenPool, theaterPicture, scenarioSector, 1, index, rng)
   ];
   const enemySurfaceSupport = selectUnitsForMission(
     pools.enemySurfaceSupport || [],
     theaterPicture,
     scenarioSector,
     density >= 3 ? 2 : 1,
-    index
+    index,
+    rng
   );
   const enemyAir = density >= 2
-    ? selectUnitsForMission(pools.enemyAir || [], theaterPicture, scenarioSector, 1, index)
+    ? selectUnitsForMission(pools.enemyAir || [], theaterPicture, scenarioSector, 1, index, rng)
     : [];
   const friendlySurface = selectUnitsForMission(
     pools.friendlySurface || [],
     theaterPicture,
     scenarioSector,
     resolvedMissionType === "submerged_escort" ? 2 : 1,
-    index
+    index,
+    rng
   );
-  const friendlyAir = selectUnitsForMission(pools.friendlyAir || [], theaterPicture, scenarioSector, 1, index);
+  const friendlyAir = selectUnitsForMission(pools.friendlyAir || [], theaterPicture, scenarioSector, 1, index, rng);
   return {
     sector: scenarioSector,
     missionType: resolvedMissionType,
@@ -2198,10 +2298,17 @@ function applyAuthoringPostureToGeometry(template, family, geometry, postureKey)
 }
 
 function buildSurfaceShadowGeometry(template, index, count, rng) {
-  const enemyBase = template.route.enemyCorridor;
-  const playerBase = template.route.playerCorridor;
-  const heloBase = template.route.heloCorridor;
-  const supportBase = template.route.supportCorridor;
+  const routeSet = buildRouteSetGeometry({
+    ...(template.route || {}),
+    id: template.route?.id || "default_route",
+    label: template.route?.label || `${template.label} Default Route`,
+    variantIndex: 0,
+    variantCount: 1
+  }, index, rng);
+  const enemyBase = routeSet.enemyCorridor;
+  const playerBase = routeSet.playerCorridor;
+  const heloBase = routeSet.heloCorridor;
+  const supportBase = routeSet.supportCorridor;
   const scale = 0.04 + (index * 0.015);
   const playerSpawn = jitterPoint(playerBase[Math.min(index, playerBase.length - 1)], rng, scale, scale * 1.2);
   const datum = jitterPoint(enemyBase[1], rng, scale, scale * 1.3);
@@ -2217,6 +2324,9 @@ function buildSurfaceShadowGeometry(template, index, count, rng) {
   const withdrawal = jitterPoint([playerSpawn[0] - 0.08, playerSpawn[1] + 0.28], rng, scale, scale);
 
   return {
+    routeVariantId: routeSet.id,
+    routeVariantLabel: routeSet.label,
+    routeAspect: routeSet.routeAspect,
     playerSpawn,
     datum,
     lead,
@@ -2237,7 +2347,7 @@ function buildSurfaceShadowGeometry(template, index, count, rng) {
 }
 
 function buildSubHuntGeometry(template, index, count, rng) {
-  const routeSet = getRouteVariantSet(template, index, rng);
+  const routeSet = buildRouteSetGeometry(getRouteVariantSet(template, index, rng), index, rng);
   const playerBase = routeSet.playerCorridor;
   const enemyBase = routeSet.enemyCorridor;
   const supportBase = routeSet.supportCorridor;
@@ -2259,6 +2369,7 @@ function buildSubHuntGeometry(template, index, count, rng) {
   return {
     routeVariantId: routeSet.id,
     routeVariantLabel: routeSet.label,
+    routeAspect: routeSet.routeAspect,
     playerSpawn,
     datum,
     yasen,

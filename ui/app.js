@@ -890,7 +890,7 @@ function collectWizardSpec() {
     rulesOfEngagement: document.getElementById("wizard-roe").value,
     roe: document.getElementById("wizard-roe").value,
     year: Number(document.getElementById("wizard-year").value || 2028),
-    scenarioCount: Number(document.getElementById("wizard-scenario-count").value || 2),
+    scenarioCount: Number(document.getElementById("wizard-scenario-count").value || 1),
     playerName: document.getElementById("wizard-player-name").value.trim(),
     experimentalFeatures: {
       enabled: experimentalEnabled,

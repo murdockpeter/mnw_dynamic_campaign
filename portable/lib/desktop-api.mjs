@@ -42,6 +42,15 @@ async function pathExists(targetPath) {
   }
 }
 
+async function fileExists(targetPath) {
+  try {
+    const stats = await fs.stat(targetPath);
+    return stats.isFile();
+  } catch {
+    return false;
+  }
+}
+
 async function directoryExists(targetPath) {
   try {
     const stats = await fs.stat(targetPath);
@@ -204,6 +213,19 @@ function resolveOutputPath(settings, outputPath) {
   return outputPath || settings.preferredPackageOutputPath || "";
 }
 
+async function resolvePackageOutputPath(settings, outputPath, fallbackPath, packageId) {
+  const candidate = resolveOutputPath(settings, outputPath) || fallbackPath;
+  if (!candidate) {
+    return "";
+  }
+
+  const resolvedCandidate = path.resolve(candidate);
+  if (await directoryExists(resolvedCandidate)) {
+    return path.join(resolvedCandidate, `${packageId}.kyt`);
+  }
+  return resolvedCandidate;
+}
+
 async function safeReadJson(targetPath, fallback = null) {
   try {
     return await readJson(targetPath);
@@ -230,7 +252,12 @@ export async function getWorkflowStatusForDesktop({ campaignId, packageId, setti
   const effectiveCampaignId = campaignId || settings.preferredCampaignId || "silent_meridian";
   const effectivePackageId = packageId || settings.preferredPackageId || effectiveCampaignId;
   const sourceDir = resolveSourceDir(settings) || path.join(roots.workspaceRoot, "src", "packages", effectivePackageId);
-  const outputPath = resolveOutputPath(settings) || path.join(roots.workspaceRoot, "dist", `${effectivePackageId}.kyt`);
+  const outputPath = await resolvePackageOutputPath(
+    settings,
+    undefined,
+    path.join(roots.workspaceRoot, "dist", `${effectivePackageId}.kyt`),
+    effectivePackageId
+  );
   const gameDeployPath = settings.gameCampaignPath ? path.join(settings.gameCampaignPath, `${effectivePackageId}.kyt`) : "";
   const userDeployPath = settings.userCampaignPath ? path.join(settings.userCampaignPath, `${effectivePackageId}.kyt`) : "";
   const runtimeSnapshotPath = path.join(roots.workspaceRoot, "generated", "ui", "runtime.json");
@@ -242,10 +269,10 @@ export async function getWorkflowStatusForDesktop({ campaignId, packageId, setti
 
   const setupComplete = Boolean(settings.firstLaunchComplete && settings.gameCampaignPath && settings.userCampaignPath);
   const filesWritten = await pathExists(manifestPath) && await pathExists(questPath);
-  const builtPackage = await pathExists(outputPath);
+  const builtPackage = await fileExists(outputPath);
   const builtPackageHash = builtPackage ? await md5File(outputPath) : null;
-  const gameDeploymentExists = gameDeployPath ? await pathExists(gameDeployPath) : false;
-  const userDeploymentExists = userDeployPath ? await pathExists(userDeployPath) : false;
+  const gameDeploymentExists = gameDeployPath ? await fileExists(gameDeployPath) : false;
+  const userDeploymentExists = userDeployPath ? await fileExists(userDeployPath) : false;
   const deployedToGame = Boolean(
     builtPackageHash
     && gameDeploymentExists
@@ -404,14 +431,26 @@ export async function buildPackageForDesktop({ sourceDir, outputPath, settingsPa
   const settings = await readDesktopSettings(settingsPath);
   const roots = await resolveRoots({ contentRoot, workspaceRoot });
   const effectiveSource = resolveSourceDir(settings, sourceDir) || path.join(roots.workspaceRoot, "src", "package");
-  const effectiveOutput = resolveOutputPath(settings, outputPath) || path.join(roots.workspaceRoot, "dist", "norwegian_shadow.kyt");
+  const effectivePackageId = settings.preferredPackageId || settings.preferredCampaignId || "norwegian_shadow";
+  const effectiveOutput = await resolvePackageOutputPath(
+    settings,
+    outputPath,
+    path.join(roots.workspaceRoot, "dist", `${effectivePackageId}.kyt`),
+    effectivePackageId
+  );
   return buildPackage({ sourceDir: effectiveSource, outputPath: effectiveOutput });
 }
 
 export async function deployPackageForDesktop({ packagePath, gameCampaignPath, userCampaignPath, settingsPath, contentRoot, workspaceRoot } = {}) {
   const settings = await readDesktopSettings(settingsPath);
   const roots = await resolveRoots({ contentRoot, workspaceRoot });
-  const effectivePackagePath = packagePath || resolveOutputPath(settings, packagePath) || path.join(roots.workspaceRoot, "dist", "norwegian_shadow.kyt");
+  const effectivePackageId = settings.preferredPackageId || settings.preferredCampaignId || "norwegian_shadow";
+  const effectivePackagePath = await resolvePackageOutputPath(
+    settings,
+    packagePath,
+    path.join(roots.workspaceRoot, "dist", `${effectivePackageId}.kyt`),
+    effectivePackageId
+  );
   return deployPackage({
     packagePath: effectivePackagePath,
     gameCampaignPath: gameCampaignPath || settings.gameCampaignPath,
@@ -509,7 +548,12 @@ export async function continueCampaignForDesktop({
     aisSnapshot: settings?.ais?.latestSample || null
   });
   const sourceDir = continuation.continuation_source_dir || path.join(roots.workspaceRoot, "src", "packages", effectiveCampaignId);
-  const outputPath = resolveOutputPath(settings) || path.join(roots.workspaceRoot, "dist", `${effectiveCampaignId}.kyt`);
+  const outputPath = await resolvePackageOutputPath(
+    settings,
+    undefined,
+    path.join(roots.workspaceRoot, "dist", `${effectiveCampaignId}.kyt`),
+    effectiveCampaignId
+  );
   const build = await buildPackage({ sourceDir, outputPath });
   let deploy = null;
   if (settings.gameCampaignPath || settings.userCampaignPath) {

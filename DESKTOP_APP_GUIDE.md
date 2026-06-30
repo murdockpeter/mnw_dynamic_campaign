@@ -28,7 +28,7 @@ You do not need:
 
 On Windows, use:
 
-- `MNW Dynamic Campaign Console Setup 0.1.2.exe`
+- `MNW Dynamic Campaign Console Setup 0.1.3.exe`
 
 On macOS, use:
 
@@ -133,7 +133,7 @@ Current theater families include:
 
 Important:
 
-- `Scenario Count` currently starts at `2` or more because the app keeps a reserved follow-on mission slot in the package
+- `Initial Playable Missions` now defaults to `1`
 - the first mission is intended to be playable
 - the next mission slot is intentionally present so MNW always has a valid next mission node
 - that reserved next mission is meant to be rewritten from `Campaign Tracking` before the player launches it

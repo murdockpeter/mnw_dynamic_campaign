@@ -27,8 +27,8 @@ Start with:
 
 Typical player artifacts:
 
-- `dist\MNW Dynamic Campaign Console Setup 0.1.2.exe`
-- `dist\MNW Dynamic Campaign Console Setup 0.1.2.exe.blockmap`
+- `dist\MNW Dynamic Campaign Console Setup 0.1.3.exe`
+- `dist\MNW Dynamic Campaign Console Setup 0.1.3.exe.blockmap`
 - `dist\latest.yml`
 - `dist\*.dmg` when a macOS build is produced
 
@@ -63,7 +63,10 @@ For the packaged desktop workflow, the intended post-mission loop is now:
 
 Practical current model:
 
-- the generator can start a campaign with a playable first scenario plus a reserved follow-on slot
+- the default generator flow starts a campaign with one playable first scenario plus a reserved follow-on slot
+- MNW may only show the current mission tile on the campaign screen even when the package already contains multiple chained missions
+- the wizard field represents initial playable missions, not total package nodes
+- with the default setting of `1`, the package contains one playable authored mission plus one reserved follow-on mission slot
 - `Continue Campaign` rewrites that reserved slot from the latest saved result
 - the app also keeps one additional reserved slot behind it so MNW always has a valid next mission node
 - if the player does not want to continue, the previous completed mission can be treated as the campaign conclusion
