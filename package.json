@@ -69,7 +69,15 @@
       "buildResources": "electron/resources"
     },
     "win": {
+      "icon": "electron/resources/icon.ico",
       "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "electron/resources/icon.ico",
+      "uninstallerIcon": "electron/resources/icon.ico",
+      "installerHeaderIcon": "electron/resources/icon.ico"
     },
     "mac": {
       "target": "dmg",

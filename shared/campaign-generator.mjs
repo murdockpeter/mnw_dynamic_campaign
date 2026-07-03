@@ -1,6 +1,9 @@
 const DEFAULT_SCENARIO_COUNT = 1;
 const MIN_TARGET_DISTANCE_KM = 20;
 const MAX_TARGET_DISTANCE_KM = 500;
+const DEFAULT_INTENSITY_LEVEL = 2;
+const MIN_INTENSITY_LEVEL = 0;
+const MAX_INTENSITY_LEVEL = 4;
 
 const ESCALATION_CATALOG = {
   peacetime: {
@@ -235,6 +238,70 @@ const EXPERIMENTAL_PLOT_SEED_CATALOG = {
 
 const TONE_CATALOG = CAMPAIGN_CLIMATE_CATALOG;
 const AUTHORING_POSTURES = MISSION_STANCE_CATALOG;
+
+const ROUTE_ASPECT_GROUPS = {
+  luzon_channel: [
+    { label: "northern ladder cut", reverse: false, rotationDegrees: -7 },
+    { label: "central pressure run", reverse: false, rotationDegrees: 0 },
+    { label: "southern hook approach", reverse: false, rotationDegrees: 9 }
+  ],
+  contested_seam: [
+    { label: "inside seam press", reverse: false, rotationDegrees: -12 },
+    { label: "central seam transit", reverse: false, rotationDegrees: 0 },
+    { label: "outside seam drift", reverse: false, rotationDegrees: 12 }
+  ],
+  open_arc: [
+    { label: "inside arc drift", reverse: false, rotationDegrees: -10 },
+    { label: "broad arc transit", reverse: false, rotationDegrees: 0 },
+    { label: "outer arc swing", reverse: false, rotationDegrees: 10 }
+  ],
+  reverse_gate: [
+    { label: "head-on closure", reverse: false, rotationDegrees: -8 },
+    { label: "crossing intercept", reverse: false, rotationDegrees: 8 },
+    { label: "reverse pursuit axis", reverse: true, rotationDegrees: 0 }
+  ],
+  bastion_breakout: [
+    { label: "bastion edge break", reverse: false, rotationDegrees: -6 },
+    { label: "direct breakout lane", reverse: false, rotationDegrees: 0 },
+    { label: "off-axis breakout", reverse: false, rotationDegrees: 7 }
+  ],
+  giuk_exit: [
+    { label: "inner gap exit", reverse: false, rotationDegrees: -9 },
+    { label: "mid-gap transit", reverse: false, rotationDegrees: 0 },
+    { label: "outer gap drift", reverse: false, rotationDegrees: 9 }
+  ],
+  convoy_bend: [
+    { label: "inside turn pressure", reverse: false, rotationDegrees: -10 },
+    { label: "turn-point crossing", reverse: false, rotationDegrees: 0 },
+    { label: "outer turn bypass", reverse: false, rotationDegrees: 11 }
+  ]
+};
+
+const ROUTE_ASPECT_LIBRARY = {
+  luzon_strait_route: ROUTE_ASPECT_GROUPS.luzon_channel,
+  bashi_channel: ROUTE_ASPECT_GROUPS.luzon_channel,
+  balintang_approach: ROUTE_ASPECT_GROUPS.contested_seam,
+  philippine_sea_screen: ROUTE_ASPECT_GROUPS.open_arc,
+  taiwan_east: ROUTE_ASPECT_GROUPS.reverse_gate,
+  reed_bank_gate: ROUTE_ASPECT_GROUPS.contested_seam,
+  palawan_seam: ROUTE_ASPECT_GROUPS.contested_seam,
+  spratly_arc: ROUTE_ASPECT_GROUPS.open_arc,
+  luzon_western_approach: ROUTE_ASPECT_GROUPS.reverse_gate,
+  scarborough_sweep: ROUTE_ASPECT_GROUPS.convoy_bend,
+  thitu_pivot: ROUTE_ASPECT_GROUPS.convoy_bend,
+  namyet_chain: ROUTE_ASPECT_GROUPS.open_arc,
+  central_basin_run: ROUTE_ASPECT_GROUPS.open_arc,
+  west_palawan_gate: ROUTE_ASPECT_GROUPS.contested_seam,
+  balabac_extension: ROUTE_ASPECT_GROUPS.reverse_gate,
+  calamian_ladder: ROUTE_ASPECT_GROUPS.luzon_channel,
+  commodore_trough: ROUTE_ASPECT_GROUPS.convoy_bend,
+  bear_island_gap: ROUTE_ASPECT_GROUPS.bastion_breakout,
+  lofoten_wall: ROUTE_ASPECT_GROUPS.contested_seam,
+  nordkapp_seam: ROUTE_ASPECT_GROUPS.bastion_breakout,
+  faroe_shetland_exit: ROUTE_ASPECT_GROUPS.giuk_exit,
+  jan_mayen_arc: ROUTE_ASPECT_GROUPS.open_arc,
+  barents_bastion_edge: ROUTE_ASPECT_GROUPS.bastion_breakout
+};
 
 const TASK_CATALOG = {
   classify_trail: {
@@ -715,32 +782,46 @@ const THEATER_FORCE_POOLS = {
       { id: "spratly_arc", label: "Spratly Arc" },
       { id: "luzon_western_approach", label: "Luzon Western Approach" },
       { id: "scarborough_sweep", label: "Scarborough Sweep" },
-      { id: "central_basin_run", label: "Central Basin Run" }
+      { id: "thitu_pivot", label: "Thitu Pivot" },
+      { id: "namyet_chain", label: "Namyet Chain" },
+      { id: "central_basin_run", label: "Central Basin Run" },
+      { id: "west_palawan_gate", label: "West Palawan Gate" },
+      { id: "balabac_extension", label: "Balabac Extension" },
+      { id: "calamian_ladder", label: "Calamian Ladder" },
+      { id: "commodore_trough", label: "Commodore Trough" }
     ],
     friendlySurface: [
       { unitId: "uss_spruance", name: "USS Spruance", faction: "US", platformType: "surface_combatant", dbid: 294, sectors: ["reed_bank_gate", "scarborough_sweep"] },
       { unitId: "uss_dewey", name: "USS Dewey", faction: "US", platformType: "surface_combatant", dbid: 294, sectors: ["palawan_seam", "central_basin_run"] },
-      { unitId: "uss_stockdale", name: "USS Stockdale", faction: "US", platformType: "surface_combatant", dbid: 294, sectors: ["spratly_arc", "luzon_western_approach"] }
+      { unitId: "uss_stockdale", name: "USS Stockdale", faction: "US", platformType: "surface_combatant", dbid: 294, sectors: ["spratly_arc", "luzon_western_approach"] },
+      { unitId: "uss_halsey", name: "USS Halsey", faction: "US", platformType: "surface_combatant", dbid: 294, sectors: ["thitu_pivot", "namyet_chain"] },
+      { unitId: "uss_john_paul_jones", name: "USS John Paul Jones", faction: "US", platformType: "surface_combatant", dbid: 294, sectors: ["west_palawan_gate", "balabac_extension"] }
     ],
     friendlyAir: [
       { unitId: "p8_barrier_one", name: "P-8A Barrier One", faction: "US", platformType: "maritime_patrol_aircraft", dbid: 2705, sectors: ["reed_bank_gate", "scarborough_sweep", "luzon_western_approach"] },
-      { unitId: "p8_barrier_two", name: "P-8A Barrier Two", faction: "US", platformType: "maritime_patrol_aircraft", dbid: 2705, sectors: ["palawan_seam", "spratly_arc", "central_basin_run"] }
+      { unitId: "p8_barrier_two", name: "P-8A Barrier Two", faction: "US", platformType: "maritime_patrol_aircraft", dbid: 2705, sectors: ["palawan_seam", "spratly_arc", "central_basin_run"] },
+      { unitId: "p8_sulu_watch", name: "P-8A Sulu Watch", faction: "US", platformType: "maritime_patrol_aircraft", dbid: 2705, sectors: ["west_palawan_gate", "balabac_extension", "calamian_ladder"] }
     ],
     enemySubsurface: [
       { unitId: "yasen_severodvinsk", name: "Yasen Severodvinsk", faction: "RU", platformType: "submarine", dbid: 667, sectors: ["reed_bank_gate", "scarborough_sweep"], role: "target" },
       { unitId: "akula_screen", name: "Akula Screen", faction: "RU", platformType: "submarine", dbid: 34, sectors: ["reed_bank_gate", "palawan_seam"], role: "screen" },
       { unitId: "akula_pacific_screen", name: "Akula Pacific Screen", faction: "RU", platformType: "submarine", dbid: 34, sectors: ["luzon_western_approach", "scarborough_sweep"], role: "screen" },
-      { unitId: "yasen_kazan", name: "Yasen Kazan", faction: "RU", platformType: "submarine", dbid: 667, sectors: ["central_basin_run", "spratly_arc"], role: "target" }
+      { unitId: "yasen_kazan", name: "Yasen Kazan", faction: "RU", platformType: "submarine", dbid: 667, sectors: ["central_basin_run", "spratly_arc"], role: "target" },
+      { unitId: "yasen_vladivostok", name: "Yasen Vladivostok", faction: "RU", platformType: "submarine", dbid: 667, sectors: ["thitu_pivot", "namyet_chain"], role: "target" },
+      { unitId: "akula_sulu_screen", name: "Akula Sulu Screen", faction: "RU", platformType: "submarine", dbid: 34, sectors: ["west_palawan_gate", "balabac_extension"], role: "screen" }
     ],
     enemySurfaceSupport: [
       { unitId: "support_ddg_alpha", name: "Support DDG Alpha", faction: "CN", platformType: "surface_combatant", dbid: 3883, sectors: ["reed_bank_gate", "scarborough_sweep"] },
       { unitId: "support_ddg_beta", name: "Support DDG Beta", faction: "CN", platformType: "surface_combatant", dbid: 3883, sectors: ["spratly_arc", "central_basin_run"] },
       { unitId: "support_frigate_alpha", name: "Support Frigate Alpha", faction: "CN", platformType: "surface_combatant", dbid: 1965, sectors: ["palawan_seam", "central_basin_run"] },
-      { unitId: "support_frigate_beta", name: "Support Frigate Beta", faction: "CN", platformType: "surface_combatant", dbid: 1965, sectors: ["luzon_western_approach", "reed_bank_gate"] }
+      { unitId: "support_frigate_beta", name: "Support Frigate Beta", faction: "CN", platformType: "surface_combatant", dbid: 1965, sectors: ["luzon_western_approach", "reed_bank_gate"] },
+      { unitId: "support_ddg_gamma", name: "Support DDG Gamma", faction: "CN", platformType: "surface_combatant", dbid: 3883, sectors: ["thitu_pivot", "namyet_chain"] },
+      { unitId: "support_frigate_gamma", name: "Support Frigate Gamma", faction: "CN", platformType: "surface_combatant", dbid: 1965, sectors: ["west_palawan_gate", "balabac_extension"] }
     ],
     enemyAir: [
       { unitId: "support_helo_alpha", name: "Support Helo Alpha", faction: "CN", platformType: "helicopter", dbid: 60, sectors: ["reed_bank_gate", "spratly_arc"] },
-      { unitId: "support_helo_beta", name: "Support Helo Beta", faction: "CN", platformType: "helicopter", dbid: 60, sectors: ["palawan_seam", "central_basin_run"] }
+      { unitId: "support_helo_beta", name: "Support Helo Beta", faction: "CN", platformType: "helicopter", dbid: 60, sectors: ["palawan_seam", "central_basin_run"] },
+      { unitId: "support_helo_gamma", name: "Support Helo Gamma", faction: "CN", platformType: "helicopter", dbid: 60, sectors: ["thitu_pivot", "west_palawan_gate"] }
     ]
   },
   norwegian_sea: {
@@ -1366,12 +1447,63 @@ function clampAuthoringDistanceKm(value) {
   return Math.min(MAX_TARGET_DISTANCE_KM, Math.max(MIN_TARGET_DISTANCE_KM, Math.round(numeric)));
 }
 
+function clampIntensityLevel(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return DEFAULT_INTENSITY_LEVEL;
+  }
+  return Math.max(MIN_INTENSITY_LEVEL, Math.min(MAX_INTENSITY_LEVEL, Math.round(numeric)));
+}
+
+function intensityAdjustment(level, perStep = 1) {
+  return (clampIntensityLevel(level) - DEFAULT_INTENSITY_LEVEL) * perStep;
+}
+
+function resolveCountWithIntensity(baseCount, level, { min = 0, max = Number.POSITIVE_INFINITY, perStep = 1 } = {}) {
+  return Math.max(min, Math.min(max, baseCount + intensityAdjustment(level, perStep)));
+}
+
+function resolveSupportCount(baseCount, level, fallbackMax = 3) {
+  const normalizedLevel = clampIntensityLevel(level);
+  return resolveCountWithIntensity(baseCount, level, {
+    min: baseCount > 0 && normalizedLevel >= 1 ? 1 : 0,
+    max: Math.max(baseCount + 2, fallbackMax),
+    perStep: 1
+  });
+}
+
+function authoringConstraintSeedFragment(authoringConstraints = {}) {
+  return [
+    authoringConstraints.maxDistanceToPrimaryTargetKm ?? "na",
+    clampIntensityLevel(authoringConstraints.merchantTrafficIntensity),
+    clampIntensityLevel(authoringConstraints.biologicClutterIntensity),
+    clampIntensityLevel(authoringConstraints.hostileSurfaceSupportIntensity),
+    clampIntensityLevel(authoringConstraints.hostileAirSupportIntensity),
+    clampIntensityLevel(authoringConstraints.friendlySupportIntensity)
+  ].join("-");
+}
+
 function normalizeAuthoringConstraints(spec = {}) {
   const maxDistanceToPrimaryTargetKm = clampAuthoringDistanceKm(
     spec.authoringConstraints?.maxDistanceToPrimaryTargetKm ?? spec.maxDistanceToPrimaryTargetKm
   );
   return {
-    maxDistanceToPrimaryTargetKm
+    maxDistanceToPrimaryTargetKm,
+    merchantTrafficIntensity: clampIntensityLevel(
+      spec.authoringConstraints?.merchantTrafficIntensity ?? spec.merchantTrafficIntensity
+    ),
+    biologicClutterIntensity: clampIntensityLevel(
+      spec.authoringConstraints?.biologicClutterIntensity ?? spec.biologicClutterIntensity
+    ),
+    hostileSurfaceSupportIntensity: clampIntensityLevel(
+      spec.authoringConstraints?.hostileSurfaceSupportIntensity ?? spec.hostileSurfaceSupportIntensity
+    ),
+    hostileAirSupportIntensity: clampIntensityLevel(
+      spec.authoringConstraints?.hostileAirSupportIntensity ?? spec.hostileAirSupportIntensity
+    ),
+    friendlySupportIntensity: clampIntensityLevel(
+      spec.authoringConstraints?.friendlySupportIntensity ?? spec.friendlySupportIntensity
+    )
   };
 }
 
@@ -1441,6 +1573,28 @@ function routeAspectProfile(index, rng, variantIndex = 0) {
   };
 }
 
+function selectRouteAspect(routeSet, index, rng) {
+  const authoredAspects = Array.isArray(routeSet.aspects) && routeSet.aspects.length
+    ? routeSet.aspects
+    : ROUTE_ASPECT_LIBRARY[routeSet.id];
+  if (Array.isArray(authoredAspects) && authoredAspects.length) {
+    const authoredIndex = (Math.floor(rng() * authoredAspects.length) + Math.max(0, index) + (routeSet.variantIndex || 0)) % authoredAspects.length;
+    const selected = authoredAspects[authoredIndex];
+    return {
+      reverse: Boolean(selected.reverse),
+      rotationDegrees: Number(selected.rotationDegrees || 0),
+      label: selected.label || (selected.reverse ? "reverse flow" : "forward flow")
+    };
+  }
+  const generic = routeAspectProfile(index, rng, routeSet.variantIndex || 0);
+  return {
+    ...generic,
+    label: generic.reverse
+      ? `reverse flow, ${generic.rotationDegrees} deg offset`
+      : `forward flow, ${generic.rotationDegrees} deg offset`
+  };
+}
+
 function buildRouteSetGeometry(routeSet, index, rng) {
   const allPoints = [
     ...(routeSet.playerCorridor || []),
@@ -1450,7 +1604,7 @@ function buildRouteSetGeometry(routeSet, index, rng) {
     ...(routeSet.airCorridor || [])
   ];
   const center = averagePoint(allPoints);
-  const aspect = routeAspectProfile(index, rng, routeSet.variantIndex || 0);
+  const aspect = selectRouteAspect(routeSet, index, rng);
   return {
     ...routeSet,
     playerCorridor: transformCorridor(routeSet.playerCorridor || [], { center, ...aspect }),
@@ -1461,9 +1615,7 @@ function buildRouteSetGeometry(routeSet, index, rng) {
     routeAspect: {
       reverse: aspect.reverse,
       rotationDegrees: aspect.rotationDegrees,
-      label: aspect.reverse
-        ? `reverse flow, ${aspect.rotationDegrees} deg offset`
-        : `forward flow, ${aspect.rotationDegrees} deg offset`
+      label: aspect.label
     }
   };
 }
@@ -1929,7 +2081,7 @@ function getRouteVariantSet(template, index, rng) {
   }
   return {
     ...template.route,
-    id: template.route?.id || "default_route",
+    id: template.route?.id || `${template.id}_route`,
     label: template.route?.label || `${template.label} Default Route`,
     variantIndex: 0,
     variantCount: 1
@@ -2123,7 +2275,10 @@ function buildAisMerchantTraffic(family, geometry, density, authoringConstraints
     return [];
   }
   const playerSpawn = geometry.playerSpawn;
-  const maxImportedContacts = Math.max(2, Math.min(8, density + 2));
+  const maxImportedContacts = Math.max(
+    1,
+    Math.min(12, density + 2 + intensityAdjustment(authoringConstraints.merchantTrafficIntensity, 2))
+  );
   const filtered = contacts
     .filter((contact) => Number.isFinite(Number(contact.lat)) && Number.isFinite(Number(contact.lon)))
     .map((contact) => ({
@@ -2161,6 +2316,11 @@ function buildScenarioForces(template, geometry, index, theaterPicture, rng, aut
   const density = Number(geometry?.density || 1);
   const resolvedMissionType = normalizeMissionTypeKey(missionTypeKey, template.family);
   const aisMerchantTraffic = buildAisMerchantTraffic(template.family, geometry, density, authoringConstraints, aisSnapshot);
+  const merchantTrafficIntensity = authoringConstraints.merchantTrafficIntensity;
+  const biologicClutterIntensity = authoringConstraints.biologicClutterIntensity;
+  const hostileSurfaceSupportIntensity = authoringConstraints.hostileSurfaceSupportIntensity;
+  const hostileAirSupportIntensity = authoringConstraints.hostileAirSupportIntensity;
+  const friendlySupportIntensity = authoringConstraints.friendlySupportIntensity;
 
   if (template.family === "surface_shadow") {
     const desiredPrimaryCount = resolvedMissionType === "submerged_escort" ? 1 : 2;
@@ -2174,19 +2334,32 @@ function buildScenarioForces(template, geometry, index, theaterPicture, rng, aut
     );
     const usedEnemyIds = new Set(enemyPrimary.map((unit) => unit.unitId));
     const barrierCandidates = (pools.enemySurface || []).filter((unit) => !usedEnemyIds.has(unit.unitId));
+    const enemySecondaryBaseCount = resolvedMissionType === "asuw_convoy" ? 2 : 1;
+    const enemySecondaryDesired = resolveSupportCount(
+      enemySecondaryBaseCount,
+      hostileSurfaceSupportIntensity,
+      barrierCandidates.length
+    );
     const enemySecondary = density >= 2 || resolvedMissionType === "asuw_convoy" || resolvedMissionType === "civilian_defense" || resolvedMissionType === "blockade_relief"
-      ? selectUnitsForMission(barrierCandidates, theaterPicture, scenarioSector, resolvedMissionType === "asuw_convoy" ? 2 : 1, index, rng)
+      ? selectUnitsForMission(barrierCandidates, theaterPicture, scenarioSector, enemySecondaryDesired, index, rng)
       : [];
-    const enemyAir = selectUnitsForMission(pools.enemyAir || [], theaterPicture, scenarioSector, 1, index, rng);
+    const enemyAirDesired = resolveSupportCount(1, hostileAirSupportIntensity, (pools.enemyAir || []).length);
+    const enemyAir = selectUnitsForMission(pools.enemyAir || [], theaterPicture, scenarioSector, enemyAirDesired, index, rng);
+    const friendlySurfaceDesired = resolveSupportCount(
+      resolvedMissionType === "submerged_escort" || resolvedMissionType === "blockade_relief" ? 2 : 1,
+      friendlySupportIntensity,
+      (pools.friendlySurface || []).length
+    );
     const friendlySurface = selectUnitsForMission(
       pools.friendlySurface || [],
       theaterPicture,
       scenarioSector,
-      resolvedMissionType === "submerged_escort" || resolvedMissionType === "blockade_relief" ? 2 : 1,
+      friendlySurfaceDesired,
       index,
       rng
     );
-    const friendlyAir = selectUnitsForMission(pools.friendlyAir || [], theaterPicture, scenarioSector, 1, index, rng);
+    const friendlyAirDesired = resolveSupportCount(1, friendlySupportIntensity, (pools.friendlyAir || []).length);
+    const friendlyAir = selectUnitsForMission(pools.friendlyAir || [], theaterPicture, scenarioSector, friendlyAirDesired, index, rng);
     const extraMerchantTraffic = resolvedMissionType === "asuw_convoy" || resolvedMissionType === "civilian_defense" || resolvedMissionType === "blockade_relief" ? 3 : 0;
     return {
       sector: scenarioSector,
@@ -2196,9 +2369,17 @@ function buildScenarioForces(template, geometry, index, theaterPicture, rng, aut
       enemyPrimary,
       enemySecondary,
       enemyAir,
-      ambientMerchantCount: Math.max(3, density + 2 + Math.floor(rng() * 2) + extraMerchantTraffic),
+      ambientMerchantCount: resolveCountWithIntensity(
+        density + 2 + Math.floor(rng() * 2) + extraMerchantTraffic,
+        merchantTrafficIntensity,
+        { min: 1, max: 14, perStep: 2 }
+      ),
       aisMerchantTraffic,
-      ambientBiologicCount: 3 + Math.floor(rng() * 2),
+      ambientBiologicCount: resolveCountWithIntensity(
+        3 + Math.floor(rng() * 2),
+        biologicClutterIntensity,
+        { min: 0, max: 8, perStep: 1 }
+      ),
       offstageEnemy: summarizeOffstageUnits([...(pools.enemySurface || []), ...(pools.enemyAir || [])], [...enemyPrimary, ...enemySecondary, ...enemyAir]),
       offstageFriendly: summarizeOffstageUnits([...(pools.friendlySurface || []), ...(pools.friendlyAir || [])], [...friendlySurface, ...friendlyAir])
     };
@@ -2214,22 +2395,41 @@ function buildScenarioForces(template, geometry, index, theaterPicture, rng, aut
     pools.enemySurfaceSupport || [],
     theaterPicture,
     scenarioSector,
-    density >= 3 ? 2 : 1,
+    resolveSupportCount(density >= 3 ? 2 : 1, hostileSurfaceSupportIntensity, (pools.enemySurfaceSupport || []).length),
     index,
     rng
   );
-  const enemyAir = density >= 2
-    ? selectUnitsForMission(pools.enemyAir || [], theaterPicture, scenarioSector, 1, index, rng)
+  const enemyAir = density >= 2 || clampIntensityLevel(hostileAirSupportIntensity) > DEFAULT_INTENSITY_LEVEL
+    ? selectUnitsForMission(
+      pools.enemyAir || [],
+      theaterPicture,
+      scenarioSector,
+      resolveSupportCount(1, hostileAirSupportIntensity, (pools.enemyAir || []).length),
+      index,
+      rng
+    )
     : [];
+  const friendlySurfaceDesired = resolveSupportCount(
+    resolvedMissionType === "submerged_escort" ? 2 : 1,
+    friendlySupportIntensity,
+    (pools.friendlySurface || []).length
+  );
   const friendlySurface = selectUnitsForMission(
     pools.friendlySurface || [],
     theaterPicture,
     scenarioSector,
-    resolvedMissionType === "submerged_escort" ? 2 : 1,
+    friendlySurfaceDesired,
     index,
     rng
   );
-  const friendlyAir = selectUnitsForMission(pools.friendlyAir || [], theaterPicture, scenarioSector, 1, index, rng);
+  const friendlyAir = selectUnitsForMission(
+    pools.friendlyAir || [],
+    theaterPicture,
+    scenarioSector,
+    resolveSupportCount(1, friendlySupportIntensity, (pools.friendlyAir || []).length),
+    index,
+    rng
+  );
   return {
     sector: scenarioSector,
     missionType: resolvedMissionType,
@@ -2238,9 +2438,17 @@ function buildScenarioForces(template, geometry, index, theaterPicture, rng, aut
     enemyPrimary,
     enemySurfaceSupport,
     enemyAir,
-    ambientMerchantCount: Math.max(3, density + 2 + Math.floor(rng() * 2) + (resolvedMissionType === "submerged_escort" ? 1 : 0)),
+    ambientMerchantCount: resolveCountWithIntensity(
+      density + 2 + Math.floor(rng() * 2) + (resolvedMissionType === "submerged_escort" ? 1 : 0),
+      merchantTrafficIntensity,
+      { min: 1, max: 14, perStep: 2 }
+    ),
     aisMerchantTraffic,
-    ambientBiologicCount: 4 + Math.floor(rng() * 2),
+    ambientBiologicCount: resolveCountWithIntensity(
+      4 + Math.floor(rng() * 2),
+      biologicClutterIntensity,
+      { min: 0, max: 9, perStep: 1 }
+    ),
     offstageEnemy: summarizeOffstageUnits(
       [...(pools.enemySubsurface || []), ...(pools.enemySurfaceSupport || []), ...(pools.enemyAir || [])],
       [...enemyPrimary, ...enemySurfaceSupport, ...enemyAir]
@@ -2300,7 +2508,7 @@ function applyAuthoringPostureToGeometry(template, family, geometry, postureKey)
 function buildSurfaceShadowGeometry(template, index, count, rng) {
   const routeSet = buildRouteSetGeometry({
     ...(template.route || {}),
-    id: template.route?.id || "default_route",
+    id: template.route?.id || `${template.id}_route`,
     label: template.route?.label || `${template.label} Default Route`,
     variantIndex: 0,
     variantCount: 1
@@ -2591,7 +2799,8 @@ export function buildContinuationScenario({
     startIso,
     playerName,
     priorMissionCount,
-    lastOutcome
+    lastOutcome,
+    authoringConstraintSeedFragment(normalizeAuthoringConstraints({ authoringConstraints }))
   ].join(":")));
   const densityCount = Math.max(4, priorMissionCount + 2);
   const theaterCatalog = buildTheaterUnitCatalog(theater, playerName);
@@ -2742,7 +2951,7 @@ export function buildCampaignBlueprint(spec = {}) {
   const requestedRoe = normalizeRoeKey(spec.rulesOfEngagement || spec.roe || CAMPAIGN_CLIMATE_CATALOG[tone].defaultRoe);
   const authoringConstraints = normalizeAuthoringConstraints(spec);
   const warnings = missionTypeSupport.warning ? [missionTypeSupport.warning] : [];
-  const seed = hashSeed(`${campaignId}:${theater.id}:${tone}:${posture}:${missionType}:${requestedRoe}:${year}:${playableScenarioCount}:${playerName}`);
+  const seed = hashSeed(`${campaignId}:${theater.id}:${tone}:${posture}:${missionType}:${requestedRoe}:${year}:${playableScenarioCount}:${playerName}:${authoringConstraintSeedFragment(authoringConstraints)}`);
   const rng = mulberry32(seed);
   const playableArchetypes = pickArchetypes(tone, playableScenarioCount);
   const reservedArchetype = pickArchetypes(tone, Math.min(playableScenarioCount + 1, 4))[playableScenarioCount]

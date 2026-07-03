@@ -878,6 +878,11 @@ function collectWizardSpec() {
   const maxTargetDistanceValue = document.getElementById("wizard-max-target-distance-km").value;
   const experimentalEnabled = Boolean(document.getElementById("wizard-experimental-enabled")?.checked);
   const plotSeed = document.getElementById("wizard-plot-seed")?.value || "none";
+  const merchantTrafficIntensity = Number(document.getElementById("wizard-merchant-traffic-intensity")?.value || 2);
+  const biologicClutterIntensity = Number(document.getElementById("wizard-biologic-clutter-intensity")?.value || 2);
+  const hostileSurfaceSupportIntensity = Number(document.getElementById("wizard-hostile-surface-support-intensity")?.value || 2);
+  const hostileAirSupportIntensity = Number(document.getElementById("wizard-hostile-air-support-intensity")?.value || 2);
+  const friendlySupportIntensity = Number(document.getElementById("wizard-friendly-support-intensity")?.value || 2);
   return {
     title: document.getElementById("wizard-title").value.trim(),
     campaignId: document.getElementById("wizard-campaign-id").value.trim(),
@@ -897,9 +902,40 @@ function collectWizardSpec() {
       plotSeed
     },
     authoringConstraints: {
-      maxDistanceToPrimaryTargetKm: maxTargetDistanceValue ? Number(maxTargetDistanceValue) : null
+      maxDistanceToPrimaryTargetKm: maxTargetDistanceValue ? Number(maxTargetDistanceValue) : null,
+      merchantTrafficIntensity,
+      biologicClutterIntensity,
+      hostileSurfaceSupportIntensity,
+      hostileAirSupportIntensity,
+      friendlySupportIntensity
     }
   };
+}
+
+function intensityLevelLabel(value) {
+  return ({
+    0: "Sparse",
+    1: "Light",
+    2: "Standard",
+    3: "Heavy",
+    4: "Surge"
+  })[Number(value)] || "Standard";
+}
+
+function refreshWizardIntensityLabels() {
+  [
+    "merchant-traffic-intensity",
+    "biologic-clutter-intensity",
+    "hostile-surface-support-intensity",
+    "hostile-air-support-intensity",
+    "friendly-support-intensity"
+  ].forEach((suffix) => {
+    const input = document.getElementById(`wizard-${suffix}`);
+    const label = document.getElementById(`wizard-${suffix}-label`);
+    if (input && label) {
+      label.textContent = intensityLevelLabel(input.value);
+    }
+  });
 }
 
 function setWizardStatus(message) {
@@ -1231,13 +1267,39 @@ async function initializeWizard() {
   }
   populateWizardSelectors();
   syncWizardDefaultsWithTheater();
+  refreshWizardIntensityLabels();
   refreshCurrentWizardBlueprint();
   document.getElementById("wizard-theater").onchange = () => {
     syncWizardDefaultsWithTheater();
     refreshCurrentWizardBlueprint();
   };
-  ["wizard-title", "wizard-campaign-id", "wizard-climate", "wizard-mission-type", "wizard-stance", "wizard-roe", "wizard-year", "wizard-scenario-count", "wizard-player-name", "wizard-max-target-distance-km"].forEach((id) => {
+  [
+    "wizard-title",
+    "wizard-campaign-id",
+    "wizard-climate",
+    "wizard-mission-type",
+    "wizard-stance",
+    "wizard-roe",
+    "wizard-year",
+    "wizard-scenario-count",
+    "wizard-player-name",
+    "wizard-max-target-distance-km",
+    "wizard-merchant-traffic-intensity",
+    "wizard-biologic-clutter-intensity",
+    "wizard-hostile-surface-support-intensity",
+    "wizard-hostile-air-support-intensity",
+    "wizard-friendly-support-intensity"
+  ].forEach((id) => {
     document.getElementById(id).oninput = () => refreshCurrentWizardBlueprint();
+  });
+  [
+    "wizard-merchant-traffic-intensity",
+    "wizard-biologic-clutter-intensity",
+    "wizard-hostile-surface-support-intensity",
+    "wizard-hostile-air-support-intensity",
+    "wizard-friendly-support-intensity"
+  ].forEach((id) => {
+    document.getElementById(id).addEventListener("input", () => refreshWizardIntensityLabels());
   });
   document.getElementById("wizard-experimental-enabled").onchange = () => {
     populateWizardSelectors();

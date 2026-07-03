@@ -2,6 +2,10 @@ const path = require("path");
 const { pathToFileURL } = require("url");
 const { app, BrowserWindow, ipcMain, shell } = require("electron");
 
+function getAppIconPath() {
+  return path.join(__dirname, "resources", "icon.png");
+}
+
 function getSettingsPath() {
   return path.join(app.getPath("userData"), "settings.json");
 }
@@ -40,6 +44,7 @@ async function createWindow() {
     height: 980,
     minWidth: 1180,
     minHeight: 780,
+    icon: getAppIconPath(),
     backgroundColor: "#07131d",
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
