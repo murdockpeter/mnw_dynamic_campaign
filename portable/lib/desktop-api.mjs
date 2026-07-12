@@ -20,12 +20,13 @@ async function readDesktopSettings(settingsPath) {
   return settingsPath ? loadSettings(settingsPath) : loadSettings("__defaults__.json");
 }
 
-async function resolveRoots({ contentRoot, workspaceRoot }) {
+async function resolveRoots({ contentRoot, workspaceRoot, appVersion } = {}) {
   const effectiveContentRoot = contentRoot || repoRoot;
   const effectiveWorkspaceRoot = workspaceRoot || repoRoot;
   await ensureWorkspace({
     contentRoot: effectiveContentRoot,
-    workspaceRoot: effectiveWorkspaceRoot
+    workspaceRoot: effectiveWorkspaceRoot,
+    appVersion
   });
   return {
     contentRoot: effectiveContentRoot,
@@ -171,9 +172,9 @@ async function detectUserCampaignPath() {
   };
 }
 
-export async function detectDesktopPathsForDesktop({ settingsPath, contentRoot, workspaceRoot } = {}) {
+export async function detectDesktopPathsForDesktop({ settingsPath, contentRoot, workspaceRoot, appVersion } = {}) {
   const settings = await readDesktopSettings(settingsPath);
-  const roots = await resolveRoots({ contentRoot, workspaceRoot });
+  const roots = await resolveRoots({ contentRoot, workspaceRoot, appVersion });
   const preferredCampaignId = settings.preferredCampaignId || "silent_meridian";
   const preferredPackageId = settings.preferredPackageId || preferredCampaignId;
   const gameCampaign = await detectGameCampaignPath();
@@ -234,9 +235,9 @@ async function safeReadJson(targetPath, fallback = null) {
   }
 }
 
-export async function getDesktopInfo({ settingsPath, contentRoot, workspaceRoot } = {}) {
+export async function getDesktopInfo({ settingsPath, contentRoot, workspaceRoot, appVersion } = {}) {
   const settings = await readDesktopSettings(settingsPath);
-  const roots = await resolveRoots({ contentRoot, workspaceRoot });
+  const roots = await resolveRoots({ contentRoot, workspaceRoot, appVersion });
   return {
     repoRoot: roots.contentRoot,
     workspaceRoot: roots.workspaceRoot,
@@ -246,9 +247,9 @@ export async function getDesktopInfo({ settingsPath, contentRoot, workspaceRoot 
   };
 }
 
-export async function getWorkflowStatusForDesktop({ campaignId, packageId, settingsPath, contentRoot, workspaceRoot, stateDir } = {}) {
+export async function getWorkflowStatusForDesktop({ campaignId, packageId, settingsPath, contentRoot, workspaceRoot, stateDir, appVersion } = {}) {
   const settings = await readDesktopSettings(settingsPath);
-  const roots = await resolveRoots({ contentRoot, workspaceRoot });
+  const roots = await resolveRoots({ contentRoot, workspaceRoot, appVersion });
   const effectiveCampaignId = campaignId || settings.preferredCampaignId || "silent_meridian";
   const effectivePackageId = packageId || settings.preferredPackageId || effectiveCampaignId;
   const sourceDir = resolveSourceDir(settings) || path.join(roots.workspaceRoot, "src", "packages", effectivePackageId);
@@ -405,9 +406,9 @@ export async function fetchAisContactsForDesktop({ center, radiusKm, theaterName
   return result;
 }
 
-export async function exportRuntimeSnapshot({ campaignId, outputPath, stateDir, settingsPath, contentRoot, workspaceRoot } = {}) {
+export async function exportRuntimeSnapshot({ campaignId, outputPath, stateDir, settingsPath, contentRoot, workspaceRoot, appVersion } = {}) {
   const settings = await readDesktopSettings(settingsPath);
-  const roots = await resolveRoots({ contentRoot, workspaceRoot });
+  const roots = await resolveRoots({ contentRoot, workspaceRoot, appVersion });
   const effectiveCampaignId = campaignId || settings.preferredCampaignId || "silent_meridian";
   const payload = await exportRuntimePayload({ repoRoot: roots.workspaceRoot, campaignId: effectiveCampaignId, stateDir });
   const resolvedOutput = path.resolve(outputPath || path.join(roots.workspaceRoot, "generated", "ui", "runtime.json"));
@@ -416,8 +417,8 @@ export async function exportRuntimeSnapshot({ campaignId, outputPath, stateDir, 
   return { outputPath: resolvedOutput, payload };
 }
 
-export async function loadRuntimeSnapshotForDesktop({ outputPath, contentRoot, workspaceRoot } = {}) {
-  const roots = await resolveRoots({ contentRoot, workspaceRoot });
+export async function loadRuntimeSnapshotForDesktop({ outputPath, contentRoot, workspaceRoot, appVersion } = {}) {
+  const roots = await resolveRoots({ contentRoot, workspaceRoot, appVersion });
   const resolvedOutput = path.resolve(outputPath || path.join(roots.workspaceRoot, "generated", "ui", "runtime.json"));
   try {
     const payload = await readJson(resolvedOutput);
@@ -427,9 +428,9 @@ export async function loadRuntimeSnapshotForDesktop({ outputPath, contentRoot, w
   }
 }
 
-export async function buildPackageForDesktop({ sourceDir, outputPath, settingsPath, contentRoot, workspaceRoot } = {}) {
+export async function buildPackageForDesktop({ sourceDir, outputPath, settingsPath, contentRoot, workspaceRoot, appVersion } = {}) {
   const settings = await readDesktopSettings(settingsPath);
-  const roots = await resolveRoots({ contentRoot, workspaceRoot });
+  const roots = await resolveRoots({ contentRoot, workspaceRoot, appVersion });
   const effectiveSource = resolveSourceDir(settings, sourceDir) || path.join(roots.workspaceRoot, "src", "package");
   const effectivePackageId = settings.preferredPackageId || settings.preferredCampaignId || "norwegian_shadow";
   const effectiveOutput = await resolvePackageOutputPath(
@@ -441,9 +442,9 @@ export async function buildPackageForDesktop({ sourceDir, outputPath, settingsPa
   return buildPackage({ sourceDir: effectiveSource, outputPath: effectiveOutput });
 }
 
-export async function deployPackageForDesktop({ packagePath, gameCampaignPath, userCampaignPath, settingsPath, contentRoot, workspaceRoot } = {}) {
+export async function deployPackageForDesktop({ packagePath, gameCampaignPath, userCampaignPath, settingsPath, contentRoot, workspaceRoot, appVersion } = {}) {
   const settings = await readDesktopSettings(settingsPath);
-  const roots = await resolveRoots({ contentRoot, workspaceRoot });
+  const roots = await resolveRoots({ contentRoot, workspaceRoot, appVersion });
   const effectivePackageId = settings.preferredPackageId || settings.preferredCampaignId || "norwegian_shadow";
   const effectivePackagePath = await resolvePackageOutputPath(
     settings,
@@ -458,18 +459,18 @@ export async function deployPackageForDesktop({ packagePath, gameCampaignPath, u
   });
 }
 
-export async function ingestResultForDesktop({ campaignId, resultPath, stateDir, advanceHours = 24.0, settingsPath, contentRoot, workspaceRoot } = {}) {
+export async function ingestResultForDesktop({ campaignId, resultPath, stateDir, advanceHours = 24.0, settingsPath, contentRoot, workspaceRoot, appVersion } = {}) {
   const settings = await readDesktopSettings(settingsPath);
-  const roots = await resolveRoots({ contentRoot, workspaceRoot });
+  const roots = await resolveRoots({ contentRoot, workspaceRoot, appVersion });
   const effectiveCampaignId = campaignId || settings.preferredCampaignId || "silent_meridian";
   const ingest = await ingestMissionResult({ repoRoot: roots.workspaceRoot, campaignId: effectiveCampaignId, resultPath, stateDir, advanceHours });
-  const runtime = await exportRuntimeSnapshot({ campaignId: effectiveCampaignId, stateDir, settingsPath, contentRoot: roots.contentRoot, workspaceRoot: roots.workspaceRoot });
+  const runtime = await exportRuntimeSnapshot({ campaignId: effectiveCampaignId, stateDir, settingsPath, contentRoot: roots.contentRoot, workspaceRoot: roots.workspaceRoot, appVersion });
   return { ingest, runtime };
 }
 
-export async function ingestResultPayloadForDesktop({ campaignId, result, stateDir, advanceHours = 24.0, settingsPath, contentRoot, workspaceRoot } = {}) {
+export async function ingestResultPayloadForDesktop({ campaignId, result, stateDir, advanceHours = 24.0, settingsPath, contentRoot, workspaceRoot, appVersion } = {}) {
   const settings = await readDesktopSettings(settingsPath);
-  const roots = await resolveRoots({ contentRoot, workspaceRoot });
+  const roots = await resolveRoots({ contentRoot, workspaceRoot, appVersion });
   const effectiveCampaignId = campaignId || settings.preferredCampaignId || "silent_meridian";
   const ingest = await ingestMissionResultPayload({
     repoRoot: roots.workspaceRoot,
@@ -483,14 +484,15 @@ export async function ingestResultPayloadForDesktop({ campaignId, result, stateD
     stateDir,
     settingsPath,
     contentRoot: roots.contentRoot,
-    workspaceRoot: roots.workspaceRoot
+    workspaceRoot: roots.workspaceRoot,
+    appVersion
   });
   return { ingest, runtime };
 }
 
-export async function generateCampaignForDesktop({ spec, dryRun = false, settingsPath, contentRoot, workspaceRoot } = {}) {
+export async function generateCampaignForDesktop({ spec, dryRun = false, settingsPath, contentRoot, workspaceRoot, appVersion } = {}) {
   const settings = settingsPath ? await readDesktopSettings(settingsPath) : {};
-  const roots = await resolveRoots({ contentRoot, workspaceRoot });
+  const roots = await resolveRoots({ contentRoot, workspaceRoot, appVersion });
   const result = await generateCampaign({
     templateRoot: roots.contentRoot,
     workspaceRoot: roots.workspaceRoot,
@@ -517,7 +519,8 @@ export async function generateCampaignForDesktop({ spec, dryRun = false, setting
     campaignId: result.blueprint.campaignId,
     settingsPath,
     contentRoot: roots.contentRoot,
-    workspaceRoot: roots.workspaceRoot
+    workspaceRoot: roots.workspaceRoot,
+    appVersion
   });
   return {
     ...result,
@@ -533,10 +536,11 @@ export async function continueCampaignForDesktop({
   stateDir,
   settingsPath,
   contentRoot,
-  workspaceRoot
+  workspaceRoot,
+  appVersion
 } = {}) {
   const settings = await readDesktopSettings(settingsPath);
-  const roots = await resolveRoots({ contentRoot, workspaceRoot });
+  const roots = await resolveRoots({ contentRoot, workspaceRoot, appVersion });
   const effectiveCampaignId = campaignId || settings.preferredCampaignId || "silent_meridian";
   const continuation = await appendContinuationScenario({
     repoRoot: roots.workspaceRoot,
@@ -568,7 +572,8 @@ export async function continueCampaignForDesktop({
     stateDir,
     settingsPath,
     contentRoot: roots.contentRoot,
-    workspaceRoot: roots.workspaceRoot
+    workspaceRoot: roots.workspaceRoot,
+    appVersion
   });
   return {
     continuation,

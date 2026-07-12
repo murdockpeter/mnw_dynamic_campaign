@@ -274,6 +274,117 @@ test("sub-hunt support groups anchor to a defined plot", () => {
   assert.match(script, /support_surface_0_spawn = _P\.Element\.Spawn\(support_plot_anchor,/);
 });
 
+test("deterministic mission variations can change task emphasis and force bias", () => {
+  const blueprint = buildCampaignBlueprint({
+    title: "Variation Test",
+    campaignId: "variation_test",
+    theater: "luzon_strait",
+    campaignClimate: "surveillance",
+    missionType: "asuw_military",
+    missionStance: "wide_area_search",
+    rulesOfEngagement: "weapons_tight",
+    scenarioCount: 4,
+    playerName: "USS Test"
+  });
+
+  const variationKeys = blueprint.scenarios.slice(0, 4).map((scenario) => scenario.variation.key);
+  const taskKeys = blueprint.scenarios.slice(0, 4).map((scenario) => scenario.tasking.primaryTask.key);
+
+  assert.equal(variationKeys.every((key) => key !== "standard"), true);
+  assert.equal(taskKeys.includes("designated_strike"), true);
+  assert.equal(taskKeys.includes("break_contact_escape"), true);
+  assert.equal(taskKeys.some((key) => key === "classify_screen" || key === "confirm_route" || key === "trail_handoff"), true);
+  assert.equal(blueprint.scenarios[2].tasking.primaryTask.key, "designated_strike");
+  assert.equal(blueprint.scenarios[2].forces.enemyAir.length >= 1, true);
+});
+
+test("continuation generation carries deterministic variation metadata", () => {
+  const scenario = buildContinuationScenario({
+    campaignId: "cont_variation",
+    theaterId: "south_china_sea",
+    year: 2028,
+    playerName: "USS Test",
+    missionIndex: 2,
+    slotNumber: 3,
+    referenceIso: "2028-03-15T00:00:00Z",
+    objective: "intercept_route",
+    riskPosture: "aggressive",
+    operationalTempo: "immediate",
+    priorMissionCount: 3,
+    lastOutcome: "success",
+    missionStance: "aggressive_intercept",
+    campaignClimate: "breakout_hunt",
+    currentEscalation: "heightened_tension"
+  });
+
+  assert.equal(scenario.variation.key, "turnpoint_ambush");
+  assert.equal(scenario.variation.forceBias.enemySurfaceSupport, 1);
+  assert.match(scenario.summary, /turn point/i);
+});
+
+test("player submarine selection persists into blueprint metadata and mission scripts", () => {
+  const blueprint = buildCampaignBlueprint({
+    title: "Player Sub Test",
+    campaignId: "player_sub_test",
+    theater: "norwegian_sea",
+    missionType: "asw",
+    playerSubmarine: "virginia_block_ii",
+    playerName: "USS Test"
+  });
+
+  assert.equal(blueprint.playerSubmarine, "virginia_block_ii");
+  assert.equal(blueprint.player.platformShortLabel, "Virginia B2");
+  assert.match(blueprint.warnings.join(" "), /Block III MNW database entry as a fallback/i);
+
+  const scenario = blueprint.scenarios[0];
+  const artifacts = buildScenarioPackageArtifacts({ blueprint, scenario });
+  const scriptPath = Object.keys(artifacts.files).find((key) => key.endsWith(`${scenario.slug}.mis`));
+  const script = artifacts.files[scriptPath];
+
+  assert.match(script, /\(Player\) Virginia B2/);
+  assert.match(script, /virginia_id = 1015/);
+});
+
+test("season and time-of-day controls affect scenario clocks and briefing text", () => {
+  const blueprint = buildCampaignBlueprint({
+    title: "Temporal Test",
+    campaignId: "temporal_test",
+    theater: "south_china_sea",
+    missionType: "asw",
+    season: "summer",
+    timeOfDay: "dusk",
+    playerName: "USS Test"
+  });
+
+  assert.equal(blueprint.season, "summer");
+  assert.equal(blueprint.timeOfDay, "dusk");
+  assert.equal(blueprint.scenarios[0].startMnw, "2028/07/18 18:35:00");
+  assert.equal(blueprint.scenarios[0].temporalContext.label, "Summer, Dusk");
+
+  const artifacts = buildScenarioPackageArtifacts({ blueprint, scenario: blueprint.scenarios[0] });
+  const metadataPath = Object.keys(artifacts.files).find((key) => key.endsWith(`${blueprint.scenarios[0].slug}.mis.json`));
+  const metadata = JSON.parse(artifacts.files[metadataPath]);
+  const briefing = decodeBase64Field(metadata.messages.mission_objectives);
+
+  assert.match(briefing, /Scenario Time:/);
+  assert.match(briefing, /Summer, Dusk/);
+
+  const continuation = buildContinuationScenario({
+    campaignId: "temporal_continue",
+    theaterId: "south_china_sea",
+    year: 2028,
+    playerName: "USS Test",
+    missionIndex: 1,
+    slotNumber: 2,
+    referenceIso: "2028-07-18T18:35:00Z",
+    objective: "pursue_contact",
+    season: "summer",
+    timeOfDay: "night"
+  });
+  assert.match(continuation.startMnw, /02:10:00$/);
+  assert.equal(continuation.temporalContext.label, "Summer, Night");
+});
+
 test("surveillance snapshot remains stable", async () => {
   const expected = JSON.parse(await fs.readFile(new URL("./fixtures/surveillance_snapshot.json", import.meta.url), "utf8"));
   const blueprint = buildCampaignBlueprint({

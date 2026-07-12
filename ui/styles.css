@@ -133,6 +133,14 @@ body::after {
   display: block;
 }
 
+.update-provider-scope {
+  display: none;
+}
+
+.update-provider-scope.active {
+  display: grid;
+}
+
 .panel h2 {
   margin: 0 0 12px;
   font-size: 14px;
@@ -169,6 +177,15 @@ body::after {
   word-break: break-word;
 }
 
+.compact-kv-item {
+  grid-template-columns: minmax(0, 78px) minmax(0, 1fr);
+  padding: 9px 11px;
+}
+
+.compact-kv-item .value {
+  font-weight: 500;
+}
+
 .stack-item {
   padding: 12px 14px;
   border-radius: 14px;
@@ -188,6 +205,14 @@ body::after {
   font-size: 13px;
   overflow-wrap: anywhere;
   word-break: break-word;
+}
+
+.compact-stack-item {
+  padding: 10px 12px;
+}
+
+.compact-stack-item .title {
+  font-size: 13px;
 }
 
 .status-summary {
@@ -612,6 +637,11 @@ td {
   background: rgba(255, 122, 122, 0.12);
 }
 
+.pill.alt {
+  color: var(--accent);
+  background: rgba(111, 212, 255, 0.12);
+}
+
 .event-list,
 .directive-list,
 .contract-list {
@@ -635,6 +665,99 @@ td {
 .builder-preview,
 .wizard-form,
 .wizard-preview {
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(111, 212, 255, 0.08);
+}
+
+.tracking-theater-card {
+  margin-top: 20px;
+}
+
+.tracking-theater-grid {
+  margin-top: 0;
+}
+
+.theater-panel {
+  padding: 16px;
+}
+
+.theater-sector-item {
+  border: 1px solid rgba(111, 212, 255, 0.08);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.tracking-theater-units {
+  margin-top: 18px;
+  padding: 16px;
+}
+
+.theater-unit-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.theater-unit-card {
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(111, 212, 255, 0.08);
+}
+
+.theater-unit-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.theater-unit-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.theater-unit-meta span {
+  display: inline-flex;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.theater-unit-kv {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.theater-unit-kv span {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.theater-unit-kv strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--text);
+}
+
+.theater-unit-foot {
+  margin-top: 12px;
+}
+
+.update-status-card {
+  margin-top: 16px;
   padding: 16px;
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.03);
@@ -913,6 +1036,11 @@ code {
   .wizard-grid,
   .builder-grid,
   .field-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .theater-unit-grid,
+  .theater-unit-kv {
     grid-template-columns: 1fr;
   }
 

@@ -17,5 +17,14 @@ contextBridge.exposeInMainWorld("mnwDesktop", {
   ingestResult: (payload) => ipcRenderer.invoke("mnw:ingestResult", payload),
   saveManualResult: (payload) => ipcRenderer.invoke("mnw:saveManualResult", payload),
   generateCampaign: (payload) => ipcRenderer.invoke("mnw:generateCampaign", payload),
-  continueCampaign: (payload) => ipcRenderer.invoke("mnw:continueCampaign", payload)
+  continueCampaign: (payload) => ipcRenderer.invoke("mnw:continueCampaign", payload),
+  getUpdateState: () => ipcRenderer.invoke("mnw:getUpdateState"),
+  checkForUpdates: () => ipcRenderer.invoke("mnw:checkForUpdates"),
+  downloadUpdate: () => ipcRenderer.invoke("mnw:downloadUpdate"),
+  installUpdate: () => ipcRenderer.invoke("mnw:installUpdate"),
+  onUpdateState: (listener) => {
+    const wrapped = (_event, payload) => listener(payload);
+    ipcRenderer.on("mnw:updateState", wrapped);
+    return () => ipcRenderer.removeListener("mnw:updateState", wrapped);
+  }
 });

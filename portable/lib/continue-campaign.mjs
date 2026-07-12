@@ -77,6 +77,7 @@ export async function appendContinuationScenario({
     theaterId: theater.id,
     year: new Date(state.campaign_clock || Date.now()).getUTCFullYear(),
     playerName: playerUnit.name,
+    playerSubmarine: state.world_state?.player_submarine || campaignConfig.player_submarine || playerUnit.notes?.player_submarine_key || "virginia_block_iii",
     missionIndex: currentSlotIndex,
     slotNumber: currentSlotIndex + 1,
     slugOverride: currentSlotSlug,
@@ -91,6 +92,8 @@ export async function appendContinuationScenario({
     missionStance: state.world_state?.mission_stance || state.world_state?.posture || "wide_area_search",
     missionType: state.world_state?.mission_type || campaignConfig.mission_type || null,
     campaignClimate: state.world_state?.campaign_climate || campaignConfig.campaign_climate || campaignConfig.tone || "surveillance",
+    season: state.world_state?.season || campaignConfig.season || "theater_default",
+    timeOfDay: state.world_state?.time_of_day || campaignConfig.time_of_day || "theater_default",
     currentEscalation: state.world_state?.escalation_key || null,
     requestedRoe: state.world_state?.rules_of_engagement || campaignConfig.rules_of_engagement || null,
     authoringConstraints: state.world_state?.authoring_constraints || campaignConfig.authoring_constraints || {},
@@ -102,6 +105,7 @@ export async function appendContinuationScenario({
     theaterId: theater.id,
     year: new Date(state.campaign_clock || Date.now()).getUTCFullYear(),
     playerName: playerUnit.name,
+    playerSubmarine: state.world_state?.player_submarine || campaignConfig.player_submarine || playerUnit.notes?.player_submarine_key || "virginia_block_iii",
     missionIndex: currentSlotIndex + 1,
     slotNumber: currentSlotIndex + 2,
     referenceIso: scenario.startIso,
@@ -115,6 +119,8 @@ export async function appendContinuationScenario({
     missionStance: state.world_state?.mission_stance || state.world_state?.posture || "wide_area_search",
     missionType: state.world_state?.mission_type || campaignConfig.mission_type || null,
     campaignClimate: state.world_state?.campaign_climate || campaignConfig.campaign_climate || campaignConfig.tone || "surveillance",
+    season: state.world_state?.season || campaignConfig.season || "theater_default",
+    timeOfDay: state.world_state?.time_of_day || campaignConfig.time_of_day || "theater_default",
     currentEscalation: scenario.escalationKey || state.world_state?.escalation_key || null,
     requestedRoe: scenario.roeKey || state.world_state?.rules_of_engagement || campaignConfig.rules_of_engagement || null,
     authoringConstraints: state.world_state?.authoring_constraints || campaignConfig.authoring_constraints || {},
@@ -127,7 +133,13 @@ export async function appendContinuationScenario({
     campaignId,
     theaterId: theater.id,
     family: theater.family,
-    player: { name: playerUnit.name }
+    player: {
+      name: playerUnit.name,
+      dbid: playerUnit.dbid,
+      variantKey: state.world_state?.player_submarine || campaignConfig.player_submarine || playerUnit.notes?.player_submarine_key || "virginia_block_iii",
+      platformLabel: state.world_state?.player_submarine_label || campaignConfig.player_submarine_label || playerUnit.notes?.player_submarine_label || "Virginia Block III",
+      platformShortLabel: playerUnit.notes?.player_submarine_short_label || "Virginia B3"
+    }
   };
   const artifacts = buildScenarioPackageArtifacts({ blueprint, scenario });
   const tailArtifacts = tailScenario ? buildScenarioPackageArtifacts({ blueprint, scenario: tailScenario }) : null;
@@ -164,6 +176,10 @@ export async function appendContinuationScenario({
   state.world_state.mission_stance = scenario.continuation?.posture || state.world_state.mission_stance || state.world_state.posture || "wide_area_search";
   state.world_state.mission_type = scenario.continuation?.missionType || state.world_state.mission_type || campaignConfig.mission_type || null;
   state.world_state.campaign_climate = scenario.continuation?.campaignClimate || state.world_state.campaign_climate || campaignConfig.campaign_climate || campaignConfig.tone || "surveillance";
+  state.world_state.season = scenario.continuation?.season || state.world_state.season || campaignConfig.season || "theater_default";
+  state.world_state.time_of_day = scenario.continuation?.timeOfDay || state.world_state.time_of_day || campaignConfig.time_of_day || "theater_default";
+  state.world_state.player_submarine = scenario.continuation?.playerSubmarine || state.world_state.player_submarine || campaignConfig.player_submarine || "virginia_block_iii";
+  state.world_state.player_submarine_label = scenario.continuation?.playerSubmarineLabel || state.world_state.player_submarine_label || campaignConfig.player_submarine_label || "Virginia Block III";
   state.world_state.escalation_key = scenario.continuation?.escalationKey || state.world_state.escalation_key || "peacetime";
   state.world_state.escalation_level = scenario.escalationLevel ?? state.world_state.escalation_level ?? 0;
   state.world_state.rules_of_engagement = scenario.continuation?.roeKey || state.world_state.rules_of_engagement || campaignConfig.rules_of_engagement || "weapons_tight";

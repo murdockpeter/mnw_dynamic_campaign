@@ -94,6 +94,28 @@ For non-technical users, distribute packaged installers rather than asking them 
 
 For technical users, keep using the source repo and the developer guide.
 
+## GitHub Releases
+
+This repo is set up to publish desktop distribution builds to GitHub Releases.
+
+Release flow:
+
+1. bump `package.json` version
+2. commit and push
+3. create and push a tag like `v0.1.4`
+4. GitHub Actions builds the Windows installer and uploads the release artifacts
+
+Expected updater artifacts:
+
+- `latest.yml`
+- `MNW Dynamic Campaign Console Setup <version>.exe`
+- `MNW Dynamic Campaign Console Setup <version>.exe.blockmap`
+
+The Electron app can use either:
+
+- `GitHub Releases` with owner `murdockpeter` and repo `mnw_dynamic_campaign`
+- a generic static HTTPS release folder if you choose to host the same files elsewhere later
+
 ## Supporting Docs
 
 - [DEVELOPER_GUIDE.md](./DEVELOPER_GUIDE.md)

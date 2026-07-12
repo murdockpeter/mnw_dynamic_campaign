@@ -43,6 +43,16 @@ function formatGc([lat, lon]) {
   return `GC(${lat.toFixed(6)}, ${lon.toFixed(6)})`;
 }
 
+function resolvePlayerPlatform(blueprint = {}) {
+  const player = blueprint.player || {};
+  return {
+    dbid: Number(player.dbid || 1015),
+    shortLabel: player.platformShortLabel || player.platformLabel || "Virginia B3",
+    label: player.platformLabel || "Virginia Block III",
+    variantKey: player.variantKey || "virginia_block_iii"
+  };
+}
+
 const GENERIC_CARGO_IDS = [
   99992101, 99992105, 99992106, 99992107, 99992108,
   99992109, 99992110, 99992111, 99992201, 99992202,
@@ -201,6 +211,7 @@ function buildSurfaceMissionScript(blueprint, scenario) {
   const operationType = operationTypeForScenario(blueprint, scenario);
   const diplomacyLine = diplomacyLineForScenario(scenario);
   const additionalBarrier = scenario.index >= 1;
+  const playerPlatform = resolvePlayerPlatform(blueprint);
   const annotationPoiLines = buildAnnotationPoiList(scenario.tasking?.annotations || []);
   const annotationPoiAttachList = buildAnnotationPoiAttachList(scenario.tasking?.annotations || []);
   const biologicPositions = buildDeconflictedPositions({
@@ -246,7 +257,7 @@ civ_fact = 0
 us_fact = 236
 ch_fact = 46
 
-virginia_id = 1015
+virginia_id = ${playerPlatform.dbid}
 arleigh_id = 294
 p8_id = 2705
 t054a_id = 1965
@@ -288,7 +299,7 @@ objectives = [
 ]
 
 player_spawn_zone = _Z.Circular("Player Spawn Zone", player_spawn_pos, 1000)
-player_props = Element.Props.FromElementID(us_fact, "(Player) Virginia B3", ElementCategory.Submarine, virginia_id, player_spawn_pos)
+player_props = Element.Props.FromElementID(us_fact, "(Player) ${playerPlatform.shortLabel}", ElementCategory.Submarine, virginia_id, player_spawn_pos)
 player_element = Element(player_props).SetElevation(-145).SetHeading(275).SetPlayable().SetScope(Global.Scope.Player)
 player_spawn_process = _P.Element.Spawn(_mission_started, player_element, player_element.Position)
 
@@ -403,6 +414,7 @@ function buildSubHuntMissionScript(blueprint, scenario) {
   const operationType = operationTypeForScenario(blueprint, scenario);
   const diplomacyLine = diplomacyLineForScenario(scenario);
   const supportUnits = Math.max(1, scenario.geometry.density);
+  const playerPlatform = resolvePlayerPlatform(blueprint);
   // Keep generated subs safely submerged without assuming deep-water bathymetry.
   // Stock MNW missions commonly use about -50 ft for initial sub spawns, so we stay
   // in that shallow-start regime and rely on the explicit Dive process after spawn.
@@ -519,7 +531,7 @@ us_fact = 236
 rus_fact = 183
 ch_fact = 46
 
-virginia_id = 1015
+virginia_id = ${playerPlatform.dbid}
 arleigh_id = 294
 p8_id = 2705
 yasen_id = ${primaryTarget.dbid}
@@ -560,7 +572,7 @@ objectives = [
 ]
 
 player_spawn_zone = _Z.Circular("Player Spawn Zone", player_spawn_pos, 1000)
-player_props = Element.Props.FromElementID(us_fact, "(Player) Virginia B3", ElementCategory.Submarine, virginia_id, player_spawn_pos)
+player_props = Element.Props.FromElementID(us_fact, "(Player) ${playerPlatform.shortLabel}", ElementCategory.Submarine, virginia_id, player_spawn_pos)
 player_element = Element(player_props).SetElevation(${playerDepthFeet}).SetHeading(30).SetPlayable().SetScope(Global.Scope.Player)
 player_spawn_process = _P.Element.Spawn(_mission_started, player_element, player_element.Position)
 
@@ -706,13 +718,14 @@ export function buildScenarioPackageArtifacts({ blueprint, scenario }) {
   const endConditionLine = scenario.tasking?.primaryTask?.endCondition || "Recover when the objective is complete and the boat is combat effective.";
   const designatedTargetLine = scenario.tasking?.primaryTask?.designatedTarget || "No specific target designated beyond ROE and commander intent.";
   const missionTypeLine = scenario.tasking?.missionType?.label || blueprint.missionTypeLabel || "General Submarine Patrol";
+  const temporalLine = scenario.temporalContext?.label || `${blueprint.seasonLabel || "Theater Default"}, ${blueprint.timeOfDayLabel || "Theater Default"}`;
   const annotationLines = buildAnnotationBriefLines(scenario.tasking?.annotations || []);
   const messages = {
     mission_from: commandAuthority,
     mission_to: blueprint.player.name.toUpperCase(),
     mission_objectives: isReservedScenario
       ? `BT\nSUBJ: ${scenario.name.toUpperCase()} - PLACEHOLDER\n\n1. This mission slot is reserved so the campaign chain always has a valid next node.\n\n2. If you do not want to continue the campaign, treat the previous mission as the campaign conclusion.\n\n3. If you do want to continue, do not play this scenario yet.\n\n4. Return to Campaign Tracking.\n\n5. Save the result from the previous mission.\n\n6. Click Continue Campaign so the app can rewrite this scenario with updated tasking, geometry, and supporting forces.\n\n7. Rebuild and redeploy if prompted.\n\n8. Launch this scenario only after the tracker confirms it was regenerated.\n\n9. Current placeholder route summary:\n   ${scenario.geometry.routeSummary}\n\n10. Current placeholder enemy transit:\n   ${scenario.geometry.enemyTransitSummary}`
-      : `BT\nSUBJ: ${scenario.name.toUpperCase()}\n\n1. Situation:\n   ${scenario.summary}\n\n2. Mission Type:\n   ${missionTypeLine}\n\n3. Primary Task:\n   ${taskLine}\n\n4. Alert State:\n   ${scenario.tasking?.escalation?.label || "Operational Patrol"}\n   ${escalationLine}\n\n5. Rules Of Engagement:\n   ${scenario.tasking?.rulesOfEngagement?.label || "Command Controlled"}\n   ${roeLine}\n\n6. Mission Stance:\n   ${scenario.tasking?.missionStance?.label || scenario.tasking?.posture?.label || "Deliberate Search"}\n   ${stanceLine}\n\n7. Designated Target:\n   ${designatedTargetLine}\n\n8. Intel Cue:\n   ${intelLine}\n\n9. Marked Cues:\n   ${annotationLines || "No additional marked cues."}\n\n10. Expected Action:\n   ${mapIntentLine}\n\n11. End State:\n   ${endConditionLine}\n\n12. Route Summary:\n   ${scenario.geometry.routeSummary}\n\n13. Enemy Transit:\n   ${scenario.geometry.enemyTransitSummary}\n\n14. Report to ${commandAuthority} only after the ordered task is complete and the boat remains combat effective.`,
+      : `BT\nSUBJ: ${scenario.name.toUpperCase()}\n\n1. Situation:\n   ${scenario.summary}\n\n2. Mission Type:\n   ${missionTypeLine}\n\n3. Scenario Time:\n   ${temporalLine}\n\n4. Primary Task:\n   ${taskLine}\n\n5. Alert State:\n   ${scenario.tasking?.escalation?.label || "Operational Patrol"}\n   ${escalationLine}\n\n6. Rules Of Engagement:\n   ${scenario.tasking?.rulesOfEngagement?.label || "Command Controlled"}\n   ${roeLine}\n\n7. Mission Stance:\n   ${scenario.tasking?.missionStance?.label || scenario.tasking?.posture?.label || "Deliberate Search"}\n   ${stanceLine}\n\n8. Designated Target:\n   ${designatedTargetLine}\n\n9. Intel Cue:\n   ${intelLine}\n\n10. Marked Cues:\n   ${annotationLines || "No additional marked cues."}\n\n11. Expected Action:\n   ${mapIntentLine}\n\n12. End State:\n   ${endConditionLine}\n\n13. Route Summary:\n   ${scenario.geometry.routeSummary}\n\n14. Enemy Transit:\n   ${scenario.geometry.enemyTransitSummary}\n\n15. Report to ${commandAuthority} only after the ordered task is complete and the boat remains combat effective.`,
     mission_success: `BT\nSUBJ: MISSION STATUS - SUCCESS\n\n${scenario.successText}`
   };
   const metadata = missionMetadataRecord(
@@ -780,6 +793,12 @@ export async function buildGeneratedCampaignFiles({ templateRoot, spec }) {
     experimental_features: blueprint.experimentalFeatures || { enabled: false, plotSeed: "none", plotSeedLabel: "None" },
     campaign_climate: blueprint.campaignClimate || blueprint.tone,
     mission_type: blueprint.missionType || null,
+    season: blueprint.season || "theater_default",
+    season_label: blueprint.seasonLabel || "Theater Default",
+    time_of_day: blueprint.timeOfDay || "theater_default",
+    time_of_day_label: blueprint.timeOfDayLabel || "Theater Default",
+    player_submarine: blueprint.playerSubmarine || blueprint.player?.variantKey || "virginia_block_iii",
+    player_submarine_label: blueprint.playerSubmarineLabel || blueprint.player?.platformLabel || "Virginia Block III",
     mission_stance: blueprint.missionStance || blueprint.posture,
     rules_of_engagement: blueprint.requestedRoe || "weapons_tight"
   };
@@ -818,6 +837,12 @@ export async function buildGeneratedCampaignFiles({ templateRoot, spec }) {
       campaign_climate: blueprint.campaignClimate || blueprint.tone,
       mission_type: blueprint.missionType || null,
       tone: blueprint.tone,
+      season: blueprint.season || "theater_default",
+      season_label: blueprint.seasonLabel || "Theater Default",
+      time_of_day: blueprint.timeOfDay || "theater_default",
+      time_of_day_label: blueprint.timeOfDayLabel || "Theater Default",
+      player_submarine: blueprint.playerSubmarine || blueprint.player?.variantKey || "virginia_block_iii",
+      player_submarine_label: blueprint.playerSubmarineLabel || blueprint.player?.platformLabel || "Virginia Block III",
       mission_stance: blueprint.missionStance || blueprint.posture,
       posture: blueprint.posture,
       rules_of_engagement: blueprint.requestedRoe || "weapons_tight",

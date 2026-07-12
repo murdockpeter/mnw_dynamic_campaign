@@ -230,3 +230,151 @@ Status:
 - Implemented as an experimental-content track with an explicit UI toggle and curated plot-seed catalog.
 - Experimental mission families now remain separate from the stable supported set and surface warnings instead of silent weak-fit generation.
 - Land attack is now called out as not technically supported by the current generator or MNW mission-script pipeline and continues to fall back safely.
+
+## Release 0.1.4 Backlog
+
+This is the implementation backlog for release `0.1.4`.
+
+The theme for this pass is increased scenario freshness, stronger theater-level continuity, tighter player-facing controls, and a less cluttered desktop workflow.
+
+Recommended execution order:
+
+1. Expand scenario variety in the generator.
+2. Add selectable player submarine block support.
+3. Add season and time-of-day authoring controls.
+4. Promote theater tracking into a first-class tracking area.
+5. Hide or demote lower-value UI areas.
+6. If time remains, harden GitHub release auto-update support.
+
+### 0.1.4-1. Continue adding variety to generated scenarios
+
+- [ ] Expand route and geometry variation inside each theater so repeat runs do not feel too similar when the same climate and mission type are selected.
+- [ ] Add more mission-task permutations within existing supported families instead of relying mainly on the current archetype sequence.
+- [ ] Increase force-composition variety using existing support pools, sector assignments, support intensity controls, and escalation/ROE state.
+- [ ] Make continuation scenarios react more visibly to prior mission count, prior outcome, and prior theater picture so the operation feels less reset between missions.
+- [ ] Audit generated summary, objective, and success text for repeated phrasing that beta testers are likely reading across multiple generated campaigns.
+
+Implementation targets:
+- `shared/campaign-generator.mjs`
+- `portable/lib/generated-campaign-files.mjs`
+- `portable/lib/continue-campaign.mjs`
+- `tests/test_campaign_generation.mjs`
+- `docs/briefing-qa-checklist.md`
+
+Acceptance checks:
+- Two campaigns generated with the same theater and broad settings can still differ materially in route flavor, force mix, and task framing.
+- Follow-on scenarios feel like operational evolution rather than a lightly reworded first mission.
+- Variety improvements do not break determinism for the same authored spec and seed inputs.
+- Automated tests cover at least one additional variety-sensitive scenario path beyond the current baseline snapshots.
+
+### 0.1.4-2. Begin expanding the campaign aspects into a full theater tracking area
+
+- [ ] Promote exported `runtime.theater` data from debug/support output into a first-class Campaign Tracking surface.
+- [ ] Add sector-level visibility for the current theater so the player can see where tracked units are assigned or last known.
+- [ ] Add tracked-unit summaries for availability, readiness, destroyed state, last assigned mission, and current sector.
+- [ ] Make escalation, ROE, mission type, mission stance, and experimental-state context visible in the theater tracking area.
+- [ ] Decide which theater details are read-only release UI versus developer/debug-only detail and hide or collapse the rest.
+
+Implementation targets:
+- `portable/lib/runtime.mjs`
+- `ui/index.html`
+- `ui/app.js`
+- `ui/styles.css`
+- `docs/beta-tester-feature-overview.html`
+
+Acceptance checks:
+- Campaign Tracking shows theater-level context without requiring the user to inspect raw JSON.
+- A tester can answer what theater they are in, what the current operational state is, and which units are currently relevant from the tracking screen alone.
+- Theater tracking still loads cleanly for bootstrap state and continued campaigns.
+- No critical tracking action becomes harder to find because of the added theater surface.
+
+### 0.1.4-3. Continue to hide things in the UI that may no longer need to be front and center
+
+- [ ] Audit Setup, Authoring, and Campaign Tracking for panels, helper text, and placeholders that were useful during scaffolding but now dilute the main workflow.
+- [ ] Remove or demote visibly speculative UI such as future-area lists or redundant explanatory copy where the workflow is already established.
+- [ ] Collapse lower-frequency controls behind secondary affordances where doing so does not hide core release functionality.
+- [ ] Rebalance the layout so the main loop actions remain more prominent than diagnostics or secondary status panels.
+- [ ] Verify that desktop-only actions still fail clearly in browser mode without cluttering the interface.
+
+Implementation targets:
+- `ui/index.html`
+- `ui/app.js`
+- `ui/styles.css`
+- `ui/README.md`
+
+Acceptance checks:
+- The first-use path remains obvious: Setup, Authoring, then Campaign Tracking.
+- The primary release workflow requires less scanning and less explanatory reading than the current UI.
+- No release-critical control is removed; only its prominence changes where appropriate.
+- Browser mode and desktop mode still communicate capability differences clearly.
+
+### 0.1.4-4. Allow choice of which block Virginia sub is the player's command
+
+- [ ] Introduce a player-submarine catalog instead of hardcoding the current Block III path.
+- [ ] Expose a wizard control for player submarine selection with clear user-facing naming.
+- [ ] Persist the chosen submarine variant into generated blueprint data, campaign metadata, bootstrap state, and continuation state.
+- [ ] Drive mission-script player naming and DBID selection from the chosen submarine variant in both initial and continuation scenario writers.
+- [ ] Ensure seeded sample packages and generated packages remain valid if older state does not include the new field.
+
+Implementation targets:
+- `shared/campaign-generator.mjs`
+- `portable/lib/generated-campaign-files.mjs`
+- `portable/lib/runtime.mjs`
+- `ui/index.html`
+- `ui/app.js`
+- `tests/test_campaign_generation.mjs`
+
+Acceptance checks:
+- The player can choose among the intended Virginia block variants during authoring.
+- Generated mission scripts no longer hardcode `Virginia B3` when another variant is selected.
+- Existing campaigns without submarine-selection metadata still load with a safe default.
+- Runtime and tracker views show the selected player platform correctly.
+
+### 0.1.4-5. Add seasonal and time-of-day control for generated scenarios
+
+- [ ] Add authoring controls for season and time-of-day policy in the wizard.
+- [ ] Decide whether the control is fixed-per-campaign, selected-per-scenario, or policy-driven with limited generator freedom, then implement that consistently.
+- [ ] Persist the selected season/time-of-day values through blueprint generation, bootstrap state, runtime state, and continuation generation.
+- [ ] Map those settings into scenario clock generation and player-facing mission briefing language.
+- [ ] Ensure continuation scenarios respect the chosen temporal policy instead of drifting into inconsistent clocks.
+
+Implementation targets:
+- `shared/campaign-generator.mjs`
+- `portable/lib/generated-campaign-files.mjs`
+- `portable/lib/continue-campaign.mjs`
+- `portable/lib/runtime.mjs`
+- `ui/index.html`
+- `ui/app.js`
+- `tests/test_campaign_generation.mjs`
+
+Acceptance checks:
+- The user can intentionally generate night, dawn/dusk, day, or seasonally biased scenarios instead of relying on the current implicit clocking.
+- Generated mission scripts reflect the expected scenario time.
+- Briefings or tracking output expose the selected temporal context clearly enough for QA.
+- Continuation generation preserves the intended temporal rules unless the design explicitly allows change.
+
+### 0.1.4-6. If time allows, provide a first usable GitHub release auto-upgrade path
+
+- [ ] Audit the existing updater implementation to confirm what is already release-ready versus still provisional.
+- [ ] Validate the packaged-app path for update-source configuration, manual check, download, and restart-to-install behavior.
+- [ ] Confirm GitHub Releases defaults are sensible for the intended public distribution path.
+- [ ] Add or extend tests around settings persistence and any updater-related edge cases that can be covered without a packaged live release.
+- [ ] Tighten user-facing status text and docs so non-technical testers understand what is supported in packaged builds versus source mode.
+
+Implementation targets:
+- `.github/workflows/release.yml`
+- `electron/main.cjs`
+- `electron/preload.cjs`
+- `portable/lib/settings-store.mjs`
+- `portable/lib/desktop-api.mjs`
+- `ui/index.html`
+- `ui/app.js`
+- `tests/test_settings_store.mjs`
+- `README.md`
+- `DESKTOP_APP_GUIDE.md`
+
+Acceptance checks:
+- The packaged Electron app can point at GitHub Releases and present a coherent update flow.
+- Source-mode behavior remains explicit that auto-update is unsupported there.
+- Release docs match the actual build and updater behavior.
+- This item can slip without blocking `0.1.4` if the core scenario/tracking work needs the time.

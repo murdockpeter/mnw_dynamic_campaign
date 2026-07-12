@@ -1,6 +1,32 @@
 const path = require("path");
 const { pathToFileURL } = require("url");
 const { app, BrowserWindow, ipcMain, shell } = require("electron");
+const { autoUpdater } = require("electron-updater");
+
+let mainWindow = null;
+let updaterConfigured = false;
+let updaterListenersAttached = false;
+let autoCheckAttempted = false;
+let updateState = {
+  supported: true,
+  configured: false,
+  provider: null,
+  source: "",
+  currentVersion: app.getVersion(),
+  status: "idle",
+  message: "Updates are not configured yet.",
+  checking: false,
+  updateAvailable: false,
+  updateDownloaded: false,
+  canCheck: false,
+  canDownload: false,
+  canInstall: false,
+  downloadedVersion: null,
+  availableVersion: null,
+  lastCheckedAt: null,
+  progressPercent: 0,
+  error: null
+};
 
 function getAppIconPath() {
   return path.join(__dirname, "resources", "icon.png");
@@ -38,6 +64,278 @@ async function loadPortableModule(modulePath) {
   return import(pathToFileURL(path.join(__dirname, "..", modulePath)).href);
 }
 
+function getDesktopContext(payload = {}) {
+  return {
+    ...(payload || {}),
+    settingsPath: getSettingsPath(),
+    contentRoot: getContentRoot(),
+    workspaceRoot: getWorkspaceRoot(),
+    appVersion: app.getVersion()
+  };
+}
+
+function publishUpdateState() {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send("mnw:updateState", updateState);
+  }
+}
+
+function setUpdateState(patch) {
+  updateState = {
+    ...updateState,
+    ...patch
+  };
+  publishUpdateState();
+}
+
+function normalizeUrl(value) {
+  return String(value || "").trim().replace(/\/+$/, "");
+}
+
+function resolveUpdateProviderConfig(settings = {}) {
+  const updates = settings.updates || {};
+  const provider = updates.provider || "generic";
+
+  if (provider === "github") {
+    const owner = String(updates.githubOwner || "").trim();
+    const repo = String(updates.githubRepo || "").trim();
+    if (!owner || !repo) {
+      return null;
+    }
+    return {
+      provider: "github",
+      owner,
+      repo
+    };
+  }
+
+  const feedUrl = normalizeUrl(updates.feedUrl);
+  if (!feedUrl) {
+    return null;
+  }
+  return {
+    provider: "generic",
+    url: feedUrl
+  };
+}
+
+function describeUpdateSource(config) {
+  if (!config) {
+    return "";
+  }
+  if (config.provider === "github") {
+    return `github:${config.owner}/${config.repo}`;
+  }
+  return config.url || "";
+}
+
+function attachUpdaterListeners() {
+  if (updaterListenersAttached) {
+    return;
+  }
+  updaterListenersAttached = true;
+
+  autoUpdater.on("checking-for-update", () => {
+    setUpdateState({
+      status: "checking",
+      message: "Checking for updates...",
+      checking: true,
+      updateAvailable: false,
+      canCheck: false,
+      canDownload: false,
+      canInstall: false,
+      error: null,
+      progressPercent: 0,
+      lastCheckedAt: new Date().toISOString()
+    });
+  });
+
+  autoUpdater.on("update-available", (info) => {
+    setUpdateState({
+      status: "available",
+      message: `Update ${info?.version || "available"} is ready to download.`,
+      checking: false,
+      updateAvailable: true,
+      updateDownloaded: false,
+      availableVersion: info?.version || null,
+      downloadedVersion: null,
+      canCheck: true,
+      canDownload: true,
+      canInstall: false,
+      error: null,
+      progressPercent: 0
+    });
+  });
+
+  autoUpdater.on("update-not-available", (info) => {
+    setUpdateState({
+      status: "idle",
+      message: `You are up to date on ${info?.version || app.getVersion()}.`,
+      checking: false,
+      updateAvailable: false,
+      updateDownloaded: false,
+      availableVersion: info?.version || app.getVersion(),
+      downloadedVersion: null,
+      canCheck: true,
+      canDownload: false,
+      canInstall: false,
+      error: null,
+      progressPercent: 0
+    });
+  });
+
+  autoUpdater.on("error", (error) => {
+    setUpdateState({
+      status: "error",
+      message: error?.message || "Update check failed.",
+      checking: false,
+      canCheck: updateState.configured,
+      canDownload: false,
+      canInstall: false,
+      error: error?.message || String(error),
+      progressPercent: 0
+    });
+  });
+
+  autoUpdater.on("download-progress", (progress) => {
+    setUpdateState({
+      status: "downloading",
+      message: `Downloading update... ${Math.round(progress?.percent || 0)}%`,
+      checking: false,
+      canCheck: false,
+      canDownload: false,
+      canInstall: false,
+      progressPercent: Number(progress?.percent || 0)
+    });
+  });
+
+  autoUpdater.on("update-downloaded", (info) => {
+    setUpdateState({
+      status: "downloaded",
+      message: `Update ${info?.version || "ready"} has been downloaded. Restart to install.`,
+      checking: false,
+      updateAvailable: true,
+      updateDownloaded: true,
+      downloadedVersion: info?.version || null,
+      availableVersion: info?.version || updateState.availableVersion,
+      canCheck: true,
+      canDownload: false,
+      canInstall: true,
+      progressPercent: 100,
+      error: null
+    });
+  });
+}
+
+async function loadDesktopSettings() {
+  const { loadSettingsForDesktop } = await loadPortableModule("portable/lib/desktop-api.mjs");
+  return loadSettingsForDesktop({ settingsPath: getSettingsPath() });
+}
+
+async function configureUpdater(settings) {
+  const providerConfig = resolveUpdateProviderConfig(settings);
+
+  if (!app.isPackaged) {
+    updaterConfigured = false;
+    setUpdateState({
+      supported: false,
+      configured: Boolean(providerConfig),
+      provider: providerConfig?.provider || null,
+      source: describeUpdateSource(providerConfig),
+      status: "unsupported",
+      message: "Auto-update is only available in packaged app builds.",
+      canCheck: false,
+      canDownload: false,
+      canInstall: false
+    });
+    return;
+  }
+
+  if (!providerConfig) {
+    updaterConfigured = false;
+    setUpdateState({
+      supported: true,
+      configured: false,
+      provider: null,
+      source: "",
+      status: "idle",
+      message: "Set an update source in Setup to enable app updates.",
+      canCheck: false,
+      canDownload: false,
+      canInstall: false,
+      checking: false,
+      progressPercent: 0,
+      error: null
+    });
+    return;
+  }
+
+  attachUpdaterListeners();
+  autoUpdater.autoDownload = false;
+  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.setFeedURL(providerConfig);
+  updaterConfigured = true;
+  setUpdateState({
+    supported: true,
+    configured: true,
+    provider: providerConfig.provider,
+    source: describeUpdateSource(providerConfig),
+    status: updateState.updateDownloaded ? "downloaded" : "idle",
+    message: updateState.updateDownloaded
+      ? updateState.message
+      : "Update source configured. Check for updates when ready.",
+    canCheck: true,
+    canDownload: false,
+    canInstall: updateState.updateDownloaded,
+    checking: false,
+    error: null
+  });
+
+  if (!autoCheckAttempted && settings?.updates?.autoCheckOnLaunch !== false) {
+    autoCheckAttempted = true;
+    try {
+      await autoUpdater.checkForUpdates();
+    } catch (error) {
+      setUpdateState({
+        status: "error",
+        message: error?.message || "Update check failed.",
+        checking: false,
+        canCheck: true,
+        error: error?.message || String(error)
+      });
+    }
+  }
+}
+
+async function checkForUpdates() {
+  if (!updaterConfigured) {
+    throw new Error("Updates are not configured yet.");
+  }
+  await autoUpdater.checkForUpdates();
+  return updateState;
+}
+
+async function downloadUpdate() {
+  if (!updaterConfigured) {
+    throw new Error("Updates are not configured yet.");
+  }
+  await autoUpdater.downloadUpdate();
+  return updateState;
+}
+
+function installUpdate() {
+  if (!updateState.updateDownloaded) {
+    throw new Error("No downloaded update is ready to install.");
+  }
+  setImmediate(() => {
+    autoUpdater.quitAndInstall(false, true);
+  });
+  return {
+    ...updateState,
+    message: "Restarting to install update."
+  };
+}
+
 async function createWindow() {
   const window = new BrowserWindow({
     width: 1520,
@@ -54,44 +352,38 @@ async function createWindow() {
   });
 
   await window.loadFile(path.join(__dirname, "..", "ui", "index.html"));
+  mainWindow = window;
+  window.on("closed", () => {
+    if (mainWindow === window) {
+      mainWindow = null;
+    }
+  });
 }
 
 ipcMain.handle("mnw:getDesktopInfo", async () => {
   const { getDesktopInfo } = await loadPortableModule("portable/lib/desktop-api.mjs");
-  return getDesktopInfo({
-    settingsPath: getSettingsPath(),
-    contentRoot: getContentRoot(),
-    workspaceRoot: getWorkspaceRoot()
-  });
+  return getDesktopInfo(getDesktopContext());
 });
 
 ipcMain.handle("mnw:getWorkflowStatus", async (_event, payload) => {
   const { getWorkflowStatusForDesktop } = await loadPortableModule("portable/lib/desktop-api.mjs");
-  return getWorkflowStatusForDesktop({
-    ...(payload || {}),
-    settingsPath: getSettingsPath(),
-    contentRoot: getContentRoot(),
-    workspaceRoot: getWorkspaceRoot()
-  });
+  return getWorkflowStatusForDesktop(getDesktopContext(payload));
 });
 
 ipcMain.handle("mnw:loadSettings", async () => {
-  const { loadSettingsForDesktop } = await loadPortableModule("portable/lib/desktop-api.mjs");
-  return loadSettingsForDesktop({ settingsPath: getSettingsPath() });
+  return loadDesktopSettings();
 });
 
 ipcMain.handle("mnw:saveSettings", async (_event, payload) => {
   const { saveSettingsForDesktop } = await loadPortableModule("portable/lib/desktop-api.mjs");
-  return saveSettingsForDesktop({ settingsPath: getSettingsPath(), settings: payload || {} });
+  const saved = await saveSettingsForDesktop({ settingsPath: getSettingsPath(), settings: payload || {} });
+  await configureUpdater(saved);
+  return saved;
 });
 
 ipcMain.handle("mnw:detectDesktopPaths", async () => {
   const { detectDesktopPathsForDesktop } = await loadPortableModule("portable/lib/desktop-api.mjs");
-  return detectDesktopPathsForDesktop({
-    settingsPath: getSettingsPath(),
-    contentRoot: getContentRoot(),
-    workspaceRoot: getWorkspaceRoot()
-  });
+  return detectDesktopPathsForDesktop(getDesktopContext());
 });
 
 ipcMain.handle("mnw:fetchAisContacts", async (_event, payload) => {
@@ -101,11 +393,7 @@ ipcMain.handle("mnw:fetchAisContacts", async (_event, payload) => {
 
 ipcMain.handle("mnw:loadRuntimeSnapshot", async (_event, payload) => {
   const { loadRuntimeSnapshotForDesktop } = await loadPortableModule("portable/lib/desktop-api.mjs");
-  return loadRuntimeSnapshotForDesktop({
-    ...(payload || {}),
-    contentRoot: getContentRoot(),
-    workspaceRoot: getWorkspaceRoot()
-  });
+  return loadRuntimeSnapshotForDesktop(getDesktopContext(payload));
 });
 
 ipcMain.handle("mnw:openDesktopGuide", async () => {
@@ -132,80 +420,57 @@ ipcMain.handle("mnw:getOperationalMapUrl", async (_event, payload) => {
 
 ipcMain.handle("mnw:exportRuntime", async (_event, payload) => {
   const { exportRuntimeSnapshot } = await loadPortableModule("portable/lib/desktop-api.mjs");
-  return exportRuntimeSnapshot({
-    ...(payload || {}),
-    settingsPath: getSettingsPath(),
-    contentRoot: getContentRoot(),
-    workspaceRoot: getWorkspaceRoot()
-  });
+  return exportRuntimeSnapshot(getDesktopContext(payload));
 });
 
 ipcMain.handle("mnw:buildPackage", async (_event, payload) => {
   const { buildPackageForDesktop } = await loadPortableModule("portable/lib/desktop-api.mjs");
-  return buildPackageForDesktop({
-    ...(payload || {}),
-    settingsPath: getSettingsPath(),
-    contentRoot: getContentRoot(),
-    workspaceRoot: getWorkspaceRoot()
-  });
+  return buildPackageForDesktop(getDesktopContext(payload));
 });
 
 ipcMain.handle("mnw:deployPackage", async (_event, payload) => {
   const { deployPackageForDesktop } = await loadPortableModule("portable/lib/desktop-api.mjs");
-  return deployPackageForDesktop({
-    ...(payload || {}),
-    settingsPath: getSettingsPath(),
-    contentRoot: getContentRoot(),
-    workspaceRoot: getWorkspaceRoot()
-  });
+  return deployPackageForDesktop(getDesktopContext(payload));
 });
 
 ipcMain.handle("mnw:ingestResult", async (_event, payload) => {
   const { ingestResultForDesktop } = await loadPortableModule("portable/lib/desktop-api.mjs");
-  return ingestResultForDesktop({
-    ...(payload || {}),
-    settingsPath: getSettingsPath(),
-    contentRoot: getContentRoot(),
-    workspaceRoot: getWorkspaceRoot()
-  });
+  return ingestResultForDesktop(getDesktopContext(payload));
 });
 
 ipcMain.handle("mnw:saveManualResult", async (_event, payload) => {
   const { ingestResultPayloadForDesktop } = await loadPortableModule("portable/lib/desktop-api.mjs");
-  return ingestResultPayloadForDesktop({
-    ...(payload || {}),
-    settingsPath: getSettingsPath(),
-    contentRoot: getContentRoot(),
-    workspaceRoot: getWorkspaceRoot()
-  });
+  return ingestResultPayloadForDesktop(getDesktopContext(payload));
 });
 
 ipcMain.handle("mnw:generateCampaign", async (_event, payload) => {
   const { generateCampaignForDesktop } = await loadPortableModule("portable/lib/desktop-api.mjs");
-  return generateCampaignForDesktop({
-    ...(payload || {}),
-    settingsPath: getSettingsPath(),
-    contentRoot: getContentRoot(),
-    workspaceRoot: getWorkspaceRoot()
-  });
+  return generateCampaignForDesktop(getDesktopContext(payload));
 });
 
 ipcMain.handle("mnw:continueCampaign", async (_event, payload) => {
   const { continueCampaignForDesktop } = await loadPortableModule("portable/lib/desktop-api.mjs");
-  return continueCampaignForDesktop({
-    ...(payload || {}),
-    settingsPath: getSettingsPath(),
-    contentRoot: getContentRoot(),
-    workspaceRoot: getWorkspaceRoot()
-  });
+  return continueCampaignForDesktop(getDesktopContext(payload));
 });
 
+ipcMain.handle("mnw:getUpdateState", async () => updateState);
+
+ipcMain.handle("mnw:checkForUpdates", async () => checkForUpdates());
+
+ipcMain.handle("mnw:downloadUpdate", async () => downloadUpdate());
+
+ipcMain.handle("mnw:installUpdate", async () => installUpdate());
+
 app.whenReady().then(async () => {
+  const settings = await loadDesktopSettings();
+  await configureUpdater(settings);
   await createWindow();
+  publishUpdateState();
 
   app.on("activate", async () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       await createWindow();
+      publishUpdateState();
     }
   });
 });

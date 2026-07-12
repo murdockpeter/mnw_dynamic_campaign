@@ -28,24 +28,13 @@
       </div>
 
       <div class="panel mode-scope mode-tracking-only">
-        <h2>Campaign</h2>
+        <h2>Tracking Snapshot</h2>
         <div id="campaign-summary" class="kv-list"></div>
       </div>
 
       <div class="panel mode-scope mode-tracking-only">
-        <h2>Persistence System</h2>
+        <h2>Runtime Modules</h2>
         <div id="module-summary" class="stack-list"></div>
-      </div>
-
-      <div class="panel mode-scope mode-authoring-only">
-        <h2>Future UI Areas</h2>
-        <ul class="future-list">
-          <li>Manual mission-result entry</li>
-          <li>Campaign-state editor</li>
-          <li>Module enable/disable controls</li>
-          <li>DB-informed force selection</li>
-          <li>Installer-first desktop packaging</li>
-        </ul>
       </div>
 
       <div class="panel">
@@ -129,6 +118,45 @@
                   <input id="settings-ais-token" type="password" autocomplete="off" placeholder="Paste AISStream API key">
                 </label>
               </div>
+              <div class="wizard-block" style="margin-top:16px;">
+                <strong>App Updates</strong>
+                <div class="wizard-meta">Use GitHub Releases for the simplest public-hosted updater, or point the app at a direct static HTTPS feed that serves <code>latest.yml</code> and the installer files.</div>
+              </div>
+              <div class="field-grid" style="margin-top:14px;">
+                <label>
+                  <span>Update Source</span>
+                  <select id="settings-update-provider">
+                    <option value="generic">Direct Static URL</option>
+                    <option value="github">GitHub Releases</option>
+                  </select>
+                </label>
+                <label class="toggle compact-toggle">
+                  <span>Check On Launch</span>
+                  <input id="settings-update-auto-check" type="checkbox" checked>
+                </label>
+                <label class="full-width update-provider-scope update-provider-generic">
+                  <span>Update Feed Base URL</span>
+                  <input id="settings-update-feed-url" type="text" placeholder="https://example.com/mnw/releases">
+                </label>
+                <label class="update-provider-scope update-provider-github">
+                  <span>GitHub Owner</span>
+                  <input id="settings-update-github-owner" type="text" placeholder="your-user-or-org">
+                </label>
+                <label class="update-provider-scope update-provider-github">
+                  <span>GitHub Repo</span>
+                  <input id="settings-update-github-repo" type="text" placeholder="mnw_dynamic_campaign">
+                </label>
+              </div>
+              <div class="builder-actions">
+                <button id="settings-check-updates" type="button">Check For Updates</button>
+                <button id="settings-download-update" type="button">Download Update</button>
+                <button id="settings-install-update" type="button">Restart To Install</button>
+              </div>
+              <div class="update-status-card">
+                <div class="preview-head">Updater Status</div>
+                <div id="settings-update-summary" class="muted">No update source configured yet.</div>
+                <pre id="settings-update-json">{}</pre>
+              </div>
               <div class="builder-actions">
                 <button id="settings-find-paths" type="button">Find Paths</button>
                 <button id="settings-save" type="button">Save Desktop Settings</button>
@@ -208,6 +236,14 @@
                 <input id="wizard-year" type="number" min="1980" max="2100" step="1" value="2028">
               </label>
               <label>
+                <span>Season</span>
+                <select id="wizard-season"></select>
+              </label>
+              <label>
+                <span>Time Of Day</span>
+                <select id="wizard-time-of-day"></select>
+              </label>
+              <label>
                 <span>Initial Playable Missions</span>
                 <input id="wizard-scenario-count" type="number" min="1" max="4" step="1" value="1">
               </label>
@@ -250,6 +286,10 @@
               <label>
                 <span>Friendly Support <strong id="wizard-friendly-support-intensity-label">Standard</strong></span>
                 <input id="wizard-friendly-support-intensity" type="range" min="0" max="4" step="1" value="2">
+              </label>
+              <label>
+                <span>Player Submarine</span>
+                <select id="wizard-player-submarine"></select>
               </label>
             </div>
             <label class="full-width">
@@ -368,6 +408,33 @@
         </section>
 
         <div id="tracking-runtime-content">
+          <section class="card tracking-theater-card">
+            <div class="card-head">
+              <h3>Theater Picture</h3>
+              <span id="tracking-theater-badge" class="badge alt">Awaiting Runtime</span>
+            </div>
+            <div class="grid two-up tracking-theater-grid">
+              <article class="nested-card theater-panel">
+                <div class="preview-head">Operational Context</div>
+                <div id="tracking-theater-summary" class="kv-list"></div>
+              </article>
+              <article class="nested-card theater-panel">
+                <div class="preview-head">Sector Pressure</div>
+                <div id="tracking-theater-sectors" class="stack-list"></div>
+              </article>
+            </div>
+            <article class="nested-card theater-panel tracking-theater-units">
+              <div class="card-head compact-card-head">
+                <div>
+                  <h3>Tracked Theater Units</h3>
+                  <div id="tracking-theater-units-copy" class="muted">Load a runtime snapshot to inspect sector assignments, availability, and readiness.</div>
+                </div>
+                <span id="tracking-theater-unit-count" class="badge alt">0 Units</span>
+              </div>
+              <div id="tracking-theater-units" class="theater-unit-grid"></div>
+            </article>
+          </section>
+
           <section class="card tracking-step-card">
             <div class="card-head">
               <h3>Step 1: Load Current Campaign</h3>
@@ -526,7 +593,7 @@
             <summary class="collapsible-summary">
               <div>
                 <strong>Advanced Campaign Detail</strong>
-                <div class="muted">Recent result history, persistent units, debug output, parser, and generation internals.</div>
+                <div class="muted">Optional operational detail, debrief parsing, AIS, and lower-frequency internals.</div>
               </div>
               <span class="badge alt">Optional</span>
             </summary>

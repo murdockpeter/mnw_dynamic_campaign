@@ -5,8 +5,11 @@ import {
   getContinuationChoiceCatalog,
   getMissionStanceCatalog,
   getMissionTypeCatalog,
+  getPlayerSubmarineCatalog,
   getRoeCatalog,
+  getSeasonCatalog,
   getTheaterTemplates,
+  getTimeOfDayCatalog,
 } from "../shared/campaign-generator.mjs";
 
 const desktopApi = globalThis.mnwDesktop ?? null;
@@ -17,6 +20,7 @@ let workflowStatus = null;
 let authoringStageOverride = null;
 let currentOperationalMap = null;
 let currentRuntimePayload = null;
+let currentUpdateState = null;
 
 async function loadJson(targetPath) {
   const response = await fetch(targetPath);
@@ -56,22 +60,20 @@ function setWorkspaceMode(mode) {
 function renderCampaignSummary(data) {
   const root = document.getElementById("campaign-summary");
   const worldState = data.state.world_state || {};
+  const theater = data.debug?.theater || null;
   const items = [
     ["Campaign", data.state.metadata.title],
-    ["Campaign ID", data.state.metadata.campaign_id],
-    ["Theater", data.state.metadata.theater],
-    ["Campaign Climate", worldState.campaign_climate || worldState.tone || "-"],
-    ["Mission Type", worldState.mission_type || data.state.metadata.mission_type || "-"],
-    ["Experimental", worldState.experimental_features?.enabled ? `On (${worldState.experimental_features.plotSeedLabel || worldState.experimental_features.plotSeed || "Custom"})` : "Off"],
-    ["Mission Stance", worldState.mission_stance || worldState.posture || "-"],
-    ["ROE", worldState.rules_of_engagement || "-"],
+    ["Theater", theater?.theaterLabel || data.state.metadata.theater],
+    ["Mission", data.state.current_mission_id],
+    ["Climate", worldState.campaign_climate || worldState.tone || "-"],
     ["Escalation", worldState.escalation_key || "-"],
-    ["Persistence", data.state.metadata.active_persistence_system],
-    ["Current Mission", data.state.current_mission_id],
+    ["ROE", worldState.rules_of_engagement || "-"],
+    ["Time", theater?.timeOfDayLabel || worldState.time_of_day_label || "-"],
+    ["Player", theater?.playerSubmarineLabel || worldState.player_submarine_label || "-"],
     ["Clock", data.state.campaign_clock]
   ];
   root.innerHTML = items.map(([key, value]) => `
-    <div class="kv-item">
+    <div class="kv-item compact-kv-item">
       <div class="key">${key}</div>
       <div class="value">${value ?? "-"}</div>
     </div>
@@ -80,15 +82,34 @@ function renderCampaignSummary(data) {
 
 function renderModuleSummary(data) {
   const root = document.getElementById("module-summary");
-  root.innerHTML = data.modules.enabled_modules.map((name) => {
-    const config = data.modules.module_config[name] || {};
-    return `
-      <div class="stack-item">
-        <div class="title">${name}</div>
-        <div class="meta">${Object.keys(config).length ? JSON.stringify(config) : "No module-specific config"}</div>
-      </div>
-    `;
-  }).join("");
+  const enabledModules = Array.isArray(data.modules.enabled_modules) ? data.modules.enabled_modules : [];
+  const worldState = data.state.world_state || {};
+  const items = [
+    {
+      title: `${enabledModules.length} Active Modules`,
+      meta: enabledModules.length ? enabledModules.join(", ") : "No enabled modules"
+    },
+    {
+      title: "Persistence System",
+      meta: data.state.metadata.active_persistence_system || "Unknown"
+    },
+    {
+      title: "Generation Directives",
+      meta: `${data.plan.directives.length} pending directives for the next mission cycle`
+    }
+  ];
+  if (worldState.experimental_features?.enabled) {
+    items.push({
+      title: "Experimental Overlay",
+      meta: worldState.experimental_features.plotSeedLabel || worldState.experimental_features.plotSeed || "Enabled"
+    });
+  }
+  root.innerHTML = items.map((item) => `
+    <div class="stack-item compact-stack-item">
+      <div class="title">${item.title}</div>
+      <div class="meta">${item.meta}</div>
+    </div>
+  `).join("");
 }
 
 function renderDesktopStatus(info) {
@@ -314,6 +335,7 @@ function renderRuntimeUnavailable(reason) {
     `;
   }
 
+  renderTheaterTracking({ debug: { theater: null } });
   setTrackingRuntimeAvailability(false, message);
   renderAisContacts({ contacts: [] });
   setAisStatus("No AIS data loaded.");
@@ -322,6 +344,7 @@ function renderRuntimeUnavailable(reason) {
 function renderHeroStats(data) {
   const root = document.getElementById("hero-stats");
   const worldState = data.state.world_state || {};
+  const theater = data.debug?.theater || null;
   const stats = [
     ["Tracked Units", Object.keys(data.state.order_of_battle).length],
     ["Destroyed Units", Object.values(data.state.order_of_battle).filter((unit) => unit.destroyed).length],
@@ -329,7 +352,8 @@ function renderHeroStats(data) {
     ["Generation Directives", data.plan.directives.length],
     ["Escalation", worldState.escalation_key || "-"],
     ["Mission Type", worldState.mission_type || "-"],
-    ["ROE", worldState.rules_of_engagement || "-"]
+    ["ROE", worldState.rules_of_engagement || "-"],
+    ["Time", theater?.timeOfDayLabel || worldState.time_of_day_label || "-"]
   ];
   root.innerHTML = stats.map(([label, value]) => `
     <div class="stat">
@@ -337,6 +361,141 @@ function renderHeroStats(data) {
       <div class="value">${value}</div>
     </div>
   `).join("");
+}
+
+function theaterStatusPill(unit) {
+  if (unit.destroyed) {
+    return '<span class="pill bad">Destroyed</span>';
+  }
+  if (unit.onStage) {
+    return '<span class="pill ok">On Stage</span>';
+  }
+  if ((unit.availability || "").toLowerCase() === "committed") {
+    return '<span class="pill warn">Committed</span>';
+  }
+  return '<span class="pill alt">Off Stage</span>';
+}
+
+function renderTheaterTracking(data) {
+  const theater = data.debug?.theater || null;
+  const summaryRoot = document.getElementById("tracking-theater-summary");
+  const sectorsRoot = document.getElementById("tracking-theater-sectors");
+  const unitsRoot = document.getElementById("tracking-theater-units");
+  const badge = document.getElementById("tracking-theater-badge");
+  const countBadge = document.getElementById("tracking-theater-unit-count");
+  const unitsCopy = document.getElementById("tracking-theater-units-copy");
+
+  if (!summaryRoot || !sectorsRoot || !unitsRoot || !badge || !countBadge || !unitsCopy) {
+    return;
+  }
+
+  if (!theater) {
+    badge.textContent = "No Theater Data";
+    summaryRoot.innerHTML = `
+      <div class="stack-item">
+        <div class="title">No Theater Context Loaded</div>
+        <div class="meta">Export a real runtime snapshot to populate the theater picture.</div>
+      </div>
+    `;
+    sectorsRoot.innerHTML = `
+      <div class="stack-item">
+        <div class="title">No Sector Data</div>
+        <div class="meta">Sector pressure appears here after runtime export.</div>
+      </div>
+    `;
+    unitsRoot.innerHTML = "";
+    countBadge.textContent = "0 Units";
+    unitsCopy.textContent = "Load a runtime snapshot to inspect sector assignments, availability, and readiness.";
+    return;
+  }
+
+  const units = Array.isArray(theater.units) ? theater.units : [];
+  const sectors = Array.isArray(theater.sectors) ? theater.sectors : [];
+  const sectorSummary = sectors.map((sector) => {
+    const sectorUnits = units.filter((unit) => unit.currentSector === sector.id || unit.allowedSectors.includes(sector.id));
+    const onStageUnits = sectorUnits.filter((unit) => unit.onStage && !unit.destroyed);
+    const enemyUnits = sectorUnits.filter((unit) => unit.side !== "US" && !unit.destroyed);
+    return {
+      id: sector.id,
+      label: sector.label || sector.id,
+      tracked: sectorUnits.length,
+      onStage: onStageUnits.length,
+      enemy: enemyUnits.length
+    };
+  }).sort((left, right) => right.onStage - left.onStage || right.enemy - left.enemy || left.label.localeCompare(right.label));
+
+  const trackedUnits = units.slice().sort((left, right) => {
+    if (left.destroyed !== right.destroyed) {
+      return left.destroyed ? 1 : -1;
+    }
+    if (left.onStage !== right.onStage) {
+      return left.onStage ? -1 : 1;
+    }
+    return left.name.localeCompare(right.name);
+  });
+
+  const summaryItems = [
+    ["Theater", theater.theaterLabel || theater.theaterName || "-"],
+    ["Source", theater.source === "runtime" ? "Live Runtime" : "Seed State"],
+    ["Climate", theater.campaignClimate || "-"],
+    ["Escalation", theater.escalationKey || "-"],
+    ["Mission Type", theater.missionType || "-"],
+    ["ROE", theater.rulesOfEngagement || "-"],
+    ["Stance", theater.missionStance || "-"],
+    ["Season", theater.seasonLabel || theater.season || "-"],
+    ["Time Of Day", theater.timeOfDayLabel || theater.timeOfDay || "-"],
+    ["Player Sub", theater.playerSubmarineLabel || theater.playerSubmarine || "-"]
+  ];
+  summaryRoot.innerHTML = summaryItems.map(([key, value]) => `
+    <div class="kv-item">
+      <div class="key">${key}</div>
+      <div class="value">${value ?? "-"}</div>
+    </div>
+  `).join("");
+
+  sectorsRoot.innerHTML = sectorSummary.length
+    ? sectorSummary.map((sector) => `
+      <div class="stack-item theater-sector-item">
+        <div class="title">${sector.label}</div>
+        <div class="meta">Tracked: ${sector.tracked} | On Stage: ${sector.onStage} | Enemy: ${sector.enemy}</div>
+      </div>
+    `).join("")
+    : `
+      <div class="stack-item">
+        <div class="title">No Sector Summary</div>
+        <div class="meta">This theater did not expose a sector catalog.</div>
+      </div>
+    `;
+
+  unitsRoot.innerHTML = trackedUnits.map((unit) => `
+    <article class="theater-unit-card">
+      <div class="theater-unit-head">
+        <div>
+          <strong>${unit.name}</strong>
+          <div class="muted">${unit.role || unit.theaterRole || unit.platformType}</div>
+        </div>
+        ${theaterStatusPill(unit)}
+      </div>
+      <div class="theater-unit-meta">
+        <span>${unit.side}</span>
+        <span>${unit.platformType}</span>
+        <span>${unit.currentSector || "Unassigned"}</span>
+      </div>
+      <div class="theater-unit-kv">
+        <div><span>Readiness</span><strong>${Math.round((Number(unit.readiness) || 0) * 100)}%</strong></div>
+        <div><span>Damage</span><strong>${Math.round((Number(unit.damage) || 0) * 100)}%</strong></div>
+        <div><span>Availability</span><strong>${unit.availability || "-"}</strong></div>
+        <div><span>Status</span><strong>${unit.status || "-"}</strong></div>
+      </div>
+      <div class="muted theater-unit-foot">
+        Allowed Sectors: ${unit.allowedSectors?.length ? unit.allowedSectors.join(", ") : "None"}${unit.lastMissionId ? ` | Last Mission: ${unit.lastMissionId}` : ""}
+      </div>
+    </article>
+  `).join("");
+
+  badge.textContent = theater.source === "runtime" ? "Live Theater" : "Seed Theater";
+  countBadge.textContent = `${trackedUnits.length} Units`;
+  unitsCopy.textContent = "Sector assignments, readiness, and availability now update from the exported theater picture rather than raw JSON only.";
 }
 
 function readinessPill(unit) {
@@ -742,6 +901,12 @@ function renderSettingsPreview(settings) {
   document.getElementById("settings-ais-enabled").checked = Boolean(settings.ais?.enabled);
   document.getElementById("settings-ais-radius-km").value = settings.ais?.queryRadiusKm || 160;
   document.getElementById("settings-ais-token").value = settings.ais?.token || "";
+  document.getElementById("settings-update-provider").value = settings.updates?.provider || "generic";
+  document.getElementById("settings-update-feed-url").value = settings.updates?.feedUrl || "";
+  document.getElementById("settings-update-github-owner").value = settings.updates?.githubOwner || "";
+  document.getElementById("settings-update-github-repo").value = settings.updates?.githubRepo || "";
+  document.getElementById("settings-update-auto-check").checked = settings.updates?.autoCheckOnLaunch !== false;
+  renderUpdateProviderFields(settings.updates?.provider || "generic");
   packageIdSyncEnabled = preferredPackageId === preferredCampaignId;
   document.getElementById("settings-package-sync").checked = packageIdSyncEnabled;
   syncDesktopOpsDefaults({
@@ -816,6 +981,13 @@ function collectDesktopSettingsForm() {
       token: document.getElementById("settings-ais-token").value.trim(),
       queryRadiusKm: Number(document.getElementById("settings-ais-radius-km").value || 160)
     },
+    updates: {
+      provider: document.getElementById("settings-update-provider").value,
+      feedUrl: document.getElementById("settings-update-feed-url").value.trim(),
+      githubOwner: document.getElementById("settings-update-github-owner").value.trim(),
+      githubRepo: document.getElementById("settings-update-github-repo").value.trim(),
+      autoCheckOnLaunch: document.getElementById("settings-update-auto-check").checked
+    },
     firstLaunchComplete: true
   };
 }
@@ -866,6 +1038,111 @@ function setSettingsStatus(message) {
   document.getElementById("settings-status").textContent = message;
 }
 
+function renderUpdateProviderFields(provider) {
+  document.querySelectorAll(".update-provider-scope").forEach((node) => {
+    const showGeneric = provider === "generic" && node.classList.contains("update-provider-generic");
+    const showGitHub = provider === "github" && node.classList.contains("update-provider-github");
+    node.classList.toggle("active", showGeneric || showGitHub);
+  });
+}
+
+function summarizeUpdateState(state) {
+  if (!state) {
+    return "No updater state loaded yet.";
+  }
+  if (state.status === "unsupported") {
+    return "Auto-update only runs in packaged app builds.";
+  }
+  return state.message || "Updater is idle.";
+}
+
+function renderUpdateState(state) {
+  currentUpdateState = state;
+  const summary = document.getElementById("settings-update-summary");
+  const preview = document.getElementById("settings-update-json");
+  const checkButton = document.getElementById("settings-check-updates");
+  const downloadButton = document.getElementById("settings-download-update");
+  const installButton = document.getElementById("settings-install-update");
+
+  if (summary) {
+    summary.textContent = summarizeUpdateState(state);
+  }
+  if (preview) {
+    preview.textContent = JSON.stringify(state || {}, null, 2);
+  }
+  if (checkButton) {
+    checkButton.disabled = !state?.canCheck;
+  }
+  if (downloadButton) {
+    downloadButton.disabled = !state?.canDownload;
+  }
+  if (installButton) {
+    installButton.disabled = !state?.canInstall;
+  }
+}
+
+async function initializeAppUpdates() {
+  renderUpdateProviderFields(document.getElementById("settings-update-provider")?.value || "generic");
+  document.getElementById("settings-update-provider")?.addEventListener("change", (event) => {
+    renderUpdateProviderFields(event.target.value);
+  });
+
+  if (!desktopApi?.getUpdateState) {
+    renderUpdateState({
+      status: "unsupported",
+      message: "Updater controls are only available in the Electron desktop app.",
+      canCheck: false,
+      canDownload: false,
+      canInstall: false
+    });
+    return;
+  }
+
+  renderUpdateState(await desktopApi.getUpdateState());
+  desktopApi.onUpdateState?.((state) => {
+    renderUpdateState(state);
+  });
+
+  document.getElementById("settings-check-updates")?.addEventListener("click", async () => {
+    try {
+      await desktopApi.checkForUpdates();
+    } catch (error) {
+      renderUpdateState({
+        ...(currentUpdateState || {}),
+        status: "error",
+        message: error.message || "Update check failed.",
+        error: error.message || String(error)
+      });
+    }
+  });
+
+  document.getElementById("settings-download-update")?.addEventListener("click", async () => {
+    try {
+      await desktopApi.downloadUpdate();
+    } catch (error) {
+      renderUpdateState({
+        ...(currentUpdateState || {}),
+        status: "error",
+        message: error.message || "Update download failed.",
+        error: error.message || String(error)
+      });
+    }
+  });
+
+  document.getElementById("settings-install-update")?.addEventListener("click", async () => {
+    try {
+      await desktopApi.installUpdate();
+    } catch (error) {
+      renderUpdateState({
+        ...(currentUpdateState || {}),
+        status: "error",
+        message: error.message || "Update install failed.",
+        error: error.message || String(error)
+      });
+    }
+  });
+}
+
 function refreshCurrentWizardBlueprint() {
   currentWizardBlueprint = buildCampaignBlueprint(collectWizardSpec());
   if (currentWizardBlueprint?.warnings?.length) {
@@ -890,12 +1167,15 @@ function collectWizardSpec() {
     campaignClimate: document.getElementById("wizard-climate").value,
     tone: document.getElementById("wizard-climate").value,
     missionType: document.getElementById("wizard-mission-type").value,
+    season: document.getElementById("wizard-season")?.value || "theater_default",
+    timeOfDay: document.getElementById("wizard-time-of-day")?.value || "theater_default",
     missionStance: document.getElementById("wizard-stance").value,
     posture: document.getElementById("wizard-stance").value,
     rulesOfEngagement: document.getElementById("wizard-roe").value,
     roe: document.getElementById("wizard-roe").value,
     year: Number(document.getElementById("wizard-year").value || 2028),
     scenarioCount: Number(document.getElementById("wizard-scenario-count").value || 1),
+    playerSubmarine: document.getElementById("wizard-player-submarine")?.value || "virginia_block_iii",
     playerName: document.getElementById("wizard-player-name").value.trim(),
     experimentalFeatures: {
       enabled: experimentalEnabled,
@@ -1086,7 +1366,7 @@ function renderContinuationPlanner(data) {
       <div class="wizard-block">
         <strong>Campaign State</strong>
         <div class="wizard-meta">Current mission: ${currentMissionId}</div>
-        <div class="muted">${missionCount} mission result${missionCount === 1 ? "" : "s"} recorded. Climate: ${data.state.world_state?.campaign_climate || data.state.world_state?.tone || "-"}. Mission type: ${data.state.world_state?.mission_type || "-"}. Experimental: ${data.state.world_state?.experimental_features?.enabled ? data.state.world_state?.experimental_features?.plotSeedLabel || data.state.world_state?.experimental_features?.plotSeed || "On" : "Off"}. ROE: ${data.state.world_state?.rules_of_engagement || "-"}. Escalation: ${data.state.world_state?.escalation_key || "-"}. The reserved next mission will be regenerated from the latest result, and one additional slot will stay chained behind it.</div>
+        <div class="muted">${missionCount} mission result${missionCount === 1 ? "" : "s"} recorded. Climate: ${data.state.world_state?.campaign_climate || data.state.world_state?.tone || "-"}. Mission type: ${data.state.world_state?.mission_type || "-"}. Season: ${data.state.world_state?.season_label || data.state.world_state?.season || "-"}. Time: ${data.state.world_state?.time_of_day_label || data.state.world_state?.time_of_day || "-"}. Player sub: ${data.state.world_state?.player_submarine_label || data.state.world_state?.player_submarine || "-"}. Experimental: ${data.state.world_state?.experimental_features?.enabled ? data.state.world_state?.experimental_features?.plotSeedLabel || data.state.world_state?.experimental_features?.plotSeed || "On" : "Off"}. ROE: ${data.state.world_state?.rules_of_engagement || "-"}. Escalation: ${data.state.world_state?.escalation_key || "-"}. The reserved next mission will be regenerated from the latest result, and one additional slot will stay chained behind it.</div>
       </div>
       <div class="wizard-block">
         <strong>Command Intent</strong>
@@ -1128,16 +1408,22 @@ function populateWizardSelectors() {
   const theaterSelect = document.getElementById("wizard-theater");
   const climateSelect = document.getElementById("wizard-climate");
   const missionTypeSelect = document.getElementById("wizard-mission-type");
+  const seasonSelect = document.getElementById("wizard-season");
+  const timeOfDaySelect = document.getElementById("wizard-time-of-day");
+  const playerSubmarineSelect = document.getElementById("wizard-player-submarine");
   const stanceSelect = document.getElementById("wizard-stance");
   const roeSelect = document.getElementById("wizard-roe");
   const experimentalEnabled = Boolean(document.getElementById("wizard-experimental-enabled")?.checked);
   const plotSeedSelect = document.getElementById("wizard-plot-seed");
-  if (!theaterSelect || !climateSelect || !missionTypeSelect || !stanceSelect || !roeSelect || !plotSeedSelect) {
+  if (!theaterSelect || !climateSelect || !missionTypeSelect || !seasonSelect || !timeOfDaySelect || !playerSubmarineSelect || !stanceSelect || !roeSelect || !plotSeedSelect) {
     return;
   }
   const previousTheater = theaterSelect.value || "luzon_strait";
   const previousClimate = climateSelect.value || "surveillance";
   const previousMissionType = missionTypeSelect.value;
+  const previousSeason = seasonSelect.value || "theater_default";
+  const previousTimeOfDay = timeOfDaySelect.value || "theater_default";
+  const previousPlayerSubmarine = playerSubmarineSelect.value || "virginia_block_iii";
   const previousStance = stanceSelect.value || "wide_area_search";
   const previousRoe = roeSelect.value || "weapons_tight";
   const previousPlotSeed = plotSeedSelect.value || "none";
@@ -1151,6 +1437,15 @@ function populateWizardSelectors() {
     .filter(([, missionType]) => experimentalEnabled || missionType.availability !== "experimental")
     .map(([key, missionType]) => `
     <option value="${key}">${missionType.label}${missionType.availability === "experimental" ? " [Experimental]" : ""}</option>
+  `).join("");
+  seasonSelect.innerHTML = Object.entries(getSeasonCatalog()).map(([key, season]) => `
+    <option value="${key}">${season.label}</option>
+  `).join("");
+  timeOfDaySelect.innerHTML = Object.entries(getTimeOfDayCatalog()).map(([key, timeOfDay]) => `
+    <option value="${key}">${timeOfDay.label}</option>
+  `).join("");
+  playerSubmarineSelect.innerHTML = Object.entries(getPlayerSubmarineCatalog()).map(([key, playerSubmarine]) => `
+    <option value="${key}">${playerSubmarine.label}${playerSubmarine.dbFallback ? " [DB Fallback]" : ""}</option>
   `).join("");
   plotSeedSelect.innerHTML = Object.entries(getExperimentalPlotSeedCatalog()).map(([key, plotSeed]) => `
     <option value="${key}">${plotSeed.label}</option>
@@ -1170,6 +1465,15 @@ function populateWizardSelectors() {
   missionTypeSelect.value = previousMissionType && missionTypeSelect.querySelector(`option[value="${previousMissionType}"]`)
     ? previousMissionType
     : "asuw_military";
+  seasonSelect.value = seasonSelect.querySelector(`option[value="${previousSeason}"]`)
+    ? previousSeason
+    : "theater_default";
+  timeOfDaySelect.value = timeOfDaySelect.querySelector(`option[value="${previousTimeOfDay}"]`)
+    ? previousTimeOfDay
+    : "theater_default";
+  playerSubmarineSelect.value = playerSubmarineSelect.querySelector(`option[value="${previousPlayerSubmarine}"]`)
+    ? previousPlayerSubmarine
+    : "virginia_block_iii";
   stanceSelect.value = stanceSelect.querySelector(`option[value="${previousStance}"]`)
     ? previousStance
     : "wide_area_search";
@@ -1193,6 +1497,10 @@ function syncWizardDefaultsWithTheater() {
   }
   document.getElementById("wizard-year").value = theater.defaultYear;
   document.getElementById("wizard-player-name").value = theater.player.name;
+  const playerSubmarineSelect = document.getElementById("wizard-player-submarine");
+  if (playerSubmarineSelect && playerSubmarineSelect.querySelector('option[value="virginia_block_iii"]')) {
+    playerSubmarineSelect.value = "virginia_block_iii";
+  }
   const missionTypeSelect = document.getElementById("wizard-mission-type");
   if (missionTypeSelect) {
     missionTypeSelect.value = theater.family === "sub_hunt" ? "asw" : "asuw_military";
@@ -1278,10 +1586,13 @@ async function initializeWizard() {
     "wizard-campaign-id",
     "wizard-climate",
     "wizard-mission-type",
+    "wizard-season",
+    "wizard-time-of-day",
     "wizard-stance",
     "wizard-roe",
     "wizard-year",
     "wizard-scenario-count",
+    "wizard-player-submarine",
     "wizard-player-name",
     "wizard-max-target-distance-km",
     "wizard-merchant-traffic-intensity",
@@ -1502,6 +1813,7 @@ function hydrateRuntime(data) {
   renderCampaignSummary(data);
   renderModuleSummary(data);
   renderHeroStats(data);
+  renderTheaterTracking(data);
   renderContinuationPlanner(data);
   renderOperationalMapForTracking(data.state?.metadata?.theater || data.campaign?.theater);
   renderOob(data);
@@ -1663,6 +1975,7 @@ async function main() {
   initializeGuideLink();
   initializeOperationalMapLink();
   await initializeDesktopSettings();
+  await initializeAppUpdates();
   await initializeWizard();
   await initializeDesktopOps();
   document.getElementById("tracking-ais-refresh")?.addEventListener("click", refreshAisContacts);

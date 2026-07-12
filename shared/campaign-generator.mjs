@@ -5,6 +5,45 @@ const DEFAULT_INTENSITY_LEVEL = 2;
 const MIN_INTENSITY_LEVEL = 0;
 const MAX_INTENSITY_LEVEL = 4;
 
+const SEASON_CATALOG = {
+  theater_default: {
+    label: "Theater Default"
+  },
+  winter: {
+    label: "Winter"
+  },
+  spring: {
+    label: "Spring"
+  },
+  summer: {
+    label: "Summer"
+  },
+  autumn: {
+    label: "Autumn"
+  }
+};
+
+const TIME_OF_DAY_CATALOG = {
+  theater_default: {
+    label: "Theater Default"
+  },
+  night: {
+    label: "Night"
+  },
+  dawn: {
+    label: "Dawn"
+  },
+  day: {
+    label: "Day"
+  },
+  dusk: {
+    label: "Dusk"
+  },
+  mixed: {
+    label: "Mixed Rotation"
+  }
+};
+
 const ESCALATION_CATALOG = {
   peacetime: {
     label: "Peacetime Patrol",
@@ -236,6 +275,27 @@ const EXPERIMENTAL_PLOT_SEED_CATALOG = {
   }
 };
 
+const PLAYER_SUBMARINE_CATALOG = {
+  virginia_block_i: {
+    label: "Virginia Block I",
+    shortLabel: "Virginia B1",
+    dbid: 1015,
+    dbFallback: true
+  },
+  virginia_block_ii: {
+    label: "Virginia Block II",
+    shortLabel: "Virginia B2",
+    dbid: 1015,
+    dbFallback: true
+  },
+  virginia_block_iii: {
+    label: "Virginia Block III",
+    shortLabel: "Virginia B3",
+    dbid: 1015,
+    dbFallback: false
+  }
+};
+
 const TONE_CATALOG = CAMPAIGN_CLIMATE_CATALOG;
 const AUTHORING_POSTURES = MISSION_STANCE_CATALOG;
 
@@ -435,6 +495,236 @@ const MISSION_LIBRARY = {
   }
 };
 
+const MISSION_VARIATION_LIBRARY = {
+  initial_scout: [
+    {
+      key: "route_probe",
+      summary: "Build the first tactical picture on the enemy movement and withdraw cleanly.",
+      cue: "Initial contacts are thin and ambiguous. Preserve stealth and establish the route picture.",
+      taskType: "classify_trail",
+      forceBias: { merchants: -1, biologics: 1 }
+    },
+    {
+      key: "screen_peel",
+      summary: "Test the outer screen, identify who is actually guarding the route, and avoid committing on the first cue.",
+      cue: "The first layer may be decoys, escorts, or a loose barrier. Sort the screen before you chase the wrong contact.",
+      taskType: "classify_screen",
+      forceBias: { enemyAir: 1, enemySecondary: 1, friendlyAir: -1 }
+    },
+    {
+      key: "route_confirm",
+      summary: "Confirm which corridor is real before the contact picture widens beyond useful reporting range.",
+      cue: "Command wants route certainty more than a risky close trail on weak early reporting.",
+      taskType: "confirm_route",
+      forceBias: { friendlyAir: 1, merchants: -1 }
+    }
+  ],
+  crosscurrent: [
+    {
+      key: "contact_restore",
+      summary: "The enemy adjusts course and screening posture. Re-establish contact and refine the route estimate.",
+      cue: "Expect a tighter helo pattern and more disciplined maneuver around the lead unit.",
+      taskType: "reacquire_contact",
+      forceBias: { enemyAir: 1, biologics: 1 }
+    },
+    {
+      key: "handoff_lattice",
+      summary: "Carry the track long enough to hand it forward instead of solving the whole problem alone.",
+      cue: "Support geometry matters more here than a heroic solo chase. Keep the picture clean and transferable.",
+      taskType: "trail_handoff",
+      forceBias: { friendlySurface: 1, friendlyAir: 1, merchants: 1 }
+    },
+    {
+      key: "screen_refresh",
+      summary: "The trail keeps breaking under clutter and escort maneuver. Rebuild the picture by reading the screen correctly.",
+      cue: "The enemy is trying to make you overreact to the wrong layer. Work the edges before you force the center.",
+      taskType: "classify_screen",
+      forceBias: { enemySecondary: 1, enemyAir: 1, biologics: 1 }
+    }
+  ],
+  barrier_tide: [
+    {
+      key: "strike_window",
+      summary: "The route is bending into a constrained firing window. Identify the designated high-value unit, sink it, and get clear before the barrier closes.",
+      cue: "Command has shifted from surveillance to attack. Classification must be positive before you fire.",
+      taskType: "designated_strike",
+      forceBias: { enemySecondary: 1, friendlyAir: 1 }
+    },
+    {
+      key: "screen_break",
+      summary: "The screen is tightening around the turn point. Find the decisive target inside it, strike, and leave before the escorts reset.",
+      cue: "This is a short attack window inside a better-organized screen. Delay favors the escorts, not you.",
+      taskType: "designated_strike",
+      forceBias: { enemySecondary: 1, enemyAir: 1 }
+    }
+  ],
+  closing_arc: [
+    {
+      key: "clean_escape",
+      summary: "The enemy screen is fully alerted. Break contact, survive the search, and preserve the boat after the strike phase.",
+      cue: "Assume retaliation geometry is active and use the withdrawal axis as your real objective.",
+      taskType: "break_contact_escape",
+      forceBias: { enemyAir: 1, friendlySurface: -1 }
+    },
+    {
+      key: "spoiling_withdrawal",
+      summary: "Hostile forces are hunting for a clean counter-detection. Clear the trap, spoil the search pattern, and recover intact.",
+      cue: "Survival is now the operational effect. Do not turn the withdrawal into a second attack run.",
+      taskType: "break_contact_escape",
+      forceBias: { enemySecondary: 1, biologics: -1 }
+    }
+  ],
+  first_vector: [
+    {
+      key: "opening_gate",
+      summary: "Intercept the opening move and classify the breakout axis before it widens.",
+      cue: "Expect sparse reporting and a narrow early prosecution window.",
+      taskType: "intercept_gate",
+      forceBias: { merchants: -1, friendlyAir: 1 }
+    },
+    {
+      key: "route_diagnosis",
+      summary: "Work out which breakout corridor is genuine before the opposition can pull you into a false trail.",
+      cue: "The first report is probably incomplete. Route certainty matters more than bravado on the datum.",
+      taskType: "confirm_route",
+      forceBias: { enemyAir: -1, biologics: 1 }
+    },
+    {
+      key: "contact_latch",
+      summary: "Get onto the first usable trail and stay with it long enough to keep the breakout from disappearing.",
+      cue: "The opening track may be fragile, but losing it entirely is worse than holding a cautious offset trail.",
+      taskType: "classify_trail",
+      forceBias: { friendlySurface: -1, biologics: 1 }
+    }
+  ],
+  datum_shift: [
+    {
+      key: "datum_restore",
+      summary: "The contact picture breaks and reforms. Push back in and restore the track.",
+      cue: "Search cues are intermittent and the opposing force is exploiting clutter.",
+      taskType: "reacquire_contact",
+      forceBias: { biologics: 1, merchants: 1 }
+    },
+    {
+      key: "screen_decode",
+      summary: "The enemy is hiding the real track inside support movement. Read the screen correctly and rebuild the prosecution.",
+      cue: "Do not assume the loudest contact is the decisive one. The support picture is part of the deception.",
+      taskType: "classify_screen",
+      forceBias: { enemySurfaceSupport: 1, enemyAir: 1 }
+    },
+    {
+      key: "route_reality_check",
+      summary: "Reconfirm the actual breakout seam before you recommit the boat to the wrong pursuit line.",
+      cue: "The opposition wants a false certainty. Make the route prove itself before you close.",
+      taskType: "confirm_route",
+      forceBias: { friendlyAir: 1, merchants: -1 }
+    }
+  ],
+  containment_run: [
+    {
+      key: "seam_strike",
+      summary: "The breakout is boxed into a narrow seam. Kill the designated submarine or lead escort before it slips through the gate.",
+      cue: "The strike order is active. Delay will let the target cross under a tighter screen.",
+      taskType: "designated_strike",
+      forceBias: { enemySurfaceSupport: 1, enemyAir: 1 }
+    },
+    {
+      key: "ambush_turn",
+      summary: "The target has to commit through a pressured turn. Build the shot, strike fast, and leave before the support line folds over you.",
+      cue: "You have a good attack geometry, but it will decay quickly once the support force turns inward.",
+      taskType: "designated_strike",
+      forceBias: { friendlySurface: 1, enemySurfaceSupport: 1 }
+    }
+  ],
+  closing_window: [
+    {
+      key: "search_clear",
+      summary: "The enemy is reacting to your attack. Clear the search geometry and preserve combat power for the next decision cycle.",
+      cue: "Counter-detection risk is high. Recover only after you have broken pursuit.",
+      taskType: "break_contact_escape",
+      forceBias: { enemyAir: 1 }
+    },
+    {
+      key: "countersearch_spoil",
+      summary: "The opposition is building a tighter post-strike search. Break the pattern, open distance, and deny them a clean localization.",
+      cue: "Your job now is to survive the reaction, not harvest one more contact at bad odds.",
+      taskType: "break_contact_escape",
+      forceBias: { enemySurfaceSupport: 1, biologics: -1 }
+    }
+  ],
+  screen_probe: [
+    {
+      key: "screen_read",
+      summary: "Probe the screen, confirm intent, and keep the initiative without overcommitting.",
+      cue: "The opening layer is disciplined but not yet fully closed.",
+      taskType: "classify_screen",
+      forceBias: { enemySurfaceSupport: 1, enemyAir: 1 }
+    },
+    {
+      key: "offset_trail",
+      summary: "Stay outside the tightest layer, classify the real mover, and keep the initiative from offset positions.",
+      cue: "A patient read of the screen may buy a better follow-on kill opportunity than forcing the first turn.",
+      taskType: "classify_trail",
+      forceBias: { friendlyAir: 1, biologics: 1 }
+    }
+  ],
+  route_bend: [
+    {
+      key: "gate_pressure",
+      summary: "The enemy shifts axis and tries to force a route decision under pressure.",
+      cue: "The support picture is thickening around the turn point.",
+      taskType: "intercept_gate",
+      forceBias: { enemySurfaceSupport: 1, friendlySurface: 1 }
+    },
+    {
+      key: "barrier_hold",
+      summary: "The route is compressing toward a controllable seam. Hold the barrier and make the breakout resolve on your terms.",
+      cue: "This is less about chasing the datum and more about owning the seam the target has to cross.",
+      taskType: "hold_barrier",
+      forceBias: { friendlySurface: 1, merchants: -1 }
+    },
+    {
+      key: "handoff_turn",
+      summary: "Keep the route alive through the turn point and leave a clean handoff instead of burning the boat on a rushed intercept.",
+      cue: "The formation is under pressure but not yet cornered. A clean handoff may matter more than forcing the shot early.",
+      taskType: "trail_handoff",
+      forceBias: { friendlySurface: 1, friendlyAir: 1 }
+    }
+  ],
+  kill_box: [
+    {
+      key: "kill_box",
+      summary: "Contain the movement inside prepared geometry, destroy the decisive hostile unit, and survive the immediate response.",
+      cue: "You already have broad attack authority. Use it against the designated combatant before the formation disperses.",
+      taskType: "designated_strike",
+      forceBias: { enemySurfaceSupport: 1, enemyAir: 1 }
+    },
+    {
+      key: "compression_shot",
+      summary: "The formation is compressed into a short engagement window. Strike the decisive hostile unit before the escorts can reopen the geometry.",
+      cue: "Open-warfare authority helps, but timing matters more than enthusiasm. Make the shot count and start your exit immediately.",
+      taskType: "designated_strike",
+      forceBias: { friendlySurface: 1, enemySurfaceSupport: 1 }
+    }
+  ],
+  terminal_shadow: [
+    {
+      key: "war_exit",
+      summary: "The strike is complete or imminent. Break away, spoil the counter-search, and exit with the boat intact.",
+      cue: "Open warfare conditions still apply, but survival now matters as much as additional kills.",
+      taskType: "break_contact_escape",
+      forceBias: { enemyAir: 1, enemySurfaceSupport: 1 }
+    },
+    {
+      key: "counterblow_avoidance",
+      summary: "The enemy can still hit back hard even after the strike. Clear the pursuit geometry and preserve the boat for the next cycle.",
+      cue: "Do not linger for opportunistic shots if it costs you the escape corridor.",
+      taskType: "break_contact_escape",
+      forceBias: { merchants: -1, biologics: -1 }
+    }
+  ]
+};
+
 const CONTINUATION_OBJECTIVES = {
   pursue_contact: {
     label: "Pursue Contact",
@@ -481,6 +771,79 @@ const CONTINUATION_OBJECTIVES = {
       sub_hunt: "Use the latest cues to get ahead of the breakout and challenge the route before it opens up."
     }
   }
+};
+
+const CONTINUATION_VARIATION_LIBRARY = {
+  pursue_contact: [
+    {
+      key: "pressure_lane",
+      summarySuffix: "Keep enough pressure on the lane that the enemy cannot reset comfortably.",
+      cue: "Expect the opposition to trade speed for ambiguity while it tries to reopen the distance.",
+      forceBias: { enemyAir: 1, merchants: 1 }
+    },
+    {
+      key: "regain_thread",
+      summarySuffix: "Recover the operational thread before the contact picture turns into disconnected reports.",
+      cue: "Command wants continuity more than drama. Build back into the track instead of lunging at the first return.",
+      forceBias: { friendlyAir: 1, biologics: 1 }
+    }
+  ],
+  shadow_safely: [
+    {
+      key: "offset_weave",
+      summarySuffix: "Work from offset positions and preserve stealth while the theater picture settles.",
+      cue: "The cleaner result here is disciplined shadowing, not a noisy close approach.",
+      forceBias: { enemyAir: -1, biologics: 1 }
+    },
+    {
+      key: "quiet_lattice",
+      summarySuffix: "Carry a thin but usable picture long enough for command to make the next decision without exposing the boat.",
+      cue: "Survivability and track continuity both matter. Avoid any move that solves one by sacrificing the other.",
+      forceBias: { merchants: 1, friendlySurface: -1 }
+    }
+  ],
+  break_contact: [
+    {
+      key: "cool_off",
+      summarySuffix: "Create enough space that the next mission starts from choice rather than panic.",
+      cue: "The main danger is drifting back into the search net while trying to confirm one more contact.",
+      forceBias: { enemyAir: 1, biologics: -1 }
+    },
+    {
+      key: "reset_axis",
+      summarySuffix: "Withdraw onto a colder axis and deny the enemy a clean continuation of the search.",
+      cue: "You are buying operational reset time here, not conceding the campaign.",
+      forceBias: { merchants: -1, friendlyAir: -1 }
+    }
+  ],
+  defend_chokepoint: [
+    {
+      key: "barrier_pressure",
+      summarySuffix: "Own the seam and make the enemy solve your geometry instead of the reverse.",
+      cue: "Prepared holding positions and support alignment should matter more than a free chase.",
+      forceBias: { friendlySurface: 1, enemySurfaceSupport: 1 }
+    },
+    {
+      key: "gated_denial",
+      summarySuffix: "Turn the chokepoint into a denial problem and hold it long enough for the breakout to lose tempo.",
+      cue: "The best result is a forced route decision under pressure, not necessarily a fast close attack.",
+      forceBias: { friendlyAir: 1, merchants: -1 }
+    }
+  ],
+  intercept_route: [
+    {
+      key: "cutoff_run",
+      summarySuffix: "Get forward on the route and make the contact solve a shrinking escape window.",
+      cue: "Speed in the geometry matters, but it still has to end in a workable firing or barrier position.",
+      forceBias: { enemyAir: 1, friendlySurface: 1 }
+    },
+    {
+      key: "turnpoint_ambush",
+      summarySuffix: "Build toward the turn point where the route is least forgiving and the target is easiest to read.",
+      cue: "Do not waste the setup by attacking before the geometry has actually compressed.",
+      forceBias: { enemySurfaceSupport: 1, biologics: -1 }
+    }
+  ]
 };
 
 const RISK_POSTURES = {
@@ -1241,6 +1604,20 @@ function normalizeCampaignClimateKey(value) {
   return "surveillance";
 }
 
+function normalizeSeasonKey(value) {
+  if (SEASON_CATALOG[value]) {
+    return value;
+  }
+  return "theater_default";
+}
+
+function normalizeTimeOfDayKey(value) {
+  if (TIME_OF_DAY_CATALOG[value]) {
+    return value;
+  }
+  return "theater_default";
+}
+
 function normalizeMissionStanceKey(value) {
   if (MISSION_STANCE_CATALOG[value]) {
     return value;
@@ -1333,6 +1710,31 @@ function defaultMissionTypeForFamily(family) {
   return family === "sub_hunt" ? "asw" : "asuw_military";
 }
 
+function normalizePlayerSubmarineKey(value) {
+  if (PLAYER_SUBMARINE_CATALOG[value]) {
+    return value;
+  }
+  return "virginia_block_iii";
+}
+
+function resolvePlayerSubmarineDefinition(value) {
+  return PLAYER_SUBMARINE_CATALOG[normalizePlayerSubmarineKey(value)] || PLAYER_SUBMARINE_CATALOG.virginia_block_iii;
+}
+
+function materializePlayerPlatform(basePlayer = {}, playerName, playerSubmarineKey) {
+  const variantKey = normalizePlayerSubmarineKey(playerSubmarineKey || basePlayer.variantKey);
+  const variant = resolvePlayerSubmarineDefinition(variantKey);
+  return {
+    ...basePlayer,
+    name: playerName,
+    dbid: variant.dbid,
+    variantKey,
+    platformLabel: variant.label,
+    platformShortLabel: variant.shortLabel,
+    dbFallback: Boolean(variant.dbFallback)
+  };
+}
+
 function normalizeExperimentalSettings(spec = {}) {
   const enabled = Boolean(
     spec.experimentalFeatures?.enabled
@@ -1416,11 +1818,66 @@ function commandAuthorityForTheater(theaterId) {
     : "COMSUBLANT";
 }
 
-function pickArchetypes(climateKey, count) {
+function normalizeForceBias(forceBias = {}) {
+  return {
+    enemyPrimary: Number(forceBias.enemyPrimary || 0),
+    enemySecondary: Number(forceBias.enemySecondary || 0),
+    enemySurfaceSupport: Number(forceBias.enemySurfaceSupport || 0),
+    enemyAir: Number(forceBias.enemyAir || 0),
+    friendlySurface: Number(forceBias.friendlySurface || 0),
+    friendlyAir: Number(forceBias.friendlyAir || 0),
+    merchants: Number(forceBias.merchants || 0),
+    biologics: Number(forceBias.biologics || 0)
+  };
+}
+
+function pickMissionVariation(missionKey, missionDef, index, rng) {
+  const catalog = Array.isArray(MISSION_VARIATION_LIBRARY[missionKey]) && MISSION_VARIATION_LIBRARY[missionKey].length
+    ? MISSION_VARIATION_LIBRARY[missionKey]
+    : [{
+      key: "standard",
+      summary: missionDef.summary,
+      cue: missionDef.cue,
+      taskType: missionDef.taskType,
+      forceBias: {}
+    }];
+  const variantIndex = (Math.floor(rng() * catalog.length) + Math.max(0, index)) % catalog.length;
+  const variant = catalog[variantIndex];
+  return {
+    ...missionDef,
+    summary: variant.summary || missionDef.summary,
+    cue: variant.cue || missionDef.cue,
+    taskType: variant.taskType || missionDef.taskType,
+    variation: {
+      key: variant.key || "standard",
+      forceBias: normalizeForceBias(variant.forceBias)
+    }
+  };
+}
+
+function pickContinuationVariation(objective, rng) {
+  const catalog = Array.isArray(CONTINUATION_VARIATION_LIBRARY[objective]) && CONTINUATION_VARIATION_LIBRARY[objective].length
+    ? CONTINUATION_VARIATION_LIBRARY[objective]
+    : [{
+      key: "standard",
+      summarySuffix: "",
+      cue: "",
+      forceBias: {}
+    }];
+  const variant = catalog[Math.floor(rng() * catalog.length) % catalog.length];
+  return {
+    key: variant.key || "standard",
+    summarySuffix: variant.summarySuffix || "",
+    cue: variant.cue || "",
+    forceBias: normalizeForceBias(variant.forceBias)
+  };
+}
+
+function pickArchetypes(climateKey, count, rng = Math.random) {
   const selectedTone = TONE_CATALOG[normalizeCampaignClimateKey(climateKey)] || TONE_CATALOG.surveillance;
-  return selectedTone.sequence.slice(0, count).map((key) => ({
+  return selectedTone.sequence.slice(0, count).map((key, index) => ({
     slug: key,
-    ...MISSION_LIBRARY[key]
+    ...pickMissionVariation(key, MISSION_LIBRARY[key], index, rng)
   }));
 }
 
@@ -1453,6 +1910,96 @@ function clampIntensityLevel(value) {
     return DEFAULT_INTENSITY_LEVEL;
   }
   return Math.max(MIN_INTENSITY_LEVEL, Math.min(MAX_INTENSITY_LEVEL, Math.round(numeric)));
+}
+
+function seasonDateParts(year, seasonKey, theaterId) {
+  if (seasonKey === "theater_default") {
+    return theaterId === "luzon_strait"
+      ? { month: 4, day: 2 }
+      : { month: 3, day: 14 };
+  }
+  return ({
+    winter: { month: 1, day: 18 },
+    spring: { month: 4, day: 18 },
+    summer: { month: 7, day: 18 },
+    autumn: { month: 10, day: 18 }
+  })[seasonKey] || { month: 3, day: 14 };
+}
+
+function timeOfDayParts(theaterId, timeOfDayKey, index = 0) {
+  if (timeOfDayKey === "theater_default") {
+    return theaterId === "luzon_strait"
+      ? { hour: 4, minute: 20 }
+      : { hour: 2, minute: 30 };
+  }
+  if (timeOfDayKey === "mixed") {
+    return [
+      { hour: 2, minute: 10, key: "night" },
+      { hour: 5, minute: 40, key: "dawn" },
+      { hour: 13, minute: 20, key: "day" },
+      { hour: 18, minute: 35, key: "dusk" }
+    ][Math.max(0, index) % 4];
+  }
+  return ({
+    night: { hour: 2, minute: 10 },
+    dawn: { hour: 5, minute: 40 },
+    day: { hour: 13, minute: 20 },
+    dusk: { hour: 18, minute: 35 }
+  })[timeOfDayKey] || { hour: 2, minute: 30 };
+}
+
+function temporalLabel({ seasonKey, timeOfDayKey, effectiveTimeKey }) {
+  const seasonLabel = SEASON_CATALOG[normalizeSeasonKey(seasonKey)]?.label || SEASON_CATALOG.theater_default.label;
+  const timeLabel = TIME_OF_DAY_CATALOG[normalizeTimeOfDayKey(effectiveTimeKey || timeOfDayKey)]?.label
+    || TIME_OF_DAY_CATALOG.theater_default.label;
+  return `${seasonLabel}, ${timeLabel}`;
+}
+
+function buildScenarioStartTime({ theaterId, year, seasonKey = "theater_default", timeOfDayKey = "theater_default", index = 0 }) {
+  const normalizedSeason = normalizeSeasonKey(seasonKey);
+  const normalizedTimeOfDay = normalizeTimeOfDayKey(timeOfDayKey);
+  if (normalizedSeason === "theater_default" && normalizedTimeOfDay === "theater_default") {
+    const startBase = theaterId === "luzon_strait"
+      ? `${year}-04-02T04:20:00Z`
+      : `${year}-03-14T02:30:00Z`;
+    return {
+      ...plusHours(startBase, index * 18),
+      seasonKey: normalizedSeason,
+      timeOfDayKey: normalizedTimeOfDay,
+      effectiveTimeKey: normalizedTimeOfDay,
+      label: temporalLabel({ seasonKey: normalizedSeason, timeOfDayKey: normalizedTimeOfDay })
+    };
+  }
+  const { month, day } = seasonDateParts(year, normalizedSeason, theaterId);
+  const timeParts = timeOfDayParts(theaterId, normalizedTimeOfDay, index);
+  const date = new Date(Date.UTC(year, month - 1, day + index, timeParts.hour, timeParts.minute, 0));
+  return {
+    iso: date.toISOString(),
+    mnw: formatMnwFromIso(date.toISOString()),
+    seasonKey: normalizedSeason,
+    timeOfDayKey: normalizedTimeOfDay,
+    effectiveTimeKey: timeParts.key || normalizedTimeOfDay,
+    label: temporalLabel({ seasonKey: normalizedSeason, timeOfDayKey: normalizedTimeOfDay, effectiveTimeKey: timeParts.key || normalizedTimeOfDay })
+  };
+}
+
+function applyTimeOfDayPolicy(referenceIso, theaterId, timeOfDayKey = "theater_default", index = 0) {
+  const normalizedTimeOfDay = normalizeTimeOfDayKey(timeOfDayKey);
+  if (normalizedTimeOfDay === "theater_default") {
+    return {
+      iso: referenceIso,
+      mnw: formatMnwFromIso(referenceIso),
+      effectiveTimeKey: normalizedTimeOfDay
+    };
+  }
+  const date = new Date(referenceIso);
+  const timeParts = timeOfDayParts(theaterId, normalizedTimeOfDay, index);
+  date.setUTCHours(timeParts.hour, timeParts.minute, 0, 0);
+  return {
+    iso: date.toISOString(),
+    mnw: formatMnwFromIso(date.toISOString()),
+    effectiveTimeKey: timeParts.key || normalizedTimeOfDay
+  };
 }
 
 function intensityAdjustment(level, perStep = 1) {
@@ -2118,7 +2665,11 @@ function buildTheaterUnitCatalog(template, playerName) {
       notes: {
         sectors: Array.isArray(unit.sectors) ? [...unit.sectors] : [],
         theater_role: notes.theater_role || "theater_contact",
-        role: unit.role || notes.role || null
+        role: unit.role || notes.role || null,
+        player_submarine_key: unit.variantKey || null,
+        player_submarine_label: unit.platformLabel || null,
+        player_submarine_short_label: unit.platformShortLabel || null,
+        player_submarine_db_fallback: Boolean(unit.dbFallback)
       }
     });
   };
@@ -2310,7 +2861,7 @@ function buildAisMerchantTraffic(family, geometry, density, authoringConstraints
   }));
 }
 
-function buildScenarioForces(template, geometry, index, theaterPicture, rng, authoringConstraints = {}, aisSnapshot = null, missionTypeKey = null) {
+function buildScenarioForces(template, geometry, index, theaterPicture, rng, authoringConstraints = {}, aisSnapshot = null, missionTypeKey = null, forceBias = {}) {
   const pools = THEATER_FORCE_POOLS[template.id] || {};
   const scenarioSector = pickScenarioSector(template, geometry, index);
   const density = Number(geometry?.density || 1);
@@ -2321,9 +2872,10 @@ function buildScenarioForces(template, geometry, index, theaterPicture, rng, aut
   const hostileSurfaceSupportIntensity = authoringConstraints.hostileSurfaceSupportIntensity;
   const hostileAirSupportIntensity = authoringConstraints.hostileAirSupportIntensity;
   const friendlySupportIntensity = authoringConstraints.friendlySupportIntensity;
+  const normalizedForceBias = normalizeForceBias(forceBias);
 
   if (template.family === "surface_shadow") {
-    const desiredPrimaryCount = resolvedMissionType === "submerged_escort" ? 1 : 2;
+    const desiredPrimaryCount = Math.max(1, (resolvedMissionType === "submerged_escort" ? 1 : 2) + normalizedForceBias.enemyPrimary);
     const enemyPrimary = selectUnitsForMission(
       [...(pools.enemySurface || [])],
       theaterPicture,
@@ -2334,7 +2886,7 @@ function buildScenarioForces(template, geometry, index, theaterPicture, rng, aut
     );
     const usedEnemyIds = new Set(enemyPrimary.map((unit) => unit.unitId));
     const barrierCandidates = (pools.enemySurface || []).filter((unit) => !usedEnemyIds.has(unit.unitId));
-    const enemySecondaryBaseCount = resolvedMissionType === "asuw_convoy" ? 2 : 1;
+    const enemySecondaryBaseCount = (resolvedMissionType === "asuw_convoy" ? 2 : 1) + normalizedForceBias.enemySecondary;
     const enemySecondaryDesired = resolveSupportCount(
       enemySecondaryBaseCount,
       hostileSurfaceSupportIntensity,
@@ -2343,10 +2895,10 @@ function buildScenarioForces(template, geometry, index, theaterPicture, rng, aut
     const enemySecondary = density >= 2 || resolvedMissionType === "asuw_convoy" || resolvedMissionType === "civilian_defense" || resolvedMissionType === "blockade_relief"
       ? selectUnitsForMission(barrierCandidates, theaterPicture, scenarioSector, enemySecondaryDesired, index, rng)
       : [];
-    const enemyAirDesired = resolveSupportCount(1, hostileAirSupportIntensity, (pools.enemyAir || []).length);
+    const enemyAirDesired = resolveSupportCount(Math.max(0, 1 + normalizedForceBias.enemyAir), hostileAirSupportIntensity, (pools.enemyAir || []).length);
     const enemyAir = selectUnitsForMission(pools.enemyAir || [], theaterPicture, scenarioSector, enemyAirDesired, index, rng);
     const friendlySurfaceDesired = resolveSupportCount(
-      resolvedMissionType === "submerged_escort" || resolvedMissionType === "blockade_relief" ? 2 : 1,
+      Math.max(0, (resolvedMissionType === "submerged_escort" || resolvedMissionType === "blockade_relief" ? 2 : 1) + normalizedForceBias.friendlySurface),
       friendlySupportIntensity,
       (pools.friendlySurface || []).length
     );
@@ -2358,7 +2910,7 @@ function buildScenarioForces(template, geometry, index, theaterPicture, rng, aut
       index,
       rng
     );
-    const friendlyAirDesired = resolveSupportCount(1, friendlySupportIntensity, (pools.friendlyAir || []).length);
+    const friendlyAirDesired = resolveSupportCount(Math.max(0, 1 + normalizedForceBias.friendlyAir), friendlySupportIntensity, (pools.friendlyAir || []).length);
     const friendlyAir = selectUnitsForMission(pools.friendlyAir || [], theaterPicture, scenarioSector, friendlyAirDesired, index, rng);
     const extraMerchantTraffic = resolvedMissionType === "asuw_convoy" || resolvedMissionType === "civilian_defense" || resolvedMissionType === "blockade_relief" ? 3 : 0;
     return {
@@ -2370,13 +2922,13 @@ function buildScenarioForces(template, geometry, index, theaterPicture, rng, aut
       enemySecondary,
       enemyAir,
       ambientMerchantCount: resolveCountWithIntensity(
-        density + 2 + Math.floor(rng() * 2) + extraMerchantTraffic,
+        density + 2 + Math.floor(rng() * 2) + extraMerchantTraffic + normalizedForceBias.merchants,
         merchantTrafficIntensity,
         { min: 1, max: 14, perStep: 2 }
       ),
       aisMerchantTraffic,
       ambientBiologicCount: resolveCountWithIntensity(
-        3 + Math.floor(rng() * 2),
+        3 + Math.floor(rng() * 2) + normalizedForceBias.biologics,
         biologicClutterIntensity,
         { min: 0, max: 8, perStep: 1 }
       ),
@@ -2395,7 +2947,7 @@ function buildScenarioForces(template, geometry, index, theaterPicture, rng, aut
     pools.enemySurfaceSupport || [],
     theaterPicture,
     scenarioSector,
-    resolveSupportCount(density >= 3 ? 2 : 1, hostileSurfaceSupportIntensity, (pools.enemySurfaceSupport || []).length),
+    resolveSupportCount(Math.max(0, (density >= 3 ? 2 : 1) + normalizedForceBias.enemySurfaceSupport), hostileSurfaceSupportIntensity, (pools.enemySurfaceSupport || []).length),
     index,
     rng
   );
@@ -2404,13 +2956,13 @@ function buildScenarioForces(template, geometry, index, theaterPicture, rng, aut
       pools.enemyAir || [],
       theaterPicture,
       scenarioSector,
-      resolveSupportCount(1, hostileAirSupportIntensity, (pools.enemyAir || []).length),
+      resolveSupportCount(Math.max(0, 1 + normalizedForceBias.enemyAir), hostileAirSupportIntensity, (pools.enemyAir || []).length),
       index,
       rng
     )
     : [];
   const friendlySurfaceDesired = resolveSupportCount(
-    resolvedMissionType === "submerged_escort" ? 2 : 1,
+    Math.max(0, (resolvedMissionType === "submerged_escort" ? 2 : 1) + normalizedForceBias.friendlySurface),
     friendlySupportIntensity,
     (pools.friendlySurface || []).length
   );
@@ -2426,7 +2978,7 @@ function buildScenarioForces(template, geometry, index, theaterPicture, rng, aut
     pools.friendlyAir || [],
     theaterPicture,
     scenarioSector,
-    resolveSupportCount(1, friendlySupportIntensity, (pools.friendlyAir || []).length),
+    resolveSupportCount(Math.max(0, 1 + normalizedForceBias.friendlyAir), friendlySupportIntensity, (pools.friendlyAir || []).length),
     index,
     rng
   );
@@ -2439,13 +2991,13 @@ function buildScenarioForces(template, geometry, index, theaterPicture, rng, aut
     enemySurfaceSupport,
     enemyAir,
     ambientMerchantCount: resolveCountWithIntensity(
-      density + 2 + Math.floor(rng() * 2) + (resolvedMissionType === "submerged_escort" ? 1 : 0),
+      density + 2 + Math.floor(rng() * 2) + (resolvedMissionType === "submerged_escort" ? 1 : 0) + normalizedForceBias.merchants,
       merchantTrafficIntensity,
       { min: 1, max: 14, perStep: 2 }
     ),
     aisMerchantTraffic,
     ambientBiologicCount: resolveCountWithIntensity(
-      4 + Math.floor(rng() * 2),
+      4 + Math.floor(rng() * 2) + normalizedForceBias.biologics,
       biologicClutterIntensity,
       { min: 0, max: 9, perStep: 1 }
     ),
@@ -2612,10 +3164,13 @@ function buildScenarioRecord(
   aisSnapshot = null,
   options = {}
 ) {
-  const startBase = template.id === "luzon_strait"
-    ? `${year}-04-02T04:20:00Z`
-    : `${year}-03-14T02:30:00Z`;
-  const startTime = plusHours(startBase, index * 18);
+  const startTime = buildScenarioStartTime({
+    theaterId: template.id,
+    year,
+    seasonKey: options?.seasonKey || "theater_default",
+    timeOfDayKey: options?.timeOfDayKey || "theater_default",
+    index
+  });
   const rawGeometry = template.family === "surface_shadow"
     ? buildSurfaceShadowGeometry(template, index, count, rng)
     : buildSubHuntGeometry(template, index, count, rng);
@@ -2630,9 +3185,10 @@ function buildScenarioRecord(
     escalationKey,
     taskType: missionDef.taskType
   });
+  const forceBias = normalizeForceBias(missionDef.variation?.forceBias);
   const postureGeometry = applyAuthoringPostureToGeometry(template, template.family, rawGeometry, normalizedMissionStance);
   const geometry = finalizeScenarioGeometry(template.id, template.family, postureGeometry, rng, authoringConstraints);
-  const forces = buildScenarioForces(template, geometry, index, theaterPicture, rng, authoringConstraints, aisSnapshot, resolvedMissionType);
+  const forces = buildScenarioForces(template, geometry, index, theaterPicture, rng, authoringConstraints, aisSnapshot, resolvedMissionType, forceBias);
   const intel = buildScenarioIntel(template, geometry, forces, index, rng, normalizedMissionStance);
   const tasking = buildScenarioAnnotations(template, geometry, forces, missionDef, normalizedMissionStance, intel, {
     escalationKey,
@@ -2676,6 +3232,12 @@ function buildScenarioRecord(
     family: template.family,
     startIso: startTime.iso,
     startMnw: startTime.mnw,
+    temporalContext: {
+      seasonKey: startTime.seasonKey,
+      timeOfDayKey: startTime.timeOfDayKey,
+      effectiveTimeOfDayKey: startTime.effectiveTimeKey,
+      label: startTime.label
+    },
     geometry,
     forces,
     intel,
@@ -2687,6 +3249,10 @@ function buildScenarioRecord(
     campaignClimate: options?.campaignClimateKey || "surveillance",
     missionType: resolvedMissionType,
     missionStance: normalizedMissionStance,
+    variation: {
+      key: missionDef.variation?.key || "standard",
+      forceBias
+    },
     experimental: {
       enabled: experimental.enabled,
       plotSeed: experimental.plotSeed,
@@ -2715,6 +3281,14 @@ export function getCampaignClimateCatalog() {
   return CAMPAIGN_CLIMATE_CATALOG;
 }
 
+export function getSeasonCatalog() {
+  return SEASON_CATALOG;
+}
+
+export function getTimeOfDayCatalog() {
+  return TIME_OF_DAY_CATALOG;
+}
+
 export function getAuthoringPostureCatalog() {
   return AUTHORING_POSTURES;
 }
@@ -2725,6 +3299,10 @@ export function getMissionStanceCatalog() {
 
 export function getMissionTypeCatalog() {
   return MISSION_TYPE_CATALOG;
+}
+
+export function getPlayerSubmarineCatalog() {
+  return PLAYER_SUBMARINE_CATALOG;
 }
 
 export function getExperimentalPlotSeedCatalog() {
@@ -2760,6 +3338,7 @@ export function buildContinuationScenario({
   theaterId,
   year,
   playerName,
+  playerSubmarine = null,
   missionIndex = 0,
   slotNumber = missionIndex + 1,
   slugOverride = null,
@@ -2774,6 +3353,8 @@ export function buildContinuationScenario({
   missionStance = null,
   missionType = null,
   campaignClimate = "surveillance",
+  season = "theater_default",
+  timeOfDay = "theater_default",
   currentEscalation = null,
   requestedRoe = null,
   authoringConstraints = {},
@@ -2789,7 +3370,11 @@ export function buildContinuationScenario({
   const tempoDef = OPERATIONAL_TEMPOS[operationalTempo] || OPERATIONAL_TEMPOS.deliberate;
   const ordinal = slotNumber;
   const slug = slugOverride || scenarioSlotSlug(slotNumber);
-  const startIso = plusHours(referenceIso || `${year}-01-01T00:00:00Z`, tempoDef.advanceHours).iso;
+  const normalizedSeason = normalizeSeasonKey(season);
+  const normalizedTimeOfDay = normalizeTimeOfDayKey(timeOfDay);
+  const advancedTime = plusHours(referenceIso || `${year}-01-01T00:00:00Z`, tempoDef.advanceHours).iso;
+  const adjustedTime = applyTimeOfDayPolicy(advancedTime, theater.id, normalizedTimeOfDay, missionIndex);
+  const startIso = adjustedTime.iso;
   const rng = mulberry32(hashSeed([
     campaignId,
     theater.id,
@@ -2803,8 +3388,26 @@ export function buildContinuationScenario({
     authoringConstraintSeedFragment(normalizeAuthoringConstraints({ authoringConstraints }))
   ].join(":")));
   const densityCount = Math.max(4, priorMissionCount + 2);
-  const theaterCatalog = buildTheaterUnitCatalog(theater, playerName);
-  const theaterPicture = initializeTheaterPicture(theater, theaterCatalog, rng, previousTheaterPicture);
+  const playerPlatform = materializePlayerPlatform(theater.player, playerName, playerSubmarine);
+  const theaterCatalog = buildTheaterUnitCatalog({
+    ...theater,
+    player: playerPlatform
+  }, playerName);
+  const theaterPicture = initializeTheaterPicture({
+    ...theater,
+    player: playerPlatform
+  }, theaterCatalog, rng, previousTheaterPicture);
+  const flavorRng = mulberry32(hashSeed([
+    campaignId,
+    theater.id,
+    objective,
+    riskPosture,
+    operationalTempo,
+    startIso,
+    priorMissionCount,
+    lastOutcome,
+    "continuation_flavor"
+  ].join(":")));
   const rawGeometry = family === "surface_shadow"
     ? buildSurfaceShadowGeometry(theater, missionIndex, densityCount, rng)
     : buildSubHuntGeometry(theater, missionIndex, densityCount, rng);
@@ -2819,7 +3422,6 @@ export function buildContinuationScenario({
   const postureGeometry = applyAuthoringPostureToGeometry(theater, family, rawGeometry, normalizedMissionStance);
   const normalizedAuthoringConstraints = normalizeAuthoringConstraints({ authoringConstraints });
   const geometry = finalizeScenarioGeometry(theater.id, family, postureGeometry, rng, normalizedAuthoringConstraints);
-  const forces = buildScenarioForces(theater, geometry, missionIndex, theaterPicture, rng, normalizedAuthoringConstraints, aisSnapshot, resolvedMissionType);
   let derivedTaskType = "reacquire_contact";
   if (objective === "break_contact") {
     derivedTaskType = "break_contact_escape";
@@ -2834,8 +3436,24 @@ export function buildContinuationScenario({
   } else if (objective === "shadow_safely") {
     derivedTaskType = "classify_trail";
   }
+  const continuationVariation = pickContinuationVariation(objective, flavorRng);
+  const forces = buildScenarioForces(
+    theater,
+    geometry,
+    missionIndex,
+    theaterPicture,
+    rng,
+    normalizedAuthoringConstraints,
+    aisSnapshot,
+    resolvedMissionType,
+    continuationVariation.forceBias
+  );
   const continuationMissionDef = {
-    taskType: derivedTaskType
+    taskType: derivedTaskType,
+    variation: {
+      key: continuationVariation.key,
+      forceBias: continuationVariation.forceBias
+    }
   };
   const roeKey = deriveRoeKey({
     requestedRoe,
@@ -2859,11 +3477,11 @@ export function buildContinuationScenario({
   const summary = reserved
     ? "Reserved follow-on mission slot. Update the previous mission result in Campaign Tracking before playing this scenario."
     : plotSeedOverlay?.summaryPrefix
-      ? `${plotSeedOverlay.summaryPrefix} ${objectiveDef.summaries[family] || objectiveDef.summaries.surface_shadow}`
-      : (objectiveDef.summaries[family] || objectiveDef.summaries.surface_shadow);
+      ? `${plotSeedOverlay.summaryPrefix} ${objectiveDef.summaries[family] || objectiveDef.summaries.surface_shadow} ${continuationVariation.summarySuffix}`.trim()
+      : `${objectiveDef.summaries[family] || objectiveDef.summaries.surface_shadow} ${continuationVariation.summarySuffix}`.trim();
   const cue = reserved
     ? "This mission slot exists so the campaign chain always has a valid next mission available inside MNW."
-    : `${plotSeedOverlay?.cuePrefix ? `${plotSeedOverlay.cuePrefix} ` : ""}${riskDef.cue} ${outcomeLine}`;
+    : `${plotSeedOverlay?.cuePrefix ? `${plotSeedOverlay.cuePrefix} ` : ""}${riskDef.cue} ${continuationVariation.cue} ${outcomeLine}`.trim();
   const description = reserved
     ? `${summary} This placeholder exists so MNW always has a valid next mission, but its content is intended to be rewritten before play.`
     : `${summary} ${cue} Escalation: ${tasking.escalation.label}. ROE: ${tasking.rulesOfEngagement.label}. Task: ${tasking.primaryTask.objectiveLine} ${plotSeedOverlay?.commandIntent ? `Command intent: ${plotSeedOverlay.commandIntent} ` : ""}Intel cue: ${intel.prose}`;
@@ -2889,7 +3507,13 @@ export function buildContinuationScenario({
     index: missionIndex,
     family,
     startIso,
-    startMnw: formatMnwFromIso(startIso),
+    startMnw: adjustedTime.mnw,
+    temporalContext: {
+      seasonKey: normalizedSeason,
+      timeOfDayKey: normalizedTimeOfDay,
+      effectiveTimeOfDayKey: adjustedTime.effectiveTimeKey,
+      label: temporalLabel({ seasonKey: normalizedSeason, timeOfDayKey: normalizedTimeOfDay, effectiveTimeKey: adjustedTime.effectiveTimeKey })
+    },
     geometry,
     forces,
     intel,
@@ -2900,8 +3524,18 @@ export function buildContinuationScenario({
     reserved,
     theaterPicture,
     campaignClimate,
+    season: normalizedSeason,
+    seasonLabel: SEASON_CATALOG[normalizedSeason].label,
+    timeOfDay: normalizedTimeOfDay,
+    timeOfDayLabel: TIME_OF_DAY_CATALOG[normalizedTimeOfDay].label,
     missionType: resolvedMissionType,
     missionStance: normalizedMissionStance,
+    playerSubmarine: playerPlatform.variantKey,
+    playerSubmarineLabel: playerPlatform.platformLabel,
+    variation: {
+      key: continuationVariation.key,
+      forceBias: continuationVariation.forceBias
+    },
     experimental: {
       enabled: experimental.enabled,
       plotSeed: experimental.plotSeed,
@@ -2923,6 +3557,12 @@ export function buildContinuationScenario({
       campaignClimate,
       missionType: resolvedMissionType,
       missionTypeLabel: (MISSION_TYPE_CATALOG[resolvedMissionType] || MISSION_TYPE_CATALOG[defaultMissionTypeForFamily(family)]).label,
+      season: normalizedSeason,
+      seasonLabel: SEASON_CATALOG[normalizedSeason].label,
+      timeOfDay: normalizedTimeOfDay,
+      timeOfDayLabel: TIME_OF_DAY_CATALOG[normalizedTimeOfDay].label,
+      playerSubmarine: playerPlatform.variantKey,
+      playerSubmarineLabel: playerPlatform.platformLabel,
       experimentalEnabled: experimental.enabled,
       plotSeed: experimental.plotSeed,
       plotSeedLabel: plotSeedOverlay?.label || null,
@@ -2942,8 +3582,12 @@ export function buildCampaignBlueprint(spec = {}) {
   const totalScenarioCount = playableScenarioCount + 1;
   const title = String(spec.title || theater.label).trim() || "Generated Campaign";
   const tone = normalizeCampaignClimateKey(spec.campaignClimate || spec.tone);
+  const seasonKey = normalizeSeasonKey(spec.season || spec.seasonKey);
+  const timeOfDayKey = normalizeTimeOfDayKey(spec.timeOfDay || spec.timeOfDayKey);
   const year = Number(spec.year || theater.defaultYear || 2028);
   const playerName = String(spec.playerName || theater.player.name).trim() || theater.player.name;
+  const playerSubmarineKey = normalizePlayerSubmarineKey(spec.playerSubmarine || spec.playerSubmarineKey || spec.playerPlatform);
+  const playerPlatform = materializePlayerPlatform(theater.player, playerName, playerSubmarineKey);
   const posture = normalizeMissionStanceKey(spec.missionStance || spec.posture);
   const experimental = normalizeExperimentalSettings(spec);
   const missionTypeSupport = resolveMissionTypeSupport(spec.missionType, theater.family, experimental);
@@ -2951,12 +3595,19 @@ export function buildCampaignBlueprint(spec = {}) {
   const requestedRoe = normalizeRoeKey(spec.rulesOfEngagement || spec.roe || CAMPAIGN_CLIMATE_CATALOG[tone].defaultRoe);
   const authoringConstraints = normalizeAuthoringConstraints(spec);
   const warnings = missionTypeSupport.warning ? [missionTypeSupport.warning] : [];
-  const seed = hashSeed(`${campaignId}:${theater.id}:${tone}:${posture}:${missionType}:${requestedRoe}:${year}:${playableScenarioCount}:${playerName}:${authoringConstraintSeedFragment(authoringConstraints)}`);
+  if (playerPlatform.dbFallback) {
+    warnings.push(`${playerPlatform.platformLabel} currently uses the verified Block III MNW database entry as a fallback. Platform identity and mission text will reflect your selection, but DB-specific differentiation still needs confirmed game data.`);
+  }
+  const seed = hashSeed(`${campaignId}:${theater.id}:${tone}:${posture}:${missionType}:${requestedRoe}:${year}:${playableScenarioCount}:${playerName}:${playerSubmarineKey}:${authoringConstraintSeedFragment(authoringConstraints)}`);
   const rng = mulberry32(seed);
-  const playableArchetypes = pickArchetypes(tone, playableScenarioCount);
-  const reservedArchetype = pickArchetypes(tone, Math.min(playableScenarioCount + 1, 4))[playableScenarioCount]
-    || playableArchetypes[playableArchetypes.length - 1];
-  const theaterUnits = buildTheaterUnitCatalog(theater, playerName);
+  const archetypeRng = mulberry32(hashSeed(`${seed}:archetypes`));
+  const allArchetypes = pickArchetypes(tone, totalScenarioCount, archetypeRng);
+  const playableArchetypes = allArchetypes.slice(0, playableScenarioCount);
+  const reservedArchetype = allArchetypes[playableScenarioCount] || playableArchetypes[playableArchetypes.length - 1];
+  const theaterUnits = buildTheaterUnitCatalog({
+    ...theater,
+    player: playerPlatform
+  }, playerName);
   const theaterPicture = initializeTheaterPicture(theater, theaterUnits, rng);
   const scenarios = playableArchetypes.map((missionDef, index) => buildScenarioRecord(
       theater,
@@ -2976,6 +3627,8 @@ export function buildCampaignBlueprint(spec = {}) {
         campaignClimateKey: tone,
         requestedRoeKey: requestedRoe,
         missionTypeKey: missionType,
+        seasonKey,
+        timeOfDayKey,
         experimental
       }
     ));
@@ -2993,12 +3646,14 @@ export function buildCampaignBlueprint(spec = {}) {
     totalScenarioCount,
     true,
     spec.aisSnapshot || null,
-    {
-      campaignClimateKey: tone,
-      requestedRoeKey: requestedRoe,
-      missionTypeKey: missionType,
-      experimental
-    }
+      {
+        campaignClimateKey: tone,
+        requestedRoeKey: requestedRoe,
+        missionTypeKey: missionType,
+        seasonKey,
+        timeOfDayKey,
+        experimental
+      }
   ));
 
   return {
@@ -3013,6 +3668,10 @@ export function buildCampaignBlueprint(spec = {}) {
     totalScenarioCount,
     campaignClimate: tone,
     campaignClimateLabel: TONE_CATALOG[tone].label,
+    season: seasonKey,
+    seasonLabel: SEASON_CATALOG[seasonKey].label,
+    timeOfDay: timeOfDayKey,
+    timeOfDayLabel: TIME_OF_DAY_CATALOG[timeOfDayKey].label,
     missionType,
     missionTypeLabel: MISSION_TYPE_CATALOG[missionType].label,
     missionTypeSupport: missionTypeSupport.support,
@@ -3028,6 +3687,8 @@ export function buildCampaignBlueprint(spec = {}) {
     missionStanceLabel: AUTHORING_POSTURES[posture].label,
     posture,
     postureLabel: AUTHORING_POSTURES[posture].label,
+    playerSubmarine: playerSubmarineKey,
+    playerSubmarineLabel: playerPlatform.platformLabel,
     requestedRoe,
     requestedRoeLabel: ROE_CATALOG[requestedRoe].label,
     rulesOfEngagement: requestedRoe,
@@ -3035,10 +3696,7 @@ export function buildCampaignBlueprint(spec = {}) {
     authoringConstraints,
     year,
     family: theater.family,
-    player: {
-      ...theater.player,
-      name: playerName
-    },
+    player: playerPlatform,
     enemies: theater.enemies.map((enemy) => ({ ...enemy })),
     theaterUnits,
     theaterPicture,

@@ -5,11 +5,13 @@
   "main": "electron/main.cjs",
   "license": "MIT",
   "dependencies": {
+    "electron-updater": "^6.8.9",
     "ws": "^8.21.0"
   },
   "scripts": {
     "desktop:start": "electron .",
     "desktop:dist": "electron-builder",
+    "desktop:release": "electron-builder --publish always",
     "portable:build": "node ./portable/build-package.mjs",
     "portable:deploy": "node ./portable/deploy-package.mjs",
     "portable:export-ui": "node ./portable/export-ui-state.mjs",
@@ -68,6 +70,13 @@
     "directories": {
       "buildResources": "electron/resources"
     },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "murdockpeter",
+        "repo": "mnw_dynamic_campaign"
+      }
+    ],
     "win": {
       "icon": "electron/resources/icon.ico",
       "target": "nsis"
