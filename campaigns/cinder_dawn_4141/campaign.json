@@ -1,0 +1,33 @@
+{
+  "campaign_id": "cinder_dawn_4141",
+  "campaign_seed": "cinder_dawn_4141",
+  "title": "Cinder Dawn",
+  "theater": "Norwegian Sea",
+  "description": "Cinder Dawn is a high alert interdiction campaign set in the Norwegian Sea.",
+  "active_persistence_system": "baseline_modular",
+  "authoring_constraints": {
+    "maxDistanceToPrimaryTargetKm": null,
+    "merchantTrafficIntensity": 2,
+    "biologicClutterIntensity": 2,
+    "hostileSurfaceSupportIntensity": 2,
+    "hostileAirSupportIntensity": 2,
+    "friendlySupportIntensity": 2
+  },
+  "experimental_features": {
+    "enabled": false,
+    "plotSeed": "none",
+    "plotSeedLabel": "None"
+  },
+  "campaign_climate": "breakout_hunt",
+  "mission_type": "asw",
+  "season": "summer",
+  "season_label": "Summer",
+  "time_of_day": "day",
+  "time_of_day_label": "Day",
+  "player_submarine": "virginia_block_iii",
+  "player_submarine_label": "Virginia Block III",
+  "player_submarine_platform_dbid": 552,
+  "player_submarine_verified_db": true,
+  "mission_stance": "aggressive_intercept",
+  "rules_of_engagement": "hostile_flagged_free_fire"
+}

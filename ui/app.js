@@ -1635,8 +1635,10 @@ function populateWizardSelectors() {
   timeOfDaySelect.innerHTML = Object.entries(getTimeOfDayCatalog()).map(([key, timeOfDay]) => `
     <option value="${key}">${timeOfDay.label}</option>
   `).join("");
-  playerSubmarineSelect.innerHTML = Object.entries(getPlayerSubmarineCatalog()).map(([key, playerSubmarine]) => `
-    <option value="${key}">${playerSubmarine.label}${playerSubmarine.dbFallback ? " [DB Fallback]" : ""}</option>
+  playerSubmarineSelect.innerHTML = Object.entries(getPlayerSubmarineCatalog())
+    .filter(([, playerSubmarine]) => playerSubmarine.verifiedDb !== false)
+    .map(([key, playerSubmarine]) => `
+    <option value="${key}">${playerSubmarine.label}</option>
   `).join("");
   plotSeedSelect.innerHTML = Object.entries(getExperimentalPlotSeedCatalog()).map(([key, plotSeed]) => `
     <option value="${key}">${plotSeed.label}</option>

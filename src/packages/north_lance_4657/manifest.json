@@ -1,0 +1,44 @@
+{
+  "version": "0.0.0",
+  "build": "0",
+  "dv": "0.0.0",
+  "author": "MNW Desktop Wizard",
+  "content": [
+    {
+      "path": "locale.csv",
+      "hash": "3b4e1b7b8d2e3371e93ed46f2b9b4721"
+    },
+    {
+      "path": "north_lance_4657/quest.cmp",
+      "hash": "c67f89c328ca57d04ca7b4d9b14dbdb7"
+    },
+    {
+      "path": "north_lance_4657/quest.cmp.json",
+      "hash": "d3ef80db65aefc073deed2518f2f256b"
+    },
+    {
+      "path": "north_lance_4657/scenario_01.mis",
+      "hash": "5743056afdfa6fef612ce034dbcc04ce"
+    },
+    {
+      "path": "north_lance_4657/scenario_01.mis.json",
+      "hash": "144eface5c98c354639e2c6681cca9f1"
+    },
+    {
+      "path": "north_lance_4657/scenario_02.mis",
+      "hash": "5a176b5be922f216088516e4e28c8fa5"
+    },
+    {
+      "path": "north_lance_4657/scenario_02.mis.json",
+      "hash": "9739159af9c38a3fccfbd2af38d444f8"
+    },
+    {
+      "path": "template.cmp.json",
+      "hash": "badd351cd23e6da30a362aaf4d077475"
+    },
+    {
+      "path": "template.mis.json",
+      "hash": "2af81aeb22acc9113f2afda8cca18f53"
+    }
+  ]
+}

@@ -1,0 +1,183 @@
+import random
+
+##
+# Globals
+##
+_debug_mode = False
+_version = "0.0.0"
+_msv = "0.113.1"
+_author = "MNW Desktop Wizard"
+_operation_type = OperationType.ASW
+_date_time = "2028/07/19 13:20:00"
+_weather = EnvTools.GetRandomWeatherParameters()
+
+civ_fact = 0
+us_fact = 236
+rus_fact = 183
+ch_fact = 46
+
+virginia_id = 1011
+arleigh_id = 294
+p8_id = 2705
+yasen_id = 667
+escort_id = 34
+
+cargo_ids = [
+99992101, 99992105, 99992106, 99992107, 99992108,
+99992109, 99992110, 99992111, 99992201, 99992202,
+99992203, 99992204, 99992205, 99992206, 99992207,
+99992208, 99992209, 99992210, 99992211, 99992301,
+99992302, 99992303, 99992304, 99992305, 99992306,
+99992307, 99992308, 99992309, 99992310, 99992311,
+99992312, 99992313, 99992314, 99992315, 99992401
+]
+
+def _get_random_cargo():
+    return cargo_ids[random.randrange(0, len(cargo_ids))]
+
+player_spawn_pos = GC(69.272194, -0.935488)
+datum_pos = GC(71.728390, 4.878677)
+yasen_spawn_pos = GC(72.322090, 6.390204)
+escort_spawn_pos = GC(71.584832, 4.532663)
+support_group_pos = GC(66.424963, -6.732760)
+support_group_dest = GC(68.324183, -2.248468)
+ddg_spawn_pos = GC(67.676037, -3.851869)
+ddg_screen_pos = GC(68.276393, -2.335014)
+p8_spawn_pos = GC(69.549570, 0.049589)
+battle_area_center = GC(70.780869, 2.524479)
+egress_pos = GC(69.895591, 0.521617)
+withdrawal_zone_pos = GC(68.086594, -5.149344)
+
+_diplomacy.AddFactions([civ_fact, us_fact, rus_fact, ch_fact])
+_diplomacy.SetTensionLevel(TensionLevel.Increased).SetMissionROE(RulesOfEngagement.Free)
+_diplomacy.SetStatus(civ_fact).SetStatus(us_fact).SetStatus(rus_fact, CoalitionStatus.Enemy).SetStatus(ch_fact, CoalitionStatus.Enemy)
+
+objectives = [
+    Obj(_objectives["primary_withdraw_intact"], True).SetStatus(ObjectiveStatus.InProgress),
+]
+
+player_spawn_zone = _Z.Circular("Player Spawn Zone", player_spawn_pos, 1000)
+player_props = Element.Props.FromElementID(us_fact, "(Player) USS North Dakota | Virginia B3", ElementCategory.Submarine, virginia_id, player_spawn_pos)
+player_element = Element(player_props).SetElevation(-90).SetHeading(30).SetPlayable().SetScope(Global.Scope.Player)
+player_spawn_process = _P.Element.Spawn(_mission_started, player_element, player_element.Position)
+
+player_mk48_arsenal_process = _P.Element.Arsenal(player_spawn_process, player_element, BaseCategory.Subsurface, ElementCategory.Torpedo, 1712, 12)
+player_mk3_arsenal_process = _P.Element.Arsenal(player_mk48_arsenal_process, player_element, BaseCategory.Subsurface, ElementCategory.Expendable, 126, 12)
+player_mk4_arsenal_process = _P.Element.Arsenal(player_mk3_arsenal_process, player_element, BaseCategory.Subsurface, ElementCategory.Expendable, 2458, 12)
+
+preloads = []
+for i in range(4):
+    preloads.append(ArsenalPacket(BaseCategory.Subsurface, ElementCategory.Torpedo, 1712))
+for j in range(14):
+    if j <= 7:
+        preloads.append(ArsenalPacket(BaseCategory.Subsurface, ElementCategory.Expendable, 126))
+    else:
+        preloads.append(ArsenalPacket(BaseCategory.Subsurface, ElementCategory.Expendable, 2458))
+player_preload_process = _P.Element.PreloadArsenal(player_mk4_arsenal_process, player_element, preloads)
+
+messageModel = MessageModel(
+    EMFTools.Protocol.Link_16,
+    EMFTools.MicroWaveBands.UHF,
+    _date_time,
+    MessagePriority.High,
+    _messages["mission_from"],
+    _messages["mission_to"],
+    "TASKING ORDER",
+    _messages["mission_objectives"]
+)
+datum_poi = PointOfInterest("Breakout Datum", Waypoint(datum_pos))
+barrier_poi = PointOfInterest("Likely Egress", Waypoint(egress_pos))
+withdrawal_poi = PointOfInterest("Withdrawal Box", Waypoint(withdrawal_zone_pos))
+annotation_poi_0 = PointOfInterest("Likely Contact Area", Waypoint(GC(72.322090, 6.390204)))
+annotation_poi_1 = PointOfInterest("Intercept Gate", Waypoint(GC(69.895591, 0.521617)))
+annotation_poi_2 = PointOfInterest("Support Search Line", Waypoint(GC(68.276393, -2.335014)))
+annotation_poi_3 = PointOfInterest("Barrier Station", Waypoint(GC(68.324183, -2.248468)))
+messageModel.AttachPOIs([datum_poi, barrier_poi, withdrawal_poi, annotation_poi_0, annotation_poi_1, annotation_poi_2, annotation_poi_3])
+message_process = _P.Message(player_spawn_process, messageModel)
+
+sat_spawn_zone = _Z.Circular("Sat Spawn Zone", player_spawn_pos, 10000)
+sat_props = Element.Props.FromDatabaseID(us_fact, "MUOS", ElementCategory.SpaceElement, 1, sat_spawn_zone.RandomPosition())
+sat_element = Element(sat_props).SetElevation(500)
+sat_spawn_process = _P.Element.Spawn(player_spawn_process, sat_element, sat_element.Position)
+transmission = Transmission.Create(EMFTools.Protocol.Link_16, _date_time, 60, 10, 500, EMFTools.MicroWaveBands.UHF)
+transmission_process = _P.Element.Radio(sat_spawn_process, sat_element, transmission)
+
+ddg_props = Element.Props.FromDatabaseID(236, "USS Ross", ElementCategory.Ship, arleigh_id if 294 == 294 else 294, ddg_spawn_pos)
+ddg_element = Element(ddg_props).SetElevation(0).SetHeading(45).SetHVU(True)
+ddg_spawn = _P.Element.Spawn(player_spawn_process, ddg_element, ddg_element.Position)
+ddg_plot = _P.Element.Plot(ddg_spawn, ddg_element, Waypoint(ddg_screen_pos))
+
+p8_props = Element.Props.FromDatabaseID(236, "P-8A GIUK Scout", ElementCategory.Aircraft, p8_id if 2705 == 2705 else 2705, p8_spawn_pos)
+p8_element = Element(p8_props).SetElevation(5000).SetHeading(220)
+p8_spawn = _P.Element.Spawn(ddg_plot, p8_element, p8_element.Position)
+
+bio_props = Element.Props.FromDatabaseID(civ_fact, "Biologic %s" % 0, ElementCategory.Biologic, 1, GC(70.499230, 1.273544))
+bio_element = Element(bio_props).SetElevation(-60).SetHeading(random.randrange(0, 359))
+_P.Element.Spawn(p8_spawn, bio_element, bio_element.Position)
+bio_props = Element.Props.FromDatabaseID(civ_fact, "Biologic %s" % 1, ElementCategory.Biologic, 1, GC(70.504759, 1.729253))
+bio_element = Element(bio_props).SetElevation(-95).SetHeading(random.randrange(0, 359))
+_P.Element.Spawn(p8_spawn, bio_element, bio_element.Position)
+bio_props = Element.Props.FromDatabaseID(civ_fact, "Biologic %s" % 2, ElementCategory.Biologic, 1, GC(70.720788, 1.828236))
+bio_element = Element(bio_props).SetElevation(-130).SetHeading(random.randrange(0, 359))
+_P.Element.Spawn(p8_spawn, bio_element, bio_element.Position)
+bio_props = Element.Props.FromDatabaseID(civ_fact, "Biologic %s" % 3, ElementCategory.Biologic, 1, GC(71.068209, 1.695508))
+bio_element = Element(bio_props).SetElevation(-165).SetHeading(random.randrange(0, 359))
+_P.Element.Spawn(p8_spawn, bio_element, bio_element.Position)
+
+
+
+cargo_props = Element.Props.FromDatabaseID(civ_fact, "Merchant %s" % (0 + 1), ElementCategory.Ship, _get_random_cargo(), GC(70.078213, 1.991272))
+cargo_element = Element(cargo_props).SetHeading(random.randrange(200, 280))
+_P.Element.Spawn(p8_spawn, cargo_element, cargo_element.Position)
+cargo_props = Element.Props.FromDatabaseID(civ_fact, "Merchant %s" % (1 + 1), ElementCategory.Ship, _get_random_cargo(), GC(70.215063, 3.481576))
+cargo_element = Element(cargo_props).SetHeading(random.randrange(200, 280))
+_P.Element.Spawn(p8_spawn, cargo_element, cargo_element.Position)
+cargo_props = Element.Props.FromDatabaseID(civ_fact, "Merchant %s" % (2 + 1), ElementCategory.Ship, _get_random_cargo(), GC(70.006879, 0.450835))
+cargo_element = Element(cargo_props).SetHeading(random.randrange(200, 280))
+_P.Element.Spawn(p8_spawn, cargo_element, cargo_element.Position)
+
+yasen_spawn_zone = _Z.Circular("Yasen Spawn Zone", yasen_spawn_pos, 12000)
+yasen_props = Element.Props.FromDatabaseID(183, "Yasen Novosibirsk", ElementCategory.Submarine, yasen_id, yasen_spawn_pos)
+yasen_element = Element(yasen_props).SetElevation(-120).SetHeading(245)
+yasen_spawn = _P.Element.Spawn(p8_spawn, yasen_element, yasen_element.Position)
+yasen_dive = _P.Element.Dive(yasen_spawn, yasen_element)
+
+escort_spawn_zone = _Z.Circular("Escort Spawn Zone", escort_spawn_pos, 10000)
+escort_props = Element.Props.FromDatabaseID(183, "Akula Gatekeeper", ElementCategory.Submarine, escort_id, escort_spawn_pos)
+escort_element = Element(escort_props).SetElevation(-150).SetHeading(245).SetHVU(True)
+escort_spawn = _P.Element.Spawn(yasen_spawn, escort_element, escort_element.Position)
+escort_dive = _P.Element.Dive(escort_spawn, escort_element)
+
+yasen_plot = _P.Element.Plot(escort_dive, yasen_element, Waypoint(egress_pos))
+escort_plot = _P.Element.Plot(yasen_plot, escort_element, Waypoint(egress_pos))
+
+
+
+withdrawal_antenna_trigger = _T.AntennasRaised(True)
+player_element.NotifyOnAntennaRaised(withdrawal_antenna_trigger)
+withdrawal_complete = _P.Objective.Status(withdrawal_antenna_trigger, objectives[0], ObjectiveStatus.Completed)
+
+player_death_trigger = _T.Manual()
+player_nop_trigger = _T.NonOperational()
+player_element.NotifyUponDeath(player_death_trigger)
+player_element.NotifyNonOperational(player_nop_trigger)
+player_lost = _T.Or([player_death_trigger, player_nop_trigger])
+player_fail = _P.Objective.Status(player_lost, objectives[0], ObjectiveStatus.Failed)
+
+out_trigger = _T.Objective(objectives)
+end_trigger = _T.Manual()
+outcome = Out(out_trigger, end_trigger, us_fact)
+
+end_message_model = MessageModel(
+    EMFTools.Protocol.Link_16,
+    EMFTools.MicroWaveBands.UHF,
+    _date_time,
+    MessagePriority.High,
+    _messages["mission_from"],
+    _messages["mission_to"],
+    "MISSION STATUS UPDATE",
+    _messages["mission_success"]
+)
+end_message_process = _P.Message(out_trigger, end_message_model)
+end_transmission = Transmission.Create(EMFTools.Protocol.Link_16, _date_time, 60, 10, 500, EMFTools.MicroWaveBands.UHF)
+end_transmission_process = _P.Element.Radio(end_message_process, sat_element, end_transmission)

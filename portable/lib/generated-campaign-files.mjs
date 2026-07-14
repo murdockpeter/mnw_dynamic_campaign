@@ -43,13 +43,18 @@ function formatGc([lat, lon]) {
   return `GC(${lat.toFixed(6)}, ${lon.toFixed(6)})`;
 }
 
+function pythonStringLiteral(value) {
+  return JSON.stringify(String(value || ""));
+}
+
 function resolvePlayerPlatform(blueprint = {}) {
   const player = blueprint.player || {};
   return {
     dbid: Number(player.dbid || 1015),
     shortLabel: player.platformShortLabel || player.platformLabel || "Virginia B3",
     label: player.platformLabel || "Virginia Block III",
-    variantKey: player.variantKey || "virginia_block_iii"
+    variantKey: player.variantKey || "virginia_block_iii",
+    name: player.name || "USS North Dakota"
   };
 }
 
@@ -299,7 +304,7 @@ objectives = [
 ]
 
 player_spawn_zone = _Z.Circular("Player Spawn Zone", player_spawn_pos, 1000)
-player_props = Element.Props.FromElementID(us_fact, "(Player) ${playerPlatform.shortLabel}", ElementCategory.Submarine, virginia_id, player_spawn_pos)
+player_props = Element.Props.FromElementID(us_fact, ${pythonStringLiteral(`(Player) ${playerPlatform.name} | ${playerPlatform.shortLabel}`)}, ElementCategory.Submarine, virginia_id, player_spawn_pos)
 player_element = Element(player_props).SetElevation(-145).SetHeading(275).SetPlayable().SetScope(Global.Scope.Player)
 player_spawn_process = _P.Element.Spawn(_mission_started, player_element, player_element.Position)
 
@@ -572,7 +577,7 @@ objectives = [
 ]
 
 player_spawn_zone = _Z.Circular("Player Spawn Zone", player_spawn_pos, 1000)
-player_props = Element.Props.FromElementID(us_fact, "(Player) ${playerPlatform.shortLabel}", ElementCategory.Submarine, virginia_id, player_spawn_pos)
+player_props = Element.Props.FromElementID(us_fact, ${pythonStringLiteral(`(Player) ${playerPlatform.name} | ${playerPlatform.shortLabel}`)}, ElementCategory.Submarine, virginia_id, player_spawn_pos)
 player_element = Element(player_props).SetElevation(${playerDepthFeet}).SetHeading(30).SetPlayable().SetScope(Global.Scope.Player)
 player_spawn_process = _P.Element.Spawn(_mission_started, player_element, player_element.Position)
 
@@ -800,6 +805,8 @@ export async function buildGeneratedCampaignFiles({ templateRoot, spec }) {
     time_of_day_label: blueprint.timeOfDayLabel || "Theater Default",
     player_submarine: blueprint.playerSubmarine || blueprint.player?.variantKey || "virginia_block_iii",
     player_submarine_label: blueprint.playerSubmarineLabel || blueprint.player?.platformLabel || "Virginia Block III",
+    player_submarine_platform_dbid: blueprint.player?.platformDbid || null,
+    player_submarine_verified_db: blueprint.player?.verifiedDb !== false,
     mission_stance: blueprint.missionStance || blueprint.posture,
     rules_of_engagement: blueprint.requestedRoe || "weapons_tight"
   };
@@ -845,6 +852,8 @@ export async function buildGeneratedCampaignFiles({ templateRoot, spec }) {
       time_of_day_label: blueprint.timeOfDayLabel || "Theater Default",
       player_submarine: blueprint.playerSubmarine || blueprint.player?.variantKey || "virginia_block_iii",
       player_submarine_label: blueprint.playerSubmarineLabel || blueprint.player?.platformLabel || "Virginia Block III",
+      player_submarine_platform_dbid: blueprint.player?.platformDbid || null,
+      player_submarine_verified_db: blueprint.player?.verifiedDb !== false,
       mission_stance: blueprint.missionStance || blueprint.posture,
       posture: blueprint.posture,
       rules_of_engagement: blueprint.requestedRoe || "weapons_tight",

@@ -279,19 +279,28 @@ const PLAYER_SUBMARINE_CATALOG = {
   virginia_block_i: {
     label: "Virginia Block I",
     shortLabel: "Virginia B1",
-    dbid: 1015,
-    dbFallback: true
+    dbid: 1004,
+    platformDbid: 74,
+    representativeHull: "USS North Carolina",
+    verifiedDb: true,
+    dbFallback: false
   },
   virginia_block_ii: {
     label: "Virginia Block II",
     shortLabel: "Virginia B2",
-    dbid: 1015,
-    dbFallback: true
+    dbid: 1005,
+    platformDbid: 551,
+    representativeHull: "USS New Hampshire",
+    verifiedDb: true,
+    dbFallback: false
   },
   virginia_block_iii: {
     label: "Virginia Block III",
     shortLabel: "Virginia B3",
-    dbid: 1015,
+    dbid: 1011,
+    platformDbid: 552,
+    representativeHull: "USS North Dakota",
+    verifiedDb: true,
     dbFallback: false
   }
 };
@@ -1888,9 +1897,12 @@ function materializePlayerPlatform(basePlayer = {}, playerName, playerSubmarineK
     ...basePlayer,
     name: playerName,
     dbid: variant.dbid,
+    platformDbid: variant.platformDbid || null,
     variantKey,
     platformLabel: variant.label,
     platformShortLabel: variant.shortLabel,
+    representativeHull: variant.representativeHull || null,
+    verifiedDb: Boolean(variant.verifiedDb),
     dbFallback: Boolean(variant.dbFallback)
   };
 }
@@ -2902,6 +2914,9 @@ function buildTheaterUnitCatalog(template, playerName) {
         player_submarine_key: unit.variantKey || null,
         player_submarine_label: unit.platformLabel || null,
         player_submarine_short_label: unit.platformShortLabel || null,
+        player_submarine_platform_dbid: unit.platformDbid || null,
+        player_submarine_representative_hull: unit.representativeHull || null,
+        player_submarine_verified_db: Boolean(unit.verifiedDb),
         player_submarine_db_fallback: Boolean(unit.dbFallback)
       }
     });

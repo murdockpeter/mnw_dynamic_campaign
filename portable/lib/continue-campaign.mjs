@@ -140,7 +140,9 @@ export async function appendContinuationScenario({
       dbid: playerUnit.dbid,
       variantKey: state.world_state?.player_submarine || campaignConfig.player_submarine || playerUnit.notes?.player_submarine_key || "virginia_block_iii",
       platformLabel: state.world_state?.player_submarine_label || campaignConfig.player_submarine_label || playerUnit.notes?.player_submarine_label || "Virginia Block III",
-      platformShortLabel: playerUnit.notes?.player_submarine_short_label || "Virginia B3"
+      platformShortLabel: playerUnit.notes?.player_submarine_short_label || "Virginia B3",
+      platformDbid: state.world_state?.player_submarine_platform_dbid || campaignConfig.player_submarine_platform_dbid || playerUnit.notes?.player_submarine_platform_dbid || null,
+      verifiedDb: state.world_state?.player_submarine_verified_db ?? campaignConfig.player_submarine_verified_db ?? playerUnit.notes?.player_submarine_verified_db ?? true
     }
   };
   const artifacts = buildScenarioPackageArtifacts({ blueprint, scenario });
@@ -183,6 +185,8 @@ export async function appendContinuationScenario({
   state.world_state.time_of_day = scenario.continuation?.timeOfDay || state.world_state.time_of_day || campaignConfig.time_of_day || "theater_default";
   state.world_state.player_submarine = scenario.continuation?.playerSubmarine || state.world_state.player_submarine || campaignConfig.player_submarine || "virginia_block_iii";
   state.world_state.player_submarine_label = scenario.continuation?.playerSubmarineLabel || state.world_state.player_submarine_label || campaignConfig.player_submarine_label || "Virginia Block III";
+  state.world_state.player_submarine_platform_dbid = state.world_state.player_submarine_platform_dbid || campaignConfig.player_submarine_platform_dbid || playerUnit.notes?.player_submarine_platform_dbid || null;
+  state.world_state.player_submarine_verified_db = state.world_state.player_submarine_verified_db ?? campaignConfig.player_submarine_verified_db ?? playerUnit.notes?.player_submarine_verified_db ?? true;
   state.world_state.escalation_key = scenario.continuation?.escalationKey || state.world_state.escalation_key || "peacetime";
   state.world_state.escalation_level = scenario.escalationLevel ?? state.world_state.escalation_level ?? 0;
   state.world_state.rules_of_engagement = scenario.continuation?.roeKey || state.world_state.rules_of_engagement || campaignConfig.rules_of_engagement || "weapons_tight";
