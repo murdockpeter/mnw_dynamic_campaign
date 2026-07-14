@@ -666,6 +666,20 @@ const MISSION_VARIATION_LIBRARY = {
       cue: "A patient read of the screen may buy a better follow-on kill opportunity than forcing the first turn.",
       taskType: "classify_trail",
       forceBias: { friendlyAir: 1, biologics: 1 }
+    },
+    {
+      key: "gate_slash",
+      summary: "Use the first gap in the screen to cut ahead of the route and force the opening decision early.",
+      cue: "This is a geometry fight, not a stern chase. Beat the screen to the gate before it settles.",
+      taskType: "intercept_gate",
+      forceBias: { friendlySurface: 1, enemySurfaceSupport: 1, merchants: -1 }
+    },
+    {
+      key: "barrier_lattice",
+      summary: "Anchor the likely seam, classify the real axis, and make the first hostile move resolve against your prepared barrier.",
+      cue: "You do not need the perfect contact immediately if the screen has to cross your held line to get anywhere useful.",
+      taskType: "hold_barrier",
+      forceBias: { friendlySurface: 1, friendlyAir: 1, enemyAir: -1 }
     }
   ],
   route_bend: [
@@ -845,6 +859,152 @@ const CONTINUATION_VARIATION_LIBRARY = {
     }
   ]
 };
+
+const SUB_HUNT_OPENING_GEOMETRY_PROFILES = [
+  {
+    key: "forward_shadow",
+    playerIndex: 0,
+    enemyIndex: 0,
+    escortIndex: 1,
+    egressIndex: 3,
+    supportIndex: 0,
+    supportDestIndex: 2,
+    ddgIndex: 1,
+    ddgScreenIndex: 2,
+    airIndex: 0,
+    centerIndex: 2,
+    playerRotation: -18,
+    enemyRotation: 6,
+    supportRotation: -10
+  },
+  {
+    key: "crossing_gate",
+    playerIndex: 2,
+    enemyIndex: 1,
+    escortIndex: 0,
+    egressIndex: 3,
+    supportIndex: 1,
+    supportDestIndex: 2,
+    ddgIndex: 0,
+    ddgScreenIndex: 1,
+    airIndex: 0,
+    centerIndex: 2,
+    playerRotation: 32,
+    enemyRotation: -14,
+    supportRotation: 18
+  },
+  {
+    key: "barrier_hold",
+    playerIndex: 1,
+    enemyIndex: 0,
+    escortIndex: 2,
+    egressIndex: 1,
+    supportIndex: 2,
+    supportDestIndex: 1,
+    ddgIndex: 2,
+    ddgScreenIndex: 1,
+    airIndex: 0,
+    centerIndex: 1,
+    playerRotation: 58,
+    enemyRotation: 10,
+    supportRotation: 28
+  },
+  {
+    key: "support_lattice",
+    playerIndex: 0,
+    enemyIndex: 2,
+    escortIndex: 1,
+    egressIndex: 0,
+    supportIndex: 0,
+    supportDestIndex: 1,
+    ddgIndex: 1,
+    ddgScreenIndex: 2,
+    airIndex: 0,
+    centerIndex: 2,
+    playerRotation: -52,
+    enemyRotation: 18,
+    supportRotation: -24
+  },
+  {
+    key: "reverse_pocket",
+    playerIndex: 3,
+    enemyIndex: 1,
+    escortIndex: 2,
+    egressIndex: 0,
+    supportIndex: 2,
+    supportDestIndex: 0,
+    ddgIndex: 1,
+    ddgScreenIndex: 0,
+    airIndex: 0,
+    centerIndex: 1,
+    playerRotation: 96,
+    enemyRotation: -24,
+    supportRotation: 42
+  }
+];
+
+const SUB_HUNT_OPENING_FORCE_PROFILES = [
+  {
+    key: "paired_breakout",
+    targetCount: 1,
+    screenCount: 1,
+    enemySurfaceSupportBase: 0,
+    enemyAirBase: 0,
+    friendlySurfaceBase: 1,
+    friendlyAirBase: 1,
+    exactSectorScore: 76,
+    nonExactSectorScore: 58,
+    pickWindowDelta: 18
+  },
+  {
+    key: "solo_sprinter",
+    targetCount: 1,
+    screenCount: 0,
+    enemySurfaceSupportBase: 1,
+    enemyAirBase: 1,
+    friendlySurfaceBase: 0,
+    friendlyAirBase: 1,
+    exactSectorScore: 66,
+    nonExactSectorScore: 60,
+    pickWindowDelta: 22
+  },
+  {
+    key: "double_screen",
+    targetCount: 1,
+    screenCount: 2,
+    enemySurfaceSupportBase: 0,
+    enemyAirBase: 0,
+    friendlySurfaceBase: 1,
+    friendlyAirBase: 0,
+    exactSectorScore: 72,
+    nonExactSectorScore: 54,
+    pickWindowDelta: 20
+  },
+  {
+    key: "surface_lattice",
+    targetCount: 1,
+    screenCount: 0,
+    enemySurfaceSupportBase: 2,
+    enemyAirBase: 1,
+    friendlySurfaceBase: 1,
+    friendlyAirBase: 0,
+    exactSectorScore: 64,
+    nonExactSectorScore: 62,
+    pickWindowDelta: 24
+  },
+  {
+    key: "support_led_reacquire",
+    targetCount: 1,
+    screenCount: 1,
+    enemySurfaceSupportBase: 1,
+    enemyAirBase: 0,
+    friendlySurfaceBase: 0,
+    friendlyAirBase: 2,
+    exactSectorScore: 68,
+    nonExactSectorScore: 61,
+    pickWindowDelta: 24
+  }
+];
 
 const RISK_POSTURES = {
   cautious: {
@@ -2201,6 +2361,13 @@ function movePointAwayByKm([latA, lonA], [latB, lonB], deltaKm = 1) {
   ];
 }
 
+function selectIndexedPoint(points = [], preferredIndex = 0, fallbackIndex = 0) {
+  if (!Array.isArray(points) || !points.length) {
+    return [0, 0];
+  }
+  return points[preferredIndex] || points[Math.max(0, Math.min(points.length - 1, fallbackIndex))] || points[0];
+}
+
 function primaryTargetPointForFamily(family, geometry) {
   return family === "surface_shadow" ? geometry.lead : geometry.yasen;
 }
@@ -2469,6 +2636,72 @@ function buildScenarioIntel(template, geometry, forces, index, rng, missionStanc
   };
 }
 
+function bearingPreferencesForOpening({ campaignId, climateKey, missionStanceKey, missionSlug }) {
+  const normalizedClimate = normalizeCampaignClimateKey(climateKey);
+  const seed = hashSeed(`${campaignId}:${normalizedClimate}:${missionStanceKey || "wide_area_search"}:${missionSlug || "opening"}`);
+  const seaDenialPalette = ["east", "south-east", "south", "west", "north-west"];
+  const defaultPalette = ["east", "south-east", "north", "west", "north-west", "south"];
+  const palette = normalizedClimate === "sea_denial" ? seaDenialPalette : defaultPalette;
+  const offset = seed % palette.length;
+  const preferredBearings = palette.map((_, index) => palette[(index + offset) % palette.length]);
+  return {
+    preferredBearings,
+    disallowedBearings: ["north-east"]
+  };
+}
+
+function steerOpeningSubHuntBearing(geometry, index, options = {}) {
+  if (index !== 0 || !geometry?.playerSpawn || !geometry?.yasen) {
+    return geometry;
+  }
+  const preferences = bearingPreferencesForOpening(options);
+  const currentBearing = bearingLabelFromDegrees(approximateBearingDegrees(geometry.playerSpawn, geometry.yasen));
+  const currentAllowed = !preferences.disallowedBearings.includes(currentBearing);
+  if (currentAllowed && preferences.preferredBearings[0] === currentBearing) {
+    return geometry;
+  }
+
+  const candidateRotations = [0, 45, 90, 135, 180, -135, -90, -45];
+  const candidates = candidateRotations.map((rotation) => {
+    const candidatePlayer = rotation === 0
+      ? geometry.playerSpawn
+      : rotatePointAround(geometry.playerSpawn, geometry.yasen, rotation);
+    const candidateBearing = bearingLabelFromDegrees(approximateBearingDegrees(candidatePlayer, geometry.yasen));
+    return {
+      playerSpawn: candidatePlayer,
+      bearing: candidateBearing,
+      rotation
+    };
+  }).filter((candidate) => !preferences.disallowedBearings.includes(candidate.bearing));
+
+  if (!candidates.length) {
+    return geometry;
+  }
+
+  const ranked = candidates
+    .map((candidate) => ({
+      ...candidate,
+      preferenceIndex: preferences.preferredBearings.indexOf(candidate.bearing)
+    }))
+    .sort((left, right) => {
+      const leftIndex = left.preferenceIndex === -1 ? 999 : left.preferenceIndex;
+      const rightIndex = right.preferenceIndex === -1 ? 999 : right.preferenceIndex;
+      if (leftIndex !== rightIndex) {
+        return leftIndex - rightIndex;
+      }
+      return Math.abs(left.rotation) - Math.abs(right.rotation);
+    });
+
+  const selected = ranked[0];
+  const candidateWithdrawal = movePointAwayByKm(selected.playerSpawn, geometry.yasen, 110);
+  return {
+    ...geometry,
+    playerSpawn: selected.playerSpawn,
+    withdrawal: candidateWithdrawal,
+    routeSummary: summarizePath([selected.playerSpawn, geometry.datum, geometry.yasen, geometry.egress, candidateWithdrawal])
+  };
+}
+
 function resolveScenarioTarget(template, forces = {}) {
   const prioritizedTargets = template.family === "surface_shadow"
     ? [...(forces.enemyPrimary || [])].sort((left, right) => {
@@ -2726,13 +2959,16 @@ function pickScenarioSector(template, geometry, index) {
   return sectors[index % sectors.length]?.id || sectors[0]?.id || "main_axis";
 }
 
-function selectUnitsForMission(pool = [], theaterPicture, scenarioSector, desiredCount, missionIndex, rng = Math.random) {
+function selectUnitsForMission(pool = [], theaterPicture, scenarioSector, desiredCount, missionIndex, rng = Math.random, selectionOptions = {}) {
   if (!Array.isArray(pool) || !pool.length || desiredCount <= 0) {
     return [];
   }
 
   const available = [...pool];
   const selected = [];
+  const exactSectorScore = Number.isFinite(selectionOptions.exactSectorScore) ? selectionOptions.exactSectorScore : 100;
+  const nonExactSectorScore = Number.isFinite(selectionOptions.nonExactSectorScore) ? selectionOptions.nonExactSectorScore : 40;
+  const pickWindowDelta = Number.isFinite(selectionOptions.pickWindowDelta) ? selectionOptions.pickWindowDelta : 8;
   while (available.length && selected.length < Math.min(desiredCount, available.length + selected.length)) {
     const ranked = available
       .map((unit) => {
@@ -2743,7 +2979,7 @@ function selectUnitsForMission(pool = [], theaterPicture, scenarioSector, desire
         const recencyScore = Math.min(8, recentlyUsed);
         const availabilityScore = track.availability === "available" ? 2 : 0;
         const jitter = rng();
-        const score = (exactSector ? 100 : 40) + (recencyScore * 5) + availabilityScore + jitter;
+        const score = (exactSector ? exactSectorScore : nonExactSectorScore) + (recencyScore * 5) + availabilityScore + jitter;
         return { unit, score, exactSector, recentIndex: track.last_assigned_index ?? -1 };
       })
       .sort((left, right) => {
@@ -2755,7 +2991,7 @@ function selectUnitsForMission(pool = [], theaterPicture, scenarioSector, desire
         }
         return left.unit.name.localeCompare(right.unit.name);
       });
-    const pickWindow = ranked.filter((entry) => entry.score >= ranked[0].score - 8);
+    const pickWindow = ranked.filter((entry) => entry.score >= ranked[0].score - pickWindowDelta);
     const picked = pickWindow[Math.floor(rng() * pickWindow.length)]?.unit || ranked[0]?.unit;
     if (!picked) {
       break;
@@ -2939,30 +3175,76 @@ function buildScenarioForces(template, geometry, index, theaterPicture, rng, aut
 
   const targetPool = (pools.enemySubsurface || []).filter((unit) => unit.role === "target");
   const screenPool = (pools.enemySubsurface || []).filter((unit) => unit.role !== "target");
+  const openingForceProfile = index === 0
+    ? SUB_HUNT_OPENING_FORCE_PROFILES[Math.floor(rng() * SUB_HUNT_OPENING_FORCE_PROFILES.length) % SUB_HUNT_OPENING_FORCE_PROFILES.length]
+    : null;
+  const openingSelectionOptions = openingForceProfile
+    ? {
+      exactSectorScore: openingForceProfile.exactSectorScore,
+      nonExactSectorScore: openingForceProfile.nonExactSectorScore,
+      pickWindowDelta: openingForceProfile.pickWindowDelta
+    }
+    : undefined;
   const enemyPrimary = [
-    ...selectUnitsForMission(targetPool, theaterPicture, scenarioSector, 1, index, rng),
-    ...selectUnitsForMission(screenPool, theaterPicture, scenarioSector, 1, index, rng)
+    ...selectUnitsForMission(
+      targetPool,
+      theaterPicture,
+      scenarioSector,
+      openingForceProfile?.targetCount ?? 1,
+      index,
+      rng,
+      openingSelectionOptions
+    ),
+    ...selectUnitsForMission(
+      screenPool,
+      theaterPicture,
+      scenarioSector,
+      openingForceProfile?.screenCount ?? 1,
+      index,
+      rng,
+      openingSelectionOptions
+    )
   ];
   const enemySurfaceSupport = selectUnitsForMission(
     pools.enemySurfaceSupport || [],
     theaterPicture,
     scenarioSector,
-    resolveSupportCount(Math.max(0, (density >= 3 ? 2 : 1) + normalizedForceBias.enemySurfaceSupport), hostileSurfaceSupportIntensity, (pools.enemySurfaceSupport || []).length),
+    resolveSupportCount(
+      Math.max(0, (openingForceProfile?.enemySurfaceSupportBase ?? (density >= 3 ? 2 : 1)) + normalizedForceBias.enemySurfaceSupport),
+      hostileSurfaceSupportIntensity,
+      (pools.enemySurfaceSupport || []).length
+    ),
     index,
-    rng
+    rng,
+    openingSelectionOptions
   );
-  const enemyAir = density >= 2 || clampIntensityLevel(hostileAirSupportIntensity) > DEFAULT_INTENSITY_LEVEL
+  const enemyAirDesired = resolveSupportCount(
+    Math.max(0, (openingForceProfile?.enemyAirBase ?? 1) + normalizedForceBias.enemyAir),
+    hostileAirSupportIntensity,
+    (pools.enemyAir || []).length
+  );
+  const enemyAir = openingForceProfile
     ? selectUnitsForMission(
       pools.enemyAir || [],
       theaterPicture,
       scenarioSector,
-      resolveSupportCount(Math.max(0, 1 + normalizedForceBias.enemyAir), hostileAirSupportIntensity, (pools.enemyAir || []).length),
+      enemyAirDesired,
       index,
-      rng
+      rng,
+      openingSelectionOptions
     )
-    : [];
+    : density >= 2 || clampIntensityLevel(hostileAirSupportIntensity) > DEFAULT_INTENSITY_LEVEL
+      ? selectUnitsForMission(
+        pools.enemyAir || [],
+        theaterPicture,
+        scenarioSector,
+        enemyAirDesired,
+        index,
+        rng
+      )
+      : [];
   const friendlySurfaceDesired = resolveSupportCount(
-    Math.max(0, (resolvedMissionType === "submerged_escort" ? 2 : 1) + normalizedForceBias.friendlySurface),
+    Math.max(0, (openingForceProfile?.friendlySurfaceBase ?? (resolvedMissionType === "submerged_escort" ? 2 : 1)) + normalizedForceBias.friendlySurface),
     friendlySupportIntensity,
     (pools.friendlySurface || []).length
   );
@@ -2972,15 +3254,21 @@ function buildScenarioForces(template, geometry, index, theaterPicture, rng, aut
     scenarioSector,
     friendlySurfaceDesired,
     index,
-    rng
+    rng,
+    openingSelectionOptions
   );
   const friendlyAir = selectUnitsForMission(
     pools.friendlyAir || [],
     theaterPicture,
     scenarioSector,
-    resolveSupportCount(Math.max(0, 1 + normalizedForceBias.friendlyAir), friendlySupportIntensity, (pools.friendlyAir || []).length),
+    resolveSupportCount(
+      Math.max(0, (openingForceProfile?.friendlyAirBase ?? 1) + normalizedForceBias.friendlyAir),
+      friendlySupportIntensity,
+      (pools.friendlyAir || []).length
+    ),
     index,
-    rng
+    rng,
+    openingSelectionOptions
   );
   return {
     sector: scenarioSector,
@@ -2990,6 +3278,7 @@ function buildScenarioForces(template, geometry, index, theaterPicture, rng, aut
     enemyPrimary,
     enemySurfaceSupport,
     enemyAir,
+    openingProfile: openingForceProfile?.key || null,
     ambientMerchantCount: resolveCountWithIntensity(
       density + 2 + Math.floor(rng() * 2) + (resolvedMissionType === "submerged_escort" ? 1 : 0) + normalizedForceBias.merchants,
       merchantTrafficIntensity,
@@ -3113,6 +3402,99 @@ function buildSubHuntGeometry(template, index, count, rng) {
   const supportBase = routeSet.supportCorridor;
   const airBase = routeSet.airCorridor;
   const scale = 0.05 + (index * 0.02);
+  if (index === 0) {
+    const openingProfile = SUB_HUNT_OPENING_GEOMETRY_PROFILES[Math.floor(rng() * SUB_HUNT_OPENING_GEOMETRY_PROFILES.length) % SUB_HUNT_OPENING_GEOMETRY_PROFILES.length];
+    const routeCenter = averagePoint([
+      ...playerBase,
+      ...enemyBase,
+      ...supportBase,
+      ...airBase
+    ]);
+    const playerSeed = rotatePointAround(
+      selectIndexedPoint(playerBase, openingProfile.playerIndex, 0),
+      routeCenter,
+      openingProfile.playerRotation
+    );
+    const enemySeed = rotatePointAround(
+      selectIndexedPoint(enemyBase, openingProfile.enemyIndex, 0),
+      routeCenter,
+      openingProfile.enemyRotation
+    );
+    const escortSeed = rotatePointAround(
+      selectIndexedPoint(enemyBase, openingProfile.escortIndex, 1),
+      routeCenter,
+      openingProfile.enemyRotation / 2
+    );
+    const egressSeed = rotatePointAround(
+      selectIndexedPoint(enemyBase, openingProfile.egressIndex, 3),
+      routeCenter,
+      openingProfile.enemyRotation
+    );
+    const supportSeed = rotatePointAround(
+      selectIndexedPoint(supportBase, openingProfile.supportIndex, 0),
+      routeCenter,
+      openingProfile.supportRotation
+    );
+    const supportDestSeed = rotatePointAround(
+      selectIndexedPoint(supportBase, openingProfile.supportDestIndex, 2),
+      routeCenter,
+      openingProfile.supportRotation / 2
+    );
+    const ddgSeed = rotatePointAround(
+      selectIndexedPoint(supportBase, openingProfile.ddgIndex, 1),
+      routeCenter,
+      openingProfile.supportRotation
+    );
+    const ddgScreenSeed = rotatePointAround(
+      selectIndexedPoint(supportBase, openingProfile.ddgScreenIndex, 2),
+      routeCenter,
+      openingProfile.supportRotation / 2
+    );
+    const airSeed = rotatePointAround(
+      selectIndexedPoint(airBase, openingProfile.airIndex, 0),
+      routeCenter,
+      openingProfile.supportRotation
+    );
+    const playerSpawn = jitterPoint(moveAway(playerSeed, enemySeed, 0.18), rng, scale * 1.3, scale * 1.5);
+    const datum = jitterPoint(moveToward(enemySeed, escortSeed, 0.3), rng, scale * 1.2, scale * 1.2);
+    const yasen = jitterPoint(enemySeed, rng, scale * 1.4, scale * 1.4);
+    const escort = jitterPoint(escortSeed, rng, scale * 1.2, scale * 1.2);
+    const egress = jitterPoint(moveAway(egressSeed, playerSpawn, 0.12), rng, scale * 1.1, scale * 1.4);
+    const supportGroup = jitterPoint(supportSeed, rng, scale * 1.1, scale * 1.2);
+    const supportDest = jitterPoint(supportDestSeed, rng, scale * 1.1, scale * 1.2);
+    const ddg = jitterPoint(ddgSeed, rng, scale, scale * 1.1);
+    const ddgScreen = jitterPoint(ddgScreenSeed, rng, scale, scale * 1.1);
+    const p8 = jitterPoint(airSeed, rng, scale * 1.1, scale * 1.3);
+    const center = jitterPoint(
+      rotatePointAround(selectIndexedPoint(enemyBase, openingProfile.centerIndex, 2), routeCenter, openingProfile.enemyRotation / 2),
+      rng,
+      scale,
+      scale
+    );
+    const withdrawal = jitterPoint(movePointAwayByKm(playerSpawn, yasen, 110), rng, scale * 1.2, scale * 1.4);
+
+    return {
+      routeVariantId: routeSet.id,
+      routeVariantLabel: routeSet.label,
+      routeAspect: routeSet.routeAspect,
+      openingProfile: openingProfile.key,
+      playerSpawn,
+      datum,
+      yasen,
+      escort,
+      egress,
+      supportGroup,
+      supportDest,
+      ddg,
+      ddgScreen,
+      p8,
+      center,
+      withdrawal,
+      routeSummary: summarizePath([playerSpawn, datum, yasen, egress, withdrawal]),
+      enemyTransitSummary: summarizePath([yasen, escort, egress]),
+      density: Math.min(1 + index, count)
+    };
+  }
   const playerSpawn = jitterPoint(playerBase[Math.min(index, playerBase.length - 1)], rng, scale, scale);
   const datum = jitterPoint(enemyBase[1], rng, scale, scale);
   const yasen = jitterPoint(enemyBase[0], rng, scale, scale);
@@ -3187,7 +3569,15 @@ function buildScenarioRecord(
   });
   const forceBias = normalizeForceBias(missionDef.variation?.forceBias);
   const postureGeometry = applyAuthoringPostureToGeometry(template, template.family, rawGeometry, normalizedMissionStance);
-  const geometry = finalizeScenarioGeometry(template.id, template.family, postureGeometry, rng, authoringConstraints);
+  const finalizedGeometry = finalizeScenarioGeometry(template.id, template.family, postureGeometry, rng, authoringConstraints);
+  const geometry = template.family === "sub_hunt"
+    ? steerOpeningSubHuntBearing(finalizedGeometry, index, {
+      campaignId: options?.campaignSeed || campaignId,
+      climateKey: options?.campaignClimateKey || "surveillance",
+      missionStanceKey: normalizedMissionStance,
+      missionSlug: missionDef.slug || missionDef.name || "opening"
+    })
+    : finalizedGeometry;
   const forces = buildScenarioForces(template, geometry, index, theaterPicture, rng, authoringConstraints, aisSnapshot, resolvedMissionType, forceBias);
   const intel = buildScenarioIntel(template, geometry, forces, index, rng, normalizedMissionStance);
   const tasking = buildScenarioAnnotations(template, geometry, forces, missionDef, normalizedMissionStance, intel, {
@@ -3335,6 +3725,7 @@ export function getContinuationChoiceCatalog() {
 
 export function buildContinuationScenario({
   campaignId,
+  campaignSeed = null,
   theaterId,
   year,
   playerName,
@@ -3362,6 +3753,7 @@ export function buildContinuationScenario({
   aisSnapshot = null,
   experimental = { enabled: false, plotSeed: "none" }
 } = {}) {
+  const effectiveCampaignSeed = sanitizeCampaignId(campaignSeed || campaignId || "generated_campaign");
   const theater = THEATER_TEMPLATES[theaterId] || THEATER_TEMPLATES.luzon_strait;
   const family = theater.family;
   const commandAuthority = commandAuthorityForTheater(theater.id);
@@ -3376,7 +3768,7 @@ export function buildContinuationScenario({
   const adjustedTime = applyTimeOfDayPolicy(advancedTime, theater.id, normalizedTimeOfDay, missionIndex);
   const startIso = adjustedTime.iso;
   const rng = mulberry32(hashSeed([
-    campaignId,
+    effectiveCampaignSeed,
     theater.id,
     objective,
     riskPosture,
@@ -3398,7 +3790,7 @@ export function buildContinuationScenario({
     player: playerPlatform
   }, theaterCatalog, rng, previousTheaterPicture);
   const flavorRng = mulberry32(hashSeed([
-    campaignId,
+    effectiveCampaignSeed,
     theater.id,
     objective,
     riskPosture,
@@ -3576,7 +3968,8 @@ export function buildContinuationScenario({
 }
 
 export function buildCampaignBlueprint(spec = {}) {
-  const campaignId = sanitizeCampaignId(spec.campaignId || spec.title);
+  const campaignId = sanitizeCampaignId(spec.campaignId || spec.campaignSeed || spec.title);
+  const campaignSeed = sanitizeCampaignId(spec.campaignSeed || spec.campaignId || spec.title);
   const theater = THEATER_TEMPLATES[spec.theater] || THEATER_TEMPLATES.luzon_strait;
   const playableScenarioCount = clampScenarioCount(spec.scenarioCount);
   const totalScenarioCount = playableScenarioCount + 1;
@@ -3598,7 +3991,7 @@ export function buildCampaignBlueprint(spec = {}) {
   if (playerPlatform.dbFallback) {
     warnings.push(`${playerPlatform.platformLabel} currently uses the verified Block III MNW database entry as a fallback. Platform identity and mission text will reflect your selection, but DB-specific differentiation still needs confirmed game data.`);
   }
-  const seed = hashSeed(`${campaignId}:${theater.id}:${tone}:${posture}:${missionType}:${requestedRoe}:${year}:${playableScenarioCount}:${playerName}:${playerSubmarineKey}:${authoringConstraintSeedFragment(authoringConstraints)}`);
+  const seed = hashSeed(`${campaignSeed}:${theater.id}:${tone}:${posture}:${missionType}:${requestedRoe}:${year}:${playableScenarioCount}:${playerName}:${playerSubmarineKey}:${authoringConstraintSeedFragment(authoringConstraints)}`);
   const rng = mulberry32(seed);
   const archetypeRng = mulberry32(hashSeed(`${seed}:archetypes`));
   const allArchetypes = pickArchetypes(tone, totalScenarioCount, archetypeRng);
@@ -3624,6 +4017,7 @@ export function buildCampaignBlueprint(spec = {}) {
       false,
       spec.aisSnapshot || null,
       {
+        campaignSeed,
         campaignClimateKey: tone,
         requestedRoeKey: requestedRoe,
         missionTypeKey: missionType,
@@ -3647,6 +4041,7 @@ export function buildCampaignBlueprint(spec = {}) {
     true,
     spec.aisSnapshot || null,
       {
+        campaignSeed,
         campaignClimateKey: tone,
         requestedRoeKey: requestedRoe,
         missionTypeKey: missionType,
@@ -3659,6 +4054,7 @@ export function buildCampaignBlueprint(spec = {}) {
   return {
     seed,
     campaignId,
+    campaignSeed,
     title,
     theaterId: theater.id,
     theaterLabel: theater.label,

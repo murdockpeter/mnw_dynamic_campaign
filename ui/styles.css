@@ -207,6 +207,17 @@ body::after {
   word-break: break-word;
 }
 
+.setup-summary-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 14px;
+}
+
+.nested-card {
+  margin-top: 18px;
+}
+
 .compact-stack-item {
   padding: 10px 12px;
 }
@@ -958,6 +969,54 @@ code {
   color: var(--accent-2);
 }
 
+.tracking-map-mode-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 14px 0 12px;
+}
+
+.tracking-map-mode {
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(111, 212, 255, 0.14);
+  background: linear-gradient(180deg, rgba(20, 55, 78, 0.96), rgba(16, 38, 55, 0.98));
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+}
+
+.tracking-map-mode.toggle-active {
+  border-color: rgba(79, 224, 179, 0.4);
+  background: rgba(79, 224, 179, 0.12);
+  color: var(--accent-2);
+}
+
+.tracking-map-mode:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.tracking-map-preview-wrap {
+  margin-top: 8px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(111, 212, 255, 0.1);
+  background: rgba(7, 19, 29, 0.9);
+}
+
+.tracking-map-preview-frame {
+  display: block;
+  width: 100%;
+  height: 520px;
+  border: 0;
+  background: rgba(7, 19, 29, 0.9);
+}
+
+.tracking-map-preview-status {
+  margin-top: 10px;
+}
+
 .tracking-map-overlay {
   position: fixed;
   inset: 0;
@@ -1035,7 +1094,8 @@ code {
 
   .wizard-grid,
   .builder-grid,
-  .field-grid {
+  .field-grid,
+  .setup-summary-grid {
     grid-template-columns: 1fr;
   }
 

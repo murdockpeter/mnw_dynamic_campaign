@@ -244,6 +244,68 @@ test("scenario count now means playable scenarios and always appends one reserve
   assert.equal(doubleBlueprint.scenarios[2].reserved, true);
 });
 
+test("campaign seed controls deterministic variety independently from campaign id", () => {
+  const sharedSpec = {
+    title: "Seed Control",
+    campaignId: "shared_campaign_identity",
+    theater: "norwegian_sea",
+    campaignClimate: "breakout_hunt",
+    missionType: "asw",
+    scenarioCount: 1,
+    playerName: "USS Test"
+  };
+  const alphaA = buildCampaignBlueprint({
+    ...sharedSpec,
+    campaignSeed: "alpha_seed"
+  });
+  const alphaB = buildCampaignBlueprint({
+    ...sharedSpec,
+    campaignSeed: "alpha_seed"
+  });
+  const bravo = buildCampaignBlueprint({
+    ...sharedSpec,
+    campaignSeed: "bravo_seed"
+  });
+
+  assert.equal(alphaA.seed, alphaB.seed);
+  assert.deepEqual(alphaA.scenarios[0].geometry.routeSummary, alphaB.scenarios[0].geometry.routeSummary);
+  assert.equal(alphaA.scenarios[0].intel.likelyBearing, alphaB.scenarios[0].intel.likelyBearing);
+  assert.ok(
+    alphaA.seed !== bravo.seed
+      || alphaA.scenarios[0].intel.likelyBearing !== bravo.scenarios[0].intel.likelyBearing
+      || alphaA.scenarios[0].geometry.routeVariantLabel !== bravo.scenarios[0].geometry.routeVariantLabel
+      || alphaA.scenarios[0].variation.key !== bravo.scenarios[0].variation.key,
+    "expected a different campaign seed to alter the deterministic opening package"
+  );
+});
+
+test("first breakout-hunt mission now produces materially different opening packages across fresh campaigns", () => {
+  const samples = Array.from({ length: 10 }, (_, index) => buildCampaignBlueprint({
+    title: `Opening Variety ${index + 1}`,
+    campaignId: `opening_variety_${index + 1}`,
+    theater: "norwegian_sea",
+    campaignClimate: "breakout_hunt",
+    missionType: "asw",
+    scenarioCount: 1,
+    playerName: "USS Test"
+  }).scenarios[0]);
+
+  const geometryProfiles = new Set(samples.map((scenario) => scenario.geometry.openingProfile).filter(Boolean));
+  const forceProfiles = new Set(samples.map((scenario) => scenario.forces.openingProfile).filter(Boolean));
+  const routeVariants = new Set(samples.map((scenario) => scenario.geometry.routeVariantLabel));
+  const likelyBearings = new Set(samples.map((scenario) => scenario.intel.likelyBearing));
+  const enemyPrimarySignatures = new Set(samples.map((scenario) => scenario.forces.enemyPrimary.map((unit) => unit.name).sort().join(" | ")));
+
+  assert.ok(geometryProfiles.size >= 3, `expected at least 3 opening geometry profiles, got ${geometryProfiles.size}`);
+  assert.ok(forceProfiles.size >= 3, `expected at least 3 opening force profiles, got ${forceProfiles.size}`);
+  assert.ok(routeVariants.size >= 3, `expected at least 3 route variants, got ${routeVariants.size}`);
+  assert.ok(likelyBearings.size >= 3, `expected at least 3 likely bearings, got ${likelyBearings.size}`);
+  assert.ok(!samples.some((scenario) => scenario.intel.likelyBearing === "north-east"), "expected first breakout-hunt openings to avoid the legacy north-east lane");
+  assert.ok(enemyPrimarySignatures.size >= 4, `expected at least 4 enemy opening signatures, got ${enemyPrimarySignatures.size}`);
+  assert.ok(samples.some((scenario) => scenario.forces.enemyPrimary.length === 1), "expected at least one opening with a lone primary submarine");
+  assert.ok(samples.some((scenario) => scenario.forces.enemyPrimary.length >= 3), "expected at least one opening with a heavier screened submarine package");
+});
+
 test("sub-hunt support groups anchor to a defined plot", () => {
   const blueprint = buildCampaignBlueprint({
     title: "Support Anchor",

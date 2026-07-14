@@ -1,0 +1,17 @@
+{
+  "mission_id": "atlas_passage_4823.atlas_passage_4823.scenario_01",
+  "outcome": "success",
+  "time_elapsed_hours": 4,
+  "events": [
+    {
+      "event_type": "weapon_expended",
+      "unit_id": "uss_north_dakota",
+      "amount": 0,
+      "weapon_key": "mk48_mod7",
+      "metadata": {}
+    }
+  ],
+  "metadata": {
+    "source": "bootstrap_example"
+  }
+}

@@ -74,6 +74,7 @@ export async function appendContinuationScenario({
 
   const scenario = buildContinuationScenario({
     campaignId,
+    campaignSeed: state.world_state?.campaign_seed || campaignConfig.campaign_seed || campaignId,
     theaterId: theater.id,
     year: new Date(state.campaign_clock || Date.now()).getUTCFullYear(),
     playerName: playerUnit.name,
@@ -102,6 +103,7 @@ export async function appendContinuationScenario({
   });
   const tailScenario = hasTailSlot ? null : buildContinuationScenario({
     campaignId,
+    campaignSeed: state.world_state?.campaign_seed || campaignConfig.campaign_seed || campaignId,
     theaterId: theater.id,
     year: new Date(state.campaign_clock || Date.now()).getUTCFullYear(),
     playerName: playerUnit.name,
@@ -176,6 +178,7 @@ export async function appendContinuationScenario({
   state.world_state.mission_stance = scenario.continuation?.posture || state.world_state.mission_stance || state.world_state.posture || "wide_area_search";
   state.world_state.mission_type = scenario.continuation?.missionType || state.world_state.mission_type || campaignConfig.mission_type || null;
   state.world_state.campaign_climate = scenario.continuation?.campaignClimate || state.world_state.campaign_climate || campaignConfig.campaign_climate || campaignConfig.tone || "surveillance";
+  state.world_state.campaign_seed = state.world_state.campaign_seed || campaignConfig.campaign_seed || campaignId;
   state.world_state.season = scenario.continuation?.season || state.world_state.season || campaignConfig.season || "theater_default";
   state.world_state.time_of_day = scenario.continuation?.timeOfDay || state.world_state.time_of_day || campaignConfig.time_of_day || "theater_default";
   state.world_state.player_submarine = scenario.continuation?.playerSubmarine || state.world_state.player_submarine || campaignConfig.player_submarine || "virginia_block_iii";

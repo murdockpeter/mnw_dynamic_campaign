@@ -1,0 +1,44 @@
+{
+  "version": "0.0.0",
+  "build": "0",
+  "dv": "0.0.0",
+  "author": "MNW Desktop Wizard",
+  "content": [
+    {
+      "path": "atlas_passage_4823/quest.cmp",
+      "hash": "cc61a7289185df6ad6de0973c2ebcf19"
+    },
+    {
+      "path": "atlas_passage_4823/quest.cmp.json",
+      "hash": "be7272bf3fcb9597b26485856f6d763a"
+    },
+    {
+      "path": "atlas_passage_4823/scenario_01.mis",
+      "hash": "739d15d742fed22cd2f37bdd49c4ffa3"
+    },
+    {
+      "path": "atlas_passage_4823/scenario_01.mis.json",
+      "hash": "0418f67e1c2f29f542129bfd3d94e1c9"
+    },
+    {
+      "path": "atlas_passage_4823/scenario_02.mis",
+      "hash": "db81507e6f515835cb1c373fb365c812"
+    },
+    {
+      "path": "atlas_passage_4823/scenario_02.mis.json",
+      "hash": "8ff7210249038636d2719bee747ee84a"
+    },
+    {
+      "path": "locale.csv",
+      "hash": "eeea959744aa6b2df054ddc014fb282d"
+    },
+    {
+      "path": "template.cmp.json",
+      "hash": "badd351cd23e6da30a362aaf4d077475"
+    },
+    {
+      "path": "template.mis.json",
+      "hash": "2af81aeb22acc9113f2afda8cca18f53"
+    }
+  ]
+}

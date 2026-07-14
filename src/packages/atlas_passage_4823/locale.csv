@@ -1,0 +1,97 @@
+Path,Field,en,de,zh,fr,es,ru,ro,pl,el
+atlas_passage_4823/quest.cmp,name,Atlas Passage,,,,,,,,
+atlas_passage_4823/quest.cmp,description,"Atlas Passage is a peacetime patrol campaign set in the Norwegian Sea.",,,,,,,,
+atlas_passage_4823\scenario_01.mis,name,Scenario 1,,,,,,,,
+atlas_passage_4823\scenario_01.mis,description,"Build the first tactical picture on the enemy movement and withdraw cleanly. Initial contacts are thin and ambiguous. Preserve stealth and establish the route picture. Escalation: Peacetime Patrol. ROE: Weapons Tight. Task: Classify the likely main contact and trail without forcing a premature attack. Intel cue: enemy submarine activity is most likely south of your ingress track near Barents Bastion Edge. Treat that as moderate-confidence cueing (65% assessed confidence), not precise localization.",,,,,,,,
+atlas_passage_4823\scenario_01.mis,objectives.primary_withdraw_intact,Classify the likely main contact and trail without forcing a premature attack. Hold fire except in self-defense. Use the marked probable contact area and support cueing to build a clean track. Recover with the contact picture intact and enough reporting to drive the next operation. enemy submarine activity is most likely south of your ingress track near Barents Bastion Edge. Treat that as moderate-confidence cueing (65% assessed confidence), not precise localization.,,,,,,,,
+atlas_passage_4823\scenario_01.mis,messages.mission_from,COMSUBLANT,,,,,,,,
+atlas_passage_4823\scenario_01.mis,messages.mission_to,USS NORTH DAKOTA,,,,,,,,
+atlas_passage_4823\scenario_01.mis,messages.mission_objectives,"BT
+SUBJ: SCENARIO 1
+
+1. Situation:
+   Build the first tactical picture on the enemy movement and withdraw cleanly.
+
+2. Mission Type:
+   ASW
+
+3. Scenario Time:
+   Theater Default, Theater Default
+
+4. Primary Task:
+   Classify the likely main contact and trail without forcing a premature attack.
+
+5. Alert State:
+   Peacetime Patrol
+   National command authority wants presence, classification, and restraint while the battlespace stays below open conflict.
+
+6. Rules Of Engagement:
+   Weapons Tight
+   Self-defense only unless command issues a specific strike order against a designated hostile unit.
+
+7. Mission Stance:
+   Broad Area Search
+   Trade immediacy for wider search coverage so you can rebuild the picture when the first cue is wrong.
+
+8. Designated Target:
+   No specific target designated beyond ROE and commander intent.
+
+9. Intel Cue:
+   enemy submarine activity is most likely south of your ingress track near Barents Bastion Edge. Treat that as moderate-confidence cueing (65% assessed confidence), not precise localization.
+
+10. Marked Cues:
+   1. Likely Contact Area: enemy submarine activity is most likely south of your ingress track near Barents Bastion Edge. moderate-confidence cueing (65% assessed confidence).
+2. Intercept Gate: Likely route decision point. Use this as a geometry cue, not a guaranteed enemy position.
+3. Support Search Line: Friendly support is most relevant around this axis if you want to work with cueing instead of chasing every contact yourself.
+4. Barrier Station: Useful holding point if you choose to turn the mission into a containment problem.
+
+11. Expected Action:
+   Use the marked probable contact area and support cueing to build a clean track.
+
+12. End State:
+   Recover with the contact picture intact and enough reporting to drive the next operation.
+
+13. Route Summary:
+   85.510709, 23.505094 -> 75.340909, 35.906393 -> 75.668533, 36.594865 -> 73.425257, 29.995574 -> 86.479069, 22.217207
+
+14. Enemy Transit:
+   75.668533, 36.594865 -> 74.688304, 34.181270 -> 73.425257, 29.995574
+
+15. Report to COMSUBLANT only after the ordered task is complete and the boat remains combat effective.",,,,,,,,
+atlas_passage_4823\scenario_01.mis,messages.mission_success,"BT
+SUBJ: MISSION STATUS - SUCCESS
+
+Initial Scout is complete. COMSUBLANT has the updated route picture and can shape the next operation from your report.",,,,,,,,
+atlas_passage_4823\scenario_02.mis,name,Scenario 2,,,,,,,,
+atlas_passage_4823\scenario_02.mis,description,"Reserved follow-on mission slot. Update the previous mission result in Campaign Tracking before playing this scenario. This placeholder exists so MNW always has a valid next mission, but its content is intended to be rewritten before play.",,,,,,,,
+atlas_passage_4823\scenario_02.mis,objectives.primary_withdraw_intact,This is a reserved follow-on mission slot. If you want to continue the campaign, return to Campaign Tracking, save the result from the previous mission, and use Continue Campaign to regenerate this scenario before play. If you do not want to continue, treat the previous mission as the campaign conclusion.,,,,,,,,
+atlas_passage_4823\scenario_02.mis,messages.mission_from,COMSUBLANT,,,,,,,,
+atlas_passage_4823\scenario_02.mis,messages.mission_to,USS NORTH DAKOTA,,,,,,,,
+atlas_passage_4823\scenario_02.mis,messages.mission_objectives,"BT
+SUBJ: SCENARIO 2 - PLACEHOLDER
+
+1. This mission slot is reserved so the campaign chain always has a valid next node.
+
+2. If you do not want to continue the campaign, treat the previous mission as the campaign conclusion.
+
+3. If you do want to continue, do not play this scenario yet.
+
+4. Return to Campaign Tracking.
+
+5. Save the result from the previous mission.
+
+6. Click Continue Campaign so the app can rewrite this scenario with updated tasking, geometry, and supporting forces.
+
+7. Rebuild and redeploy if prompted.
+
+8. Launch this scenario only after the tracker confirms it was regenerated.
+
+9. Current placeholder route summary:
+   61.605327, -2.691533 -> 63.319433, 3.091396 -> 63.482484, 4.883378 -> 62.835972, -0.677156 -> 61.753019, -3.319228
+
+10. Current placeholder enemy transit:
+   63.482484, 4.883378 -> 63.284050, 3.105945 -> 62.835972, -0.677156",,,,,,,,
+atlas_passage_4823\scenario_02.mis,messages.mission_success,"BT
+SUBJ: MISSION STATUS - SUCCESS
+
+Scenario 2 placeholder completed.",,,,,,,,

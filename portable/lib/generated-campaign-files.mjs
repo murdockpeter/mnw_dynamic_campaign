@@ -785,6 +785,7 @@ export async function buildGeneratedCampaignFiles({ templateRoot, spec }) {
   const firstMissionId = blueprint.scenarios[0].missionId;
   const campaignConfig = {
     campaign_id: blueprint.campaignId,
+    campaign_seed: blueprint.campaignSeed || blueprint.campaignId,
     title: blueprint.title,
     theater: blueprint.theaterName,
     description: blueprint.description,
@@ -835,6 +836,7 @@ export async function buildGeneratedCampaignFiles({ templateRoot, spec }) {
       escalation_level: blueprint.scenarios[0]?.escalationLevel ?? 0,
       escalation_key: blueprint.scenarios[0]?.escalationKey || "peacetime",
       campaign_climate: blueprint.campaignClimate || blueprint.tone,
+      campaign_seed: blueprint.campaignSeed || blueprint.campaignId,
       mission_type: blueprint.missionType || null,
       tone: blueprint.tone,
       season: blueprint.season || "theater_default",

@@ -19,6 +19,7 @@ let packageIdSyncEnabled = true;
 let workflowStatus = null;
 let authoringStageOverride = null;
 let currentOperationalMap = null;
+let currentOperationalMapMode = "vector";
 let currentRuntimePayload = null;
 let currentUpdateState = null;
 
@@ -336,6 +337,7 @@ function renderRuntimeUnavailable(reason) {
   }
 
   renderTheaterTracking({ debug: { theater: null } });
+  renderOperationalMapForTracking("");
   setTrackingRuntimeAvailability(false, message);
   renderAisContacts({ contacts: [] });
   setAisStatus("No AIS data loaded.");
@@ -918,6 +920,61 @@ function renderSettingsPreview(settings) {
   }, {
     refreshPreview: Boolean(document.getElementById("wizard-theater"))
   });
+  renderQuickSetupSummary(settings);
+}
+
+function renderQuickSetupSummary(settings = {}) {
+  const gamePath = settings.gameCampaignPath || "";
+  const userPath = settings.userCampaignPath || "";
+  const sourceDir = settings.preferredPackageSourceDir || "";
+  const outputPath = settings.preferredPackageOutputPath || "";
+  const ready = Boolean(settings.firstLaunchComplete && gamePath && userPath);
+  const gameSummary = document.getElementById("setup-game-path-summary");
+  const userSummary = document.getElementById("setup-user-path-summary");
+  const sourceSummary = document.getElementById("setup-source-dir-summary");
+  const outputSummary = document.getElementById("setup-output-path-summary");
+  const readiness = document.getElementById("setup-readiness-summary");
+  const autosaveNote = document.getElementById("setup-autosave-note");
+  const advancedToggle = document.getElementById("settings-toggle-advanced");
+
+  if (gameSummary) {
+    gameSummary.textContent = gamePath || "Not detected yet.";
+  }
+  if (userSummary) {
+    userSummary.textContent = userPath || "Not detected yet.";
+  }
+  if (sourceSummary) {
+    sourceSummary.textContent = sourceDir || "Will be set automatically.";
+  }
+  if (outputSummary) {
+    outputSummary.textContent = outputPath || "Will be set automatically.";
+  }
+  if (readiness) {
+    readiness.innerHTML = ready
+      ? `<div class="title">Setup is ready.</div><div class="meta">MNW deploy paths are saved. You can move straight into Authoring.</div>`
+      : `<div class="title">Setup still needs attention.</div><div class="meta">The app needs both the game campaign path and the LocalLow user campaign path before it can finish setup automatically.</div>`;
+  }
+  if (autosaveNote) {
+    autosaveNote.textContent = ready
+      ? "Setup is already saved. Open Advanced Setup only if you need to override paths, IDs, AIS, or updater behavior."
+      : "If both MNW deploy paths are found, the desktop app can save setup automatically and take you straight to Authoring.";
+  }
+  if (advancedToggle) {
+    advancedToggle.textContent = document.getElementById("settings-advanced-panel")?.hidden === false
+      ? "Hide Advanced Setup"
+      : "Advanced Setup";
+  }
+}
+
+function toggleAdvancedSetup(forceOpen = null) {
+  const panel = document.getElementById("settings-advanced-panel");
+  const toggle = document.getElementById("settings-toggle-advanced");
+  if (!panel || !toggle) {
+    return;
+  }
+  const shouldOpen = forceOpen == null ? panel.hidden : Boolean(forceOpen);
+  panel.hidden = !shouldOpen;
+  toggle.textContent = shouldOpen ? "Hide Advanced Setup" : "Advanced Setup";
 }
 
 function syncPackageIdFromCampaign() {
@@ -944,24 +1001,89 @@ function syncDesktopOpsDefaults({ preferredCampaignId, preferredPackageId }) {
   }
 }
 
-function campaignIdToTitle(campaignId) {
-  return String(campaignId || "")
+function campaignSeedToTitle(campaignSeed) {
+  return String(campaignSeed || "")
     .trim()
     .split("_")
+    .filter((part, index, parts) => !(index === parts.length - 1 && /^\d+$/.test(part)))
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
 }
 
-function syncAuthoringDefaults({ preferredCampaignId }, options = {}) {
-  const wizardCampaignId = document.getElementById("wizard-campaign-id");
+function randomIndex(max) {
+  if (max <= 0) {
+    return 0;
+  }
+  if (window.crypto?.getRandomValues) {
+    const values = new Uint32Array(1);
+    window.crypto.getRandomValues(values);
+    return values[0] % max;
+  }
+  return Math.floor(Math.random() * max);
+}
+
+function generateCampaignSeed() {
+  const prefixes = [
+    "amber", "arc", "atlas", "black", "cinder", "cold", "deep", "drift",
+    "ghost", "iron", "lancer", "north", "polar", "quiet", "scarlet", "silent",
+    "steel", "storm", "swift", "trident"
+  ];
+  const suffixes = [
+    "archipelago", "barrier", "bastion", "channel", "current", "dawn", "frontier", "gate",
+    "harpoon", "lance", "meridian", "needle", "passage", "reach", "sentinel", "shoal",
+    "sound", "spear", "watch", "wake"
+  ];
+  const serial = String(1000 + randomIndex(9000));
+  return `${prefixes[randomIndex(prefixes.length)]}_${suffixes[randomIndex(suffixes.length)]}_${serial}`;
+}
+
+function seedFieldLooksGenerated(seedValue = "") {
+  return /^[a-z]+_[a-z]+_\d{4}$/.test(String(seedValue || "").trim());
+}
+
+function setWizardCampaignSeed(seedValue, options = {}) {
+  const wizardCampaignSeed = document.getElementById("wizard-campaign-seed");
   const wizardTitle = document.getElementById("wizard-title");
-  if (wizardCampaignId) {
-    wizardCampaignId.value = preferredCampaignId || "generated_campaign";
+  if (!wizardCampaignSeed) {
+    return "";
   }
-  if (wizardTitle && options.syncTitle !== false) {
-    wizardTitle.value = campaignIdToTitle(preferredCampaignId) || "Generated Campaign";
+  const normalizedSeed = String(seedValue || "").trim() || generateCampaignSeed();
+  const priorSeed = wizardCampaignSeed.value.trim();
+  wizardCampaignSeed.value = normalizedSeed;
+  const shouldSyncTitle = options.syncTitle !== false && wizardTitle && (
+    options.forceTitle
+    || !wizardTitle.value.trim()
+    || wizardTitle.value.trim() === campaignSeedToTitle(priorSeed)
+  );
+  if (shouldSyncTitle && wizardTitle) {
+    wizardTitle.value = campaignSeedToTitle(normalizedSeed) || "Generated Campaign";
   }
+  return normalizedSeed;
+}
+
+function ensureWizardCampaignSeed(options = {}) {
+  const wizardCampaignSeed = document.getElementById("wizard-campaign-seed");
+  if (!wizardCampaignSeed) {
+    return "";
+  }
+  const currentSeed = wizardCampaignSeed.value.trim();
+  if (options.force) {
+    return setWizardCampaignSeed(options.seedValue || generateCampaignSeed(), options);
+  }
+  if (!currentSeed) {
+    return setWizardCampaignSeed(options.seedValue || generateCampaignSeed(), options);
+  }
+  return currentSeed;
+}
+
+function syncAuthoringDefaults({ preferredCampaignId }, options = {}) {
+  ensureWizardCampaignSeed({
+    force: Boolean(options.forceSeed),
+    seedValue: options.seedValue || preferredCampaignId,
+    syncTitle: options.syncTitle,
+    forceTitle: Boolean(options.forceTitle)
+  });
   if (options.refreshPreview !== false && document.getElementById("wizard-theater")) {
     refreshCurrentWizardBlueprint();
   }
@@ -1031,6 +1153,10 @@ function applyDetectedDesktopPaths(detected = {}) {
     preferredCampaignId: document.getElementById("settings-campaign-id").value.trim()
   }, {
     syncTitle: false
+  });
+  renderQuickSetupSummary({
+    ...collectDesktopSettingsForm(),
+    firstLaunchComplete: false
   });
 }
 
@@ -1162,7 +1288,8 @@ function collectWizardSpec() {
   const friendlySupportIntensity = Number(document.getElementById("wizard-friendly-support-intensity")?.value || 2);
   return {
     title: document.getElementById("wizard-title").value.trim(),
-    campaignId: document.getElementById("wizard-campaign-id").value.trim(),
+    campaignSeed: document.getElementById("wizard-campaign-seed").value.trim(),
+    campaignId: document.getElementById("wizard-campaign-seed").value.trim(),
     theater: document.getElementById("wizard-theater").value,
     campaignClimate: document.getElementById("wizard-climate").value,
     tone: document.getElementById("wizard-climate").value,
@@ -1242,19 +1369,43 @@ function resolveOperationalMapForTheater(theaterNameOrLabel) {
   }
   if (theaterEntry.id === "south_china_sea") {
     return {
-      title: "South China Sea SLOC Map",
-      src: "../docs/south-china-sea-sloc-map.html",
-      relativeName: "south-china-sea-sloc-map.html"
+      title: "South China Sea Theater Map",
+      vectorSrc: "../docs/south-china-sea-sloc-map.html",
+      vectorRelativeName: "south-china-sea-sloc-map.html",
+      googleSrc: "../docs/south-china-sea-sloc-google-map.html",
+      googleRelativeName: "south-china-sea-sloc-google-map.html"
     };
   }
   if (theaterEntry.id === "norwegian_sea") {
     return {
-      title: "Norwegian Sea SLOC Map",
-      src: "../docs/norwegian-sea-sloc-map.html",
-      relativeName: "norwegian-sea-sloc-map.html"
+      title: "Norwegian Sea Theater Map",
+      vectorSrc: "../docs/norwegian-sea-sloc-map.html",
+      vectorRelativeName: "norwegian-sea-sloc-map.html",
+      googleSrc: "../docs/norwegian-sea-sloc-google-map.html",
+      googleRelativeName: "norwegian-sea-sloc-google-map.html"
     };
   }
   return null;
+}
+
+function operationalMapModeMeta(map, mode = currentOperationalMapMode) {
+  if (!map) {
+    return null;
+  }
+  if (mode === "google" && map.googleRelativeName) {
+    return {
+      src: map.googleSrc,
+      relativeName: map.googleRelativeName,
+      badge: "Google Basemap",
+      copy: "Google mode uses the existing theater debug page with ORBAT overlays. Enter a browser-safe API key inside the map page when prompted."
+    };
+  }
+  return {
+    src: map.vectorSrc,
+    relativeName: map.vectorRelativeName,
+    badge: "Vector ORBAT",
+    copy: "Vector mode shows the built-in theater corridor and known ORBAT overlay without any external map dependency."
+  };
 }
 
 function renderOperationalMapForTracking(theaterNameOrLabel) {
@@ -1262,6 +1413,8 @@ function renderOperationalMapForTracking(theaterNameOrLabel) {
   const copy = document.getElementById("tracking-map-copy");
   const link = document.getElementById("tracking-map-link");
   const badge = document.getElementById("tracking-map-badge");
+  const vectorButton = document.getElementById("tracking-map-mode-vector");
+  const googleButton = document.getElementById("tracking-map-mode-google");
   if (!title || !copy || !link || !badge) {
     return;
   }
@@ -1272,26 +1425,63 @@ function renderOperationalMapForTracking(theaterNameOrLabel) {
     title.textContent = "No theater map loaded";
     copy.textContent = "This campaign theater does not have an embedded operational SLOC page yet.";
     link.disabled = true;
-    delete link.dataset.relativeName;
+    if (vectorButton) vectorButton.disabled = true;
+    if (googleButton) googleButton.disabled = true;
     badge.textContent = "Unavailable";
+    renderOperationalMapPreview(null);
     return;
   }
 
+  const modeMeta = operationalMapModeMeta(map);
   title.textContent = map.title;
-  copy.textContent = "Open the existing operational SLOC page inside Campaign Tracking.";
+  copy.textContent = modeMeta.copy;
   link.disabled = false;
-  link.dataset.relativeName = map.relativeName;
-  badge.textContent = "Theater Linked";
+  if (vectorButton) {
+    vectorButton.disabled = false;
+    vectorButton.classList.toggle("toggle-active", currentOperationalMapMode === "vector");
+  }
+  if (googleButton) {
+    googleButton.disabled = !map.googleRelativeName;
+    googleButton.classList.toggle("toggle-active", currentOperationalMapMode === "google");
+  }
+  badge.textContent = modeMeta.badge;
+  renderOperationalMapPreview(map);
 }
 
-async function resolveOperationalMapSrc(map) {
+async function resolveOperationalMapSrc(map, mode = currentOperationalMapMode) {
   if (!map) {
     return null;
   }
-  if (desktopApi?.getOperationalMapUrl && map.relativeName) {
-    return desktopApi.getOperationalMapUrl({ relativeName: map.relativeName });
+  const modeMeta = operationalMapModeMeta(map, mode);
+  if (!modeMeta) {
+    return null;
   }
-  return map.src;
+  if (desktopApi?.getOperationalMapUrl && modeMeta.relativeName) {
+    return desktopApi.getOperationalMapUrl({ relativeName: modeMeta.relativeName });
+  }
+  return modeMeta.src;
+}
+
+async function renderOperationalMapPreview(map = currentOperationalMap) {
+  const frame = document.getElementById("tracking-map-preview-frame");
+  const status = document.getElementById("tracking-map-preview-status");
+  if (!frame || !status) {
+    return;
+  }
+  if (!map) {
+    frame.src = "about:blank";
+    status.textContent = "No preview available.";
+    return;
+  }
+  const modeMeta = operationalMapModeMeta(map);
+  const resolvedSrc = await resolveOperationalMapSrc(map);
+  if (!resolvedSrc) {
+    frame.src = "about:blank";
+    status.textContent = "Preview unavailable for this theater.";
+    return;
+  }
+  frame.src = resolvedSrc;
+  status.textContent = modeMeta.copy;
 }
 
 async function openOperationalMapInApp(map = currentOperationalMap) {
@@ -1309,8 +1499,9 @@ async function openOperationalMapInApp(map = currentOperationalMap) {
   if (!resolvedSrc) {
     return;
   }
+  const modeMeta = operationalMapModeMeta(map);
   title.textContent = map.title;
-  kicker.textContent = map.relativeName ? "Operational Area Map" : "Map Unavailable";
+  kicker.textContent = modeMeta?.badge || "Operational Area Map";
   frame.src = resolvedSrc;
   overlay.hidden = false;
 }
@@ -1523,7 +1714,10 @@ function resetAuthoringFlow() {
   syncAuthoringDefaults({
     preferredCampaignId: document.getElementById("settings-campaign-id")?.value.trim() || "generated_campaign"
   }, {
+    forceSeed: true,
+    seedValue: generateCampaignSeed(),
     syncTitle: true,
+    forceTitle: true,
     refreshPreview: false
   });
   syncWizardDefaultsWithTheater();
@@ -1548,6 +1742,8 @@ function initializeGuideLink() {
 
 function initializeOperationalMapLink() {
   const link = document.getElementById("tracking-map-link");
+  const vectorButton = document.getElementById("tracking-map-mode-vector");
+  const googleButton = document.getElementById("tracking-map-mode-google");
   const closeButton = document.getElementById("tracking-map-close");
   const overlay = document.getElementById("tracking-map-overlay");
   if (!link || !closeButton || !overlay) {
@@ -1556,6 +1752,14 @@ function initializeOperationalMapLink() {
   link.onclick = async () => {
     await openOperationalMapInApp();
   };
+  vectorButton?.addEventListener("click", () => {
+    currentOperationalMapMode = "vector";
+    renderOperationalMapForTracking(currentRuntimePayload?.state?.metadata?.theater || currentRuntimePayload?.campaign?.theater || "");
+  });
+  googleButton?.addEventListener("click", () => {
+    currentOperationalMapMode = "google";
+    renderOperationalMapForTracking(currentRuntimePayload?.state?.metadata?.theater || currentRuntimePayload?.campaign?.theater || "");
+  });
   closeButton.onclick = () => closeOperationalMapInApp();
   overlay.onclick = (event) => {
     if (event.target === overlay) {
@@ -1574,6 +1778,12 @@ async function initializeWizard() {
     return;
   }
   populateWizardSelectors();
+  ensureWizardCampaignSeed({
+    force: !seedFieldLooksGenerated(document.getElementById("wizard-campaign-seed")?.value.trim()),
+    seedValue: generateCampaignSeed(),
+    syncTitle: true,
+    forceTitle: true
+  });
   syncWizardDefaultsWithTheater();
   refreshWizardIntensityLabels();
   refreshCurrentWizardBlueprint();
@@ -1583,7 +1793,7 @@ async function initializeWizard() {
   };
   [
     "wizard-title",
-    "wizard-campaign-id",
+    "wizard-campaign-seed",
     "wizard-climate",
     "wizard-mission-type",
     "wizard-season",
@@ -1617,6 +1827,13 @@ async function initializeWizard() {
     refreshCurrentWizardBlueprint();
   };
   document.getElementById("wizard-plot-seed").onchange = () => refreshCurrentWizardBlueprint();
+  document.getElementById("wizard-regenerate-seed").onclick = () => {
+    setWizardCampaignSeed(generateCampaignSeed(), {
+      syncTitle: true,
+      forceTitle: true
+    });
+    refreshCurrentWizardBlueprint();
+  };
   document.getElementById("wizard-start-over").onclick = () => {
     resetAuthoringFlow();
   };
@@ -1702,6 +1919,7 @@ async function initializeDesktopSettings() {
     firstLaunchComplete: false
   };
   let settings = desktopApi ? await desktopApi.loadSettings() : fallbackSettings;
+  let autoSavedOnLaunch = false;
   if (desktopApi?.detectDesktopPaths) {
     const shouldAutoDetect = !settings.gameCampaignPath
       || !settings.userCampaignPath
@@ -1710,13 +1928,25 @@ async function initializeDesktopSettings() {
     if (shouldAutoDetect) {
       const detected = await desktopApi.detectDesktopPaths();
       settings = mergeDetectedDesktopSettings(settings, detected);
+      const canAutoSave = !settings.firstLaunchComplete
+        && detected.status?.gameCampaignFound
+        && detected.status?.userCampaignFound;
+      if (canAutoSave) {
+        settings = await desktopApi.saveSettings({
+          ...settings,
+          firstLaunchComplete: true
+        });
+        autoSavedOnLaunch = true;
+      }
     }
   }
   renderSettingsPreview(settings);
+  toggleAdvancedSetup(false);
   syncPackageIdFromCampaign();
   document.getElementById("mode-setup")?.addEventListener("click", () => setWorkspaceMode("setup"));
   document.getElementById("mode-authoring")?.addEventListener("click", () => setWorkspaceMode("authoring"));
   document.getElementById("mode-tracking")?.addEventListener("click", () => setWorkspaceMode("tracking"));
+  document.getElementById("settings-toggle-advanced")?.addEventListener("click", () => toggleAdvancedSetup());
 
   document.getElementById("settings-package-sync")?.addEventListener("change", (event) => {
     packageIdSyncEnabled = event.target.checked;
@@ -1745,7 +1975,8 @@ async function initializeDesktopSettings() {
     }
     const saved = await desktopApi.saveSettings(collectDesktopSettingsForm());
     renderSettingsPreview(saved);
-    setSettingsStatus("Desktop settings saved.");
+    setSettingsStatus("Desktop settings saved. Setup is ready.");
+    setWorkspaceMode("authoring");
     await refreshWorkflowStatus();
   });
 
@@ -1757,15 +1988,26 @@ async function initializeDesktopSettings() {
     setSettingsStatus("Scanning for Steam, MNW campaign folders, and workspace defaults...");
     const detected = await desktopApi.detectDesktopPaths();
     applyDetectedDesktopPaths(detected);
+    if (detected.status?.gameCampaignFound && detected.status?.userCampaignFound && desktopApi) {
+      const saved = await desktopApi.saveSettings({
+        ...collectDesktopSettingsForm(),
+        firstLaunchComplete: true
+      });
+      renderSettingsPreview(saved);
+      setSettingsStatus("Paths detected and saved automatically. Setup is ready.");
+      setWorkspaceMode("authoring");
+      await refreshWorkflowStatus();
+      return;
+    }
     const findings = Array.isArray(detected.findings) ? detected.findings.join(" ") : "Path scan completed.";
     const followUp = detected.status?.gameCampaignFound && detected.status?.userCampaignFound
-      ? "Review the filled paths, then save settings."
+      ? "Paths look valid. Save And Continue will persist them."
       : "Review the filled paths carefully, adjust any that look wrong, then save settings.";
     setSettingsStatus(`${findings} ${followUp}`);
   });
 
   document.getElementById("settings-use-generated")?.addEventListener("click", async () => {
-    const campaignId = document.getElementById("wizard-campaign-id")?.value.trim() || "generated_campaign";
+    const campaignId = document.getElementById("wizard-campaign-seed")?.value.trim() || "generated_campaign";
     const baseRoot = desktopInfo?.workspaceRoot || "";
     const settingsCampaignId = document.getElementById("settings-campaign-id");
     const settingsPackageId = document.getElementById("settings-package-id");
@@ -1789,6 +2031,10 @@ async function initializeDesktopSettings() {
     });
     syncAuthoringDefaults({
       preferredCampaignId: campaignId
+    }, {
+      forceSeed: true,
+      seedValue: campaignId,
+      syncTitle: false
     });
     setSettingsStatus(`Prepared settings defaults for ${campaignId}. Save them to persist.`);
     await refreshWorkflowStatus();
@@ -1803,7 +2049,7 @@ async function initializeDesktopSettings() {
     }
   } else {
     setWorkspaceMode("authoring");
-    setSettingsStatus("Desktop settings loaded.");
+    setSettingsStatus(autoSavedOnLaunch ? "Automatic setup completed. Paths were detected and saved." : "Desktop settings loaded.");
   }
 }
 

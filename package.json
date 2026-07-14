@@ -1,6 +1,6 @@
 {
   "name": "mnw-dynamic-campaign",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Modern Naval Warfare dynamic campaign generator with legacy scripts and a portable Electron path.",
   "main": "electron/main.cjs",
   "license": "MIT",
@@ -16,7 +16,8 @@
     "portable:deploy": "node ./portable/deploy-package.mjs",
     "portable:export-ui": "node ./portable/export-ui-state.mjs",
     "portable:ingest": "node ./portable/ingest-result.mjs",
-    "portable:generate": "node ./portable/generate-campaign.mjs"
+    "portable:generate": "node ./portable/generate-campaign.mjs",
+    "report:variance": "node ./tools/variance-report.mjs"
   },
   "devDependencies": {
     "electron": "^31.0.0",

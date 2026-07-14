@@ -108,6 +108,7 @@ function buildTheaterDebugPayload(campaignConfig, state) {
     escalationKey: state.world_state?.escalation_key || null,
     escalationLevel: Number.isFinite(Number(state.world_state?.escalation_level)) ? Number(state.world_state.escalation_level) : null,
     campaignClimate: state.world_state?.campaign_climate || state.world_state?.tone || null,
+    campaignSeed: state.world_state?.campaign_seed || state.metadata?.campaign_seed || state.metadata?.campaign_id || null,
     missionType: state.world_state?.mission_type || null,
     season: state.world_state?.season || null,
     seasonLabel: state.world_state?.season_label || null,

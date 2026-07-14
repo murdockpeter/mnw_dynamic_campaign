@@ -1,0 +1,97 @@
+Path,Field,en,de,zh,fr,es,ru,ro,pl,el
+cinder_current_8241/quest.cmp,name,Cinder Current,,,,,,,,
+cinder_current_8241/quest.cmp,description,"Cinder Current is a peacetime patrol campaign set in the Luzon Strait.",,,,,,,,
+cinder_current_8241\scenario_01.mis,name,Scenario 1,,,,,,,,
+cinder_current_8241\scenario_01.mis,description,"Confirm which corridor is real before the contact picture widens beyond useful reporting range. Command wants route certainty more than a risky close trail on weak early reporting. Escalation: Peacetime Patrol. ROE: Weapons Tight. Task: Confirm which corridor is real and leave a clean handoff for follow-on forces. Intel cue: enemy surface activity is most likely north of your ingress track near Luzon Strait Default Route. Treat that as moderate-confidence cueing (72% assessed confidence), not precise localization.",,,,,,,,
+cinder_current_8241\scenario_01.mis,objectives.primary_withdraw_intact,Confirm which corridor is real and leave a clean handoff for follow-on forces. Hold fire except in self-defense. Compare the likely contact area against the marked route decision point before committing. Recover once command has a clear route picture for follow-on forces. enemy surface activity is most likely north of your ingress track near Luzon Strait Default Route. Treat that as moderate-confidence cueing (72% assessed confidence), not precise localization.,,,,,,,,
+cinder_current_8241\scenario_01.mis,messages.mission_from,COMSUBPAC,,,,,,,,
+cinder_current_8241\scenario_01.mis,messages.mission_to,USS NORTH CAROLINA,,,,,,,,
+cinder_current_8241\scenario_01.mis,messages.mission_objectives,"BT
+SUBJ: SCENARIO 1
+
+1. Situation:
+   Confirm which corridor is real before the contact picture widens beyond useful reporting range.
+
+2. Mission Type:
+   ASuW Military Only
+
+3. Scenario Time:
+   Theater Default, Theater Default
+
+4. Primary Task:
+   Confirm which corridor is real and leave a clean handoff for follow-on forces.
+
+5. Alert State:
+   Peacetime Patrol
+   National command authority wants presence, classification, and restraint while the battlespace stays below open conflict.
+
+6. Rules Of Engagement:
+   Weapons Tight
+   Self-defense only unless command issues a specific strike order against a designated hostile unit.
+
+7. Mission Stance:
+   Broad Area Search
+   Trade immediacy for wider search coverage so you can rebuild the picture when the first cue is wrong.
+
+8. Designated Target:
+   No specific target designated beyond ROE and commander intent.
+
+9. Intel Cue:
+   enemy surface activity is most likely north of your ingress track near Luzon Strait Default Route. Treat that as moderate-confidence cueing (72% assessed confidence), not precise localization.
+
+10. Marked Cues:
+   1. Likely Contact Area: enemy surface activity is most likely north of your ingress track near Luzon Strait Default Route. moderate-confidence cueing (72% assessed confidence).
+2. Intercept Gate: Likely route decision point. Use this as a geometry cue, not a guaranteed enemy position.
+3. Support Search Line: Friendly support is most relevant around this axis if you want to work with cueing instead of chasing every contact yourself.
+4. Barrier Station: Useful holding point if you choose to turn the mission into a containment problem.
+
+11. Expected Action:
+   Compare the likely contact area against the marked route decision point before committing.
+
+12. End State:
+   Recover once command has a clear route picture for follow-on forces.
+
+13. Route Summary:
+   20.130874, 122.873972 -> 21.036462, 123.039571 -> 21.842181, 122.358456 -> 20.151439, 122.982958 -> 20.136371, 123.032315
+
+14. Enemy Transit:
+   21.842181, 122.358456 -> 21.121335, 123.029511 -> 20.496789, 122.659583 -> 20.151439, 122.982958
+
+15. Report to COMSUBPAC only after the ordered task is complete and the boat remains combat effective.",,,,,,,,
+cinder_current_8241\scenario_01.mis,messages.mission_success,"BT
+SUBJ: MISSION STATUS - SUCCESS
+
+Initial Scout is complete. COMSUBPAC has the updated route picture and can shape the next operation from your report.",,,,,,,,
+cinder_current_8241\scenario_02.mis,name,Scenario 2,,,,,,,,
+cinder_current_8241\scenario_02.mis,description,"Reserved follow-on mission slot. Update the previous mission result in Campaign Tracking before playing this scenario. This placeholder exists so MNW always has a valid next mission, but its content is intended to be rewritten before play.",,,,,,,,
+cinder_current_8241\scenario_02.mis,objectives.primary_withdraw_intact,This is a reserved follow-on mission slot. If you want to continue the campaign, return to Campaign Tracking, save the result from the previous mission, and use Continue Campaign to regenerate this scenario before play. If you do not want to continue, treat the previous mission as the campaign conclusion.,,,,,,,,
+cinder_current_8241\scenario_02.mis,messages.mission_from,COMSUBPAC,,,,,,,,
+cinder_current_8241\scenario_02.mis,messages.mission_to,USS NORTH CAROLINA,,,,,,,,
+cinder_current_8241\scenario_02.mis,messages.mission_objectives,"BT
+SUBJ: SCENARIO 2 - PLACEHOLDER
+
+1. This mission slot is reserved so the campaign chain always has a valid next node.
+
+2. If you do not want to continue the campaign, treat the previous mission as the campaign conclusion.
+
+3. If you do want to continue, do not play this scenario yet.
+
+4. Return to Campaign Tracking.
+
+5. Save the result from the previous mission.
+
+6. Click Continue Campaign so the app can rewrite this scenario with updated tasking, geometry, and supporting forces.
+
+7. Rebuild and redeploy if prompted.
+
+8. Launch this scenario only after the tracker confirms it was regenerated.
+
+9. Current placeholder route summary:
+   20.382014, 122.592877 -> 21.249294, 123.003756 -> 21.866647, 122.521672 -> 20.079237, 122.830349 -> 20.358301, 122.782503
+
+10. Current placeholder enemy transit:
+   21.866647, 122.521672 -> 21.344566, 122.953478 -> 20.522022, 122.674177 -> 20.079237, 122.830349",,,,,,,,
+cinder_current_8241\scenario_02.mis,messages.mission_success,"BT
+SUBJ: MISSION STATUS - SUCCESS
+
+Scenario 2 placeholder completed.",,,,,,,,

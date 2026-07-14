@@ -53,124 +53,156 @@
           <div class="wizard-grid">
             <div class="wizard-form">
               <p class="muted">
-                Configure where the app reads MNW campaign packages from, where it writes user campaign data, and which IDs it should
-                treat as the default runtime and packaging targets.
+                The app will try to detect your MNW install path, your LocalLow campaign path, and the writable workspace automatically.
+                Most users should not need to edit anything here.
               </p>
-              <p class="muted">
-                Runtime Campaign ID is the campaign state the tracker/export flow will open. Package ID is the authored MNW package
-                namespace used for build and deploy. Keep them the same for a normal one-package workflow. Split them only if you are
-                tracking one runtime campaign while building another package tree.
-              </p>
-              <p class="muted">
-                On first launch, the app will try to locate the installed game campaign folder, your user campaign folder, and the local
-                workspace output paths automatically. Use <strong>Find Paths</strong> to run that scan again if needed.
-              </p>
-              <p class="muted">
-                Path detection uses the Windows profile that is currently running the app. It does not search other users' personal
-                <code>AppData\LocalLow</code> campaign folders.
-              </p>
-              <div class="field-grid">
-                <label>
-                  <span>Game Campaign Path</span>
-                  <input id="settings-game-path" type="text">
-                </label>
-                <label>
-                  <span>User Campaign Path</span>
-                  <input id="settings-user-path" type="text">
-                </label>
-                <label>
-                  <span>Preferred Runtime Campaign ID</span>
-                  <input id="settings-campaign-id" type="text">
-                </label>
-                <label>
-                  <span>Preferred Package ID</span>
-                  <input id="settings-package-id" type="text">
-                </label>
-                <label class="toggle compact-toggle">
-                  <span>Package ID Follows Campaign ID</span>
-                  <input id="settings-package-sync" type="checkbox" checked>
-                </label>
-                <div></div>
-                <label class="full-width">
-                  <span>Preferred Package Source Dir</span>
-                  <input id="settings-source-dir" type="text">
-                </label>
-                <label class="full-width">
-                  <span>Preferred Package Output Path</span>
-                  <input id="settings-output-path" type="text">
-                </label>
+              <div class="setup-summary-grid">
+                <article class="stack-item">
+                  <div class="title">Game Campaign Path</div>
+                  <div id="setup-game-path-summary" class="meta">Not detected yet.</div>
+                </article>
+                <article class="stack-item">
+                  <div class="title">User Campaign Path</div>
+                  <div id="setup-user-path-summary" class="meta">Not detected yet.</div>
+                </article>
+                <article class="stack-item">
+                  <div class="title">Workspace Package Source</div>
+                  <div id="setup-source-dir-summary" class="meta">Will be set automatically.</div>
+                </article>
+                <article class="stack-item">
+                  <div class="title">Workspace Package Output</div>
+                  <div id="setup-output-path-summary" class="meta">Will be set automatically.</div>
+                </article>
               </div>
               <div class="wizard-block" style="margin-top:16px;">
-                <strong>Optional AISStream Feed</strong>
-                <div class="wizard-meta">The desktop app can open an AISStream websocket from the backend only. The API key stays in local desktop settings and is not written into generated campaign files.</div>
-              </div>
-              <div class="field-grid" style="margin-top:14px;">
-                <label class="toggle compact-toggle">
-                  <span>Enable AISStream</span>
-                  <input id="settings-ais-enabled" type="checkbox">
-                </label>
-                <label>
-                  <span>AIS Radius (km)</span>
-                  <input id="settings-ais-radius-km" type="number" min="20" max="500" step="10" value="160">
-                </label>
-                <label class="full-width">
-                  <span>AISStream API Key</span>
-                  <input id="settings-ais-token" type="password" autocomplete="off" placeholder="Paste AISStream API key">
-                </label>
-              </div>
-              <div class="wizard-block" style="margin-top:16px;">
-                <strong>App Updates</strong>
-                <div class="wizard-meta">Use GitHub Releases for the simplest public-hosted updater, or point the app at a direct static HTTPS feed that serves <code>latest.yml</code> and the installer files.</div>
-              </div>
-              <div class="field-grid" style="margin-top:14px;">
-                <label>
-                  <span>Update Source</span>
-                  <select id="settings-update-provider">
-                    <option value="generic">Direct Static URL</option>
-                    <option value="github">GitHub Releases</option>
-                  </select>
-                </label>
-                <label class="toggle compact-toggle">
-                  <span>Check On Launch</span>
-                  <input id="settings-update-auto-check" type="checkbox" checked>
-                </label>
-                <label class="full-width update-provider-scope update-provider-generic">
-                  <span>Update Feed Base URL</span>
-                  <input id="settings-update-feed-url" type="text" placeholder="https://example.com/mnw/releases">
-                </label>
-                <label class="update-provider-scope update-provider-github">
-                  <span>GitHub Owner</span>
-                  <input id="settings-update-github-owner" type="text" placeholder="your-user-or-org">
-                </label>
-                <label class="update-provider-scope update-provider-github">
-                  <span>GitHub Repo</span>
-                  <input id="settings-update-github-repo" type="text" placeholder="mnw_dynamic_campaign">
-                </label>
+                <strong>Quick Setup</strong>
+                <div id="setup-autosave-note" class="wizard-meta">
+                  If both MNW deploy paths are found, the desktop app can save setup automatically and take you straight to Authoring.
+                </div>
               </div>
               <div class="builder-actions">
-                <button id="settings-check-updates" type="button">Check For Updates</button>
-                <button id="settings-download-update" type="button">Download Update</button>
-                <button id="settings-install-update" type="button">Restart To Install</button>
-              </div>
-              <div class="update-status-card">
-                <div class="preview-head">Updater Status</div>
-                <div id="settings-update-summary" class="muted">No update source configured yet.</div>
-                <pre id="settings-update-json">{}</pre>
-              </div>
-              <div class="builder-actions">
-                <button id="settings-find-paths" type="button">Find Paths</button>
-                <button id="settings-save" type="button">Save Desktop Settings</button>
+                <button id="settings-find-paths" type="button">Detect Paths Again</button>
+                <button id="settings-save" type="button">Save And Continue</button>
                 <button id="settings-use-generated" type="button">Use Latest Generated Campaign</button>
+                <button id="settings-toggle-advanced" type="button" class="ghost-button">Advanced Setup</button>
               </div>
               <p id="settings-status" class="muted builder-help">
                 Browser mode can display the intended defaults. The Electron app can save them persistently for future launches.
               </p>
             </div>
             <div class="builder-preview">
-              <div class="preview-head">Saved Desktop Settings</div>
-              <pre id="settings-json">{}</pre>
+              <div class="preview-head">Setup Status</div>
+              <div id="setup-readiness-summary" class="status-summary">
+                <div class="title">Waiting for path detection.</div>
+                <div class="meta">The app needs the game deploy path and the LocalLow user campaign path before it can auto-complete setup.</div>
+              </div>
             </div>
           </div>
+          <section id="settings-advanced-panel" class="card nested-card" hidden>
+            <div class="card-head compact-card-head">
+              <div>
+                <h3>Advanced Setup</h3>
+                <div class="muted">Override paths, split runtime and package IDs, or configure optional integrations.</div>
+              </div>
+              <span class="badge alt">Optional</span>
+            </div>
+            <div class="wizard-grid">
+              <div class="wizard-form">
+                <div class="field-grid">
+                  <label>
+                    <span>Game Campaign Path</span>
+                    <input id="settings-game-path" type="text">
+                  </label>
+                  <label>
+                    <span>User Campaign Path</span>
+                    <input id="settings-user-path" type="text">
+                  </label>
+                  <label>
+                    <span>Preferred Runtime Campaign ID</span>
+                    <input id="settings-campaign-id" type="text">
+                  </label>
+                  <label>
+                    <span>Preferred Package ID</span>
+                    <input id="settings-package-id" type="text">
+                  </label>
+                  <label class="toggle compact-toggle">
+                    <span>Package ID Follows Campaign ID</span>
+                    <input id="settings-package-sync" type="checkbox" checked>
+                  </label>
+                  <div></div>
+                  <label class="full-width">
+                    <span>Preferred Package Source Dir</span>
+                    <input id="settings-source-dir" type="text">
+                  </label>
+                  <label class="full-width">
+                    <span>Preferred Package Output Path</span>
+                    <input id="settings-output-path" type="text">
+                  </label>
+                </div>
+                <div class="wizard-block" style="margin-top:16px;">
+                  <strong>Optional AISStream Feed</strong>
+                  <div class="wizard-meta">The desktop app can open an AISStream websocket from the backend only. The API key stays in local desktop settings and is not written into generated campaign files.</div>
+                </div>
+                <div class="field-grid" style="margin-top:14px;">
+                  <label class="toggle compact-toggle">
+                    <span>Enable AISStream</span>
+                    <input id="settings-ais-enabled" type="checkbox">
+                  </label>
+                  <label>
+                    <span>AIS Radius (km)</span>
+                    <input id="settings-ais-radius-km" type="number" min="20" max="500" step="10" value="160">
+                  </label>
+                  <label class="full-width">
+                    <span>AISStream API Key</span>
+                    <input id="settings-ais-token" type="password" autocomplete="off" placeholder="Paste AISStream API key">
+                  </label>
+                </div>
+                <div class="wizard-block" style="margin-top:16px;">
+                  <strong>App Updates</strong>
+                  <div class="wizard-meta">Use GitHub Releases for the simplest public-hosted updater, or point the app at a direct static HTTPS feed that serves <code>latest.yml</code> and the installer files.</div>
+                </div>
+                <div class="field-grid" style="margin-top:14px;">
+                  <label>
+                    <span>Update Source</span>
+                    <select id="settings-update-provider">
+                      <option value="generic">Direct Static URL</option>
+                      <option value="github">GitHub Releases</option>
+                    </select>
+                  </label>
+                  <label class="toggle compact-toggle">
+                    <span>Check On Launch</span>
+                    <input id="settings-update-auto-check" type="checkbox" checked>
+                  </label>
+                  <label class="full-width update-provider-scope update-provider-generic">
+                    <span>Update Feed Base URL</span>
+                    <input id="settings-update-feed-url" type="text" placeholder="https://example.com/mnw/releases">
+                  </label>
+                  <label class="update-provider-scope update-provider-github">
+                    <span>GitHub Owner</span>
+                    <input id="settings-update-github-owner" type="text" placeholder="your-user-or-org">
+                  </label>
+                  <label class="update-provider-scope update-provider-github">
+                    <span>GitHub Repo</span>
+                    <input id="settings-update-github-repo" type="text" placeholder="mnw_dynamic_campaign">
+                  </label>
+                </div>
+                <div class="builder-actions">
+                  <button id="settings-check-updates" type="button">Check For Updates</button>
+                  <button id="settings-download-update" type="button">Download Update</button>
+                  <button id="settings-install-update" type="button">Restart To Install</button>
+                </div>
+                <div class="update-status-card">
+                  <div class="preview-head">Updater Status</div>
+                  <div id="settings-update-summary" class="muted">No update source configured yet.</div>
+                  <pre id="settings-update-json">{}</pre>
+                </div>
+              </div>
+              <div class="builder-preview">
+                <div class="preview-head">Saved Desktop Settings</div>
+              <pre id="settings-json">{}</pre>
+              </div>
+            </div>
+          </section>
         </section>
       </div>
 
@@ -216,8 +248,12 @@
                 <input id="wizard-title" type="text" value="Iron Archipelago">
               </label>
               <label>
-                <span>Campaign ID</span>
-                <input id="wizard-campaign-id" type="text" value="iron_archipelago">
+                <span>Campaign Seed</span>
+                <input id="wizard-campaign-seed" type="text" value="iron_archipelago">
+              </label>
+              <label>
+                <span>Seed Tools</span>
+                <button id="wizard-regenerate-seed" type="button" class="ghost-button">Generate Random Seed</button>
               </label>
               <label>
                 <span>Theater</span>
@@ -291,6 +327,9 @@
                 <span>Player Submarine</span>
                 <select id="wizard-player-submarine"></select>
               </label>
+            </div>
+            <div class="wizard-meta" style="margin-top:12px;">
+              Keep <strong>Campaign Seed</strong> unique unless you want the EXACT same generated campaign again. This value drives deterministic scenario variety.
             </div>
             <label class="full-width">
               <span>Player Unit Name</span>
@@ -650,11 +689,19 @@
               <article class="card nested-card">
                 <div class="card-head">
                   <h3>Operational Area Map</h3>
-                  <span id="tracking-map-badge" class="badge alt">Theater Linked</span>
+                  <span id="tracking-map-badge" class="badge alt">Vector ORBAT</span>
                 </div>
                 <div class="builder-preview">
                   <div id="tracking-map-title" class="preview-head">No theater map loaded</div>
-                  <p id="tracking-map-copy" class="muted">Load a runtime snapshot to point this link at the matching operational SLOC page.</p>
+                  <p id="tracking-map-copy" class="muted">Load a runtime snapshot to point this card at the matching operational theater page.</p>
+                  <div class="tracking-map-mode-row">
+                    <button id="tracking-map-mode-vector" type="button" class="tracking-map-mode toggle-active">Vector Theater</button>
+                    <button id="tracking-map-mode-google" type="button" class="tracking-map-mode">Google Basemap</button>
+                  </div>
+                  <div class="tracking-map-preview-wrap">
+                    <iframe id="tracking-map-preview-frame" class="tracking-map-preview-frame" title="Operational area map preview"></iframe>
+                  </div>
+                  <div id="tracking-map-preview-status" class="muted tracking-map-preview-status">No preview available.</div>
                   <div class="builder-actions" style="margin-top:14px;">
                     <button id="tracking-map-link" type="button" class="inline-link-button">Open Full Map</button>
                   </div>

@@ -8,6 +8,15 @@ function parseArgs(argv) {
     const next = argv[i + 1];
     if (key === "--campaign-id") {
       args.spec.campaignId = next;
+      if (!args.spec.campaignSeed) {
+        args.spec.campaignSeed = next;
+      }
+      i += 1;
+    } else if (key === "--campaign-seed") {
+      args.spec.campaignSeed = next;
+      if (!args.spec.campaignId) {
+        args.spec.campaignId = next;
+      }
       i += 1;
     } else if (key === "--title") {
       args.spec.title = next;

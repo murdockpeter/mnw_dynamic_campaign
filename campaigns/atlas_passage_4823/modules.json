@@ -1,0 +1,14 @@
+{
+  "enabled_modules": [
+    "damage",
+    "ammo"
+  ],
+  "module_config": {
+    "damage": {
+      "repair_rate_per_day": 0.08
+    },
+    "ammo": {
+      "allow_negative": false
+    }
+  }
+}
