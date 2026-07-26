@@ -1,0 +1,97 @@
+Path,Field,en,de,zh,fr,es,ru,ro,pl,el
+cinder_dawn_4141/quest.cmp,name,Cinder Dawn,,,,,,,,
+cinder_dawn_4141/quest.cmp,description,"Cinder Dawn is a high alert interdiction campaign set in the Norwegian Sea.",,,,,,,,
+cinder_dawn_4141\scenario_01.mis,name,Scenario 1,,,,,,,,
+cinder_dawn_4141\scenario_01.mis,description,"Intercept the opening move and classify the breakout axis before it widens. Expect sparse reporting and a narrow early prosecution window. Escalation: High Alert. ROE: Free Fire On Hostile-Flagged Units. Task: Cut ahead of the marked route and challenge the transit at the likely gate. Intel cue: enemy submarine activity is most likely north of your ingress track near Nordkapp Seam. Treat that as moderate-confidence cueing (72% assessed confidence), not precise localization.",,,,,,,,
+cinder_dawn_4141\scenario_01.mis,objectives.primary_withdraw_intact,Cut ahead of the marked route and challenge the transit at the likely gate. Engage any hostile-flagged enemy unit. Use the likely egress marker to get in front of the movement instead of chasing the datum. Recover once you have classified the route choice and denied an easy transit. enemy submarine activity is most likely north of your ingress track near Nordkapp Seam. Treat that as moderate-confidence cueing (72% assessed confidence), not precise localization.,,,,,,,,
+cinder_dawn_4141\scenario_01.mis,messages.mission_from,COMSUBLANT,,,,,,,,
+cinder_dawn_4141\scenario_01.mis,messages.mission_to,USS NORTH DAKOTA,,,,,,,,
+cinder_dawn_4141\scenario_01.mis,messages.mission_objectives,"BT
+SUBJ: SCENARIO 1
+
+1. Situation:
+   Intercept the opening move and classify the breakout axis before it widens.
+
+2. Mission Type:
+   ASW
+
+3. Scenario Time:
+   Summer, Day
+
+4. Primary Task:
+   Cut ahead of the marked route and challenge the transit at the likely gate.
+
+5. Alert State:
+   High Alert
+   The theater is under military pressure. Command wants rapid warning, clean classification, and readiness to strike if ordered.
+
+6. Rules Of Engagement:
+   Free Fire On Hostile-Flagged Units
+   Any hostile-flagged enemy unit may be attacked once detected. Civilian and neutral traffic remain protected.
+
+7. Mission Stance:
+   Aggressive Intercept
+   Get forward on the route, compress the intercept geometry, and accept more exposure to force a firing solution sooner.
+
+8. Designated Target:
+   No specific target designated beyond ROE and commander intent.
+
+9. Intel Cue:
+   enemy submarine activity is most likely north of your ingress track near Nordkapp Seam. Treat that as moderate-confidence cueing (72% assessed confidence), not precise localization.
+
+10. Marked Cues:
+   1. Likely Contact Area: enemy submarine activity is most likely north of your ingress track near Nordkapp Seam. moderate-confidence cueing (72% assessed confidence).
+2. Intercept Gate: Likely route decision point. Use this as a geometry cue, not a guaranteed enemy position.
+3. Support Search Line: Friendly support is most relevant around this axis if you want to work with cueing instead of chasing every contact yourself.
+4. Barrier Station: Useful holding point if you choose to turn the mission into a containment problem.
+
+11. Expected Action:
+   Use the likely egress marker to get in front of the movement instead of chasing the datum.
+
+12. End State:
+   Recover once you have classified the route choice and denied an easy transit.
+
+13. Route Summary:
+   65.394029, 24.241179 -> 73.783673, 30.462930 -> 74.023014, 31.037939 -> 72.677363, 26.139345 -> 64.438062, 23.488196
+
+14. Enemy Transit:
+   74.023014, 31.037939 -> 73.150518, 28.787822 -> 72.677363, 26.139345
+
+15. Report to COMSUBLANT only after the ordered task is complete and the boat remains combat effective.",,,,,,,,
+cinder_dawn_4141\scenario_01.mis,messages.mission_success,"BT
+SUBJ: MISSION STATUS - SUCCESS
+
+First Vector is complete. COMSUBLANT has the updated route picture and can shape the next operation from your report.",,,,,,,,
+cinder_dawn_4141\scenario_02.mis,name,Scenario 2,,,,,,,,
+cinder_dawn_4141\scenario_02.mis,description,"Reserved follow-on mission slot. Update the previous mission result in Campaign Tracking before playing this scenario. This placeholder exists so MNW always has a valid next mission, but its content is intended to be rewritten before play.",,,,,,,,
+cinder_dawn_4141\scenario_02.mis,objectives.primary_withdraw_intact,This is a reserved follow-on mission slot. If you want to continue the campaign, return to Campaign Tracking, save the result from the previous mission, and use Continue Campaign to regenerate this scenario before play. If you do not want to continue, treat the previous mission as the campaign conclusion.,,,,,,,,
+cinder_dawn_4141\scenario_02.mis,messages.mission_from,COMSUBLANT,,,,,,,,
+cinder_dawn_4141\scenario_02.mis,messages.mission_to,USS NORTH DAKOTA,,,,,,,,
+cinder_dawn_4141\scenario_02.mis,messages.mission_objectives,"BT
+SUBJ: SCENARIO 2 - PLACEHOLDER
+
+1. This mission slot is reserved so the campaign chain always has a valid next node.
+
+2. If you do not want to continue the campaign, treat the previous mission as the campaign conclusion.
+
+3. If you do want to continue, do not play this scenario yet.
+
+4. Return to Campaign Tracking.
+
+5. Save the result from the previous mission.
+
+6. Click Continue Campaign so the app can rewrite this scenario with updated tasking, geometry, and supporting forces.
+
+7. Rebuild and redeploy if prompted.
+
+8. Launch this scenario only after the tracker confirms it was regenerated.
+
+9. Current placeholder route summary:
+   69.272194, -0.935488 -> 71.728390, 4.878677 -> 72.322090, 6.390204 -> 69.895591, 0.521617 -> 68.086594, -5.149344
+
+10. Current placeholder enemy transit:
+   72.322090, 6.390204 -> 71.584832, 4.532663 -> 69.895591, 0.521617",,,,,,,,
+cinder_dawn_4141\scenario_02.mis,messages.mission_success,"BT
+SUBJ: MISSION STATUS - SUCCESS
+
+Scenario 2 placeholder completed.",,,,,,,,

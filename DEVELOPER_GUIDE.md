@@ -361,6 +361,12 @@ Run:
 powershell -ExecutionPolicy Bypass -File .\tools\index-db.ps1
 ```
 
+To inspect verified local platform mappings after indexing, run:
+
+```powershell
+python .\tools\inspect-local-db.py --category submarines --pattern Virginia --write-json .\generated\db\virginia-platforms.json --write-markdown .\docs\local-db-platform-notes.md
+```
+
 ## Testing
 
 Persistence smoke test:

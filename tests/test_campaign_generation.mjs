@@ -279,6 +279,36 @@ test("campaign seed controls deterministic variety independently from campaign i
   );
 });
 
+test("verified Virginia block catalog resolves to distinct MNW hull ids", () => {
+  const blockI = buildCampaignBlueprint({
+    title: "Virginia B1",
+    campaignId: "virginia_b1",
+    theater: "norwegian_sea",
+    playerSubmarine: "virginia_block_i"
+  });
+  const blockII = buildCampaignBlueprint({
+    title: "Virginia B2",
+    campaignId: "virginia_b2",
+    theater: "norwegian_sea",
+    playerSubmarine: "virginia_block_ii"
+  });
+  const blockIII = buildCampaignBlueprint({
+    title: "Virginia B3",
+    campaignId: "virginia_b3",
+    theater: "norwegian_sea",
+    playerSubmarine: "virginia_block_iii"
+  });
+
+  assert.deepEqual(
+    [blockI.player.dbid, blockII.player.dbid, blockIII.player.dbid],
+    [1004, 1005, 1011]
+  );
+  assert.deepEqual(
+    [blockI.player.platformDbid, blockII.player.platformDbid, blockIII.player.platformDbid],
+    [74, 551, 552]
+  );
+});
+
 test("first breakout-hunt mission now produces materially different opening packages across fresh campaigns", () => {
   const samples = Array.from({ length: 10 }, (_, index) => buildCampaignBlueprint({
     title: `Opening Variety ${index + 1}`,
@@ -395,6 +425,8 @@ test("player submarine selection persists into blueprint metadata and mission sc
   });
 
   assert.equal(blueprint.playerSubmarine, "virginia_block_ii");
+  assert.equal(blueprint.player.dbid, 1005);
+  assert.equal(blueprint.player.platformDbid, 551);
   assert.equal(blueprint.player.platformShortLabel, "Virginia B2");
   assert.doesNotMatch(blueprint.warnings.join(" "), /fallback/i);
 
@@ -403,7 +435,7 @@ test("player submarine selection persists into blueprint metadata and mission sc
   const scriptPath = Object.keys(artifacts.files).find((key) => key.endsWith(`${scenario.slug}.mis`));
   const script = artifacts.files[scriptPath];
 
-  assert.match(script, /\(Player\) Virginia B2/);
+  assert.match(script, /\(Player\) USS Test \| Virginia B2/);
   assert.match(script, /virginia_id = 1005/);
 });
 

@@ -45,8 +45,8 @@ Use this checklist when reviewing a newly generated or continued campaign missio
 ## Player Submarine Checks
 
 - The selected Virginia block appears in authoring state, runtime tracking, and regenerated continuation context.
-- If `Virginia Block I` or `Virginia Block II` is selected, the UI clearly warns that the mission script still uses the verified current Block III MNW DB entry as a fallback.
-- Mission scripts reflect the selected player label such as `Virginia B1`, `Virginia B2`, or `Virginia B3`.
+- The selected Virginia block resolves to a verified distinct MNW hull entry rather than a shared Block III fallback.
+- Mission scripts reflect the selected player unit name and player label such as `(Player) USS Test | Virginia B2`.
 - Existing campaigns created before submarine selection still load without broken tracking or missing player-unit metadata.
 
 ## Theater Flavor

@@ -1,0 +1,727 @@
+{
+  "metadata": {
+    "campaign_id": "north_lance_4657",
+    "campaign_seed": "north_lance_4657",
+    "title": "North Lance",
+    "theater": "Norwegian Sea",
+    "description": "North Lance is a high alert interdiction campaign set in the Norwegian Sea.",
+    "active_persistence_system": "baseline_modular",
+    "authoring_constraints": {
+      "maxDistanceToPrimaryTargetKm": null,
+      "merchantTrafficIntensity": 2,
+      "biologicClutterIntensity": 2,
+      "hostileSurfaceSupportIntensity": 2,
+      "hostileAirSupportIntensity": 2,
+      "friendlySupportIntensity": 2
+    },
+    "experimental_features": {
+      "enabled": false,
+      "plotSeed": "none",
+      "plotSeedLabel": "None"
+    },
+    "campaign_climate": "breakout_hunt",
+    "mission_type": "asw",
+    "season": "summer",
+    "season_label": "Summer",
+    "time_of_day": "day",
+    "time_of_day_label": "Day",
+    "player_submarine": "virginia_block_i",
+    "player_submarine_label": "Virginia Block I",
+    "player_submarine_platform_dbid": 74,
+    "player_submarine_verified_db": true,
+    "mission_stance": "aggressive_intercept",
+    "rules_of_engagement": "hostile_flagged_free_fire"
+  },
+  "current_mission_id": "north_lance_4657.north_lance_4657.scenario_01",
+  "campaign_clock": "2028-07-18T13:20:00.000Z",
+  "order_of_battle": {
+    "uss_north_dakota": {
+      "unit_id": "uss_north_dakota",
+      "name": "USS North Carolina",
+      "faction": "US",
+      "platform_type": "submarine",
+      "dbid": 1004,
+      "readiness": 1,
+      "damage": 0,
+      "destroyed": false,
+      "ammo": {
+        "mk48_mod7": 12,
+        "decoy_mk3": 8,
+        "decoy_2458": 8
+      },
+      "tags": [
+        "player"
+      ],
+      "notes": {
+        "sectors": [],
+        "theater_role": "player",
+        "role": null,
+        "player_submarine_key": "virginia_block_i",
+        "player_submarine_label": "Virginia Block I",
+        "player_submarine_short_label": "Virginia B1",
+        "player_submarine_platform_dbid": 74,
+        "player_submarine_representative_hull": "USS North Carolina",
+        "player_submarine_verified_db": true,
+        "player_submarine_db_fallback": false,
+        "current_sector": "bear_island_gap",
+        "availability": "available",
+        "last_mission_id": null,
+        "last_assigned_index": -1,
+        "on_stage": false
+      }
+    },
+    "yasen_severodvinsk": {
+      "unit_id": "yasen_severodvinsk",
+      "name": "Yasen Severodvinsk",
+      "faction": "RU",
+      "platform_type": "submarine",
+      "dbid": 667,
+      "readiness": 1,
+      "damage": 0,
+      "destroyed": false,
+      "ammo": {},
+      "tags": [
+        "enemy"
+      ],
+      "notes": {
+        "sectors": [],
+        "theater_role": "core_enemy",
+        "role": null,
+        "player_submarine_key": null,
+        "player_submarine_label": null,
+        "player_submarine_short_label": null,
+        "player_submarine_platform_dbid": null,
+        "player_submarine_representative_hull": null,
+        "player_submarine_verified_db": false,
+        "player_submarine_db_fallback": false,
+        "current_sector": "lofoten_wall",
+        "availability": "committed",
+        "last_mission_id": null,
+        "last_assigned_index": 0,
+        "on_stage": true
+      }
+    },
+    "akula_screen": {
+      "unit_id": "akula_screen",
+      "name": "Akula Screen",
+      "faction": "RU",
+      "platform_type": "submarine",
+      "dbid": 34,
+      "readiness": 1,
+      "damage": 0,
+      "destroyed": false,
+      "ammo": {},
+      "tags": [
+        "enemy"
+      ],
+      "notes": {
+        "sectors": [],
+        "theater_role": "core_enemy",
+        "role": null,
+        "player_submarine_key": null,
+        "player_submarine_label": null,
+        "player_submarine_short_label": null,
+        "player_submarine_platform_dbid": null,
+        "player_submarine_representative_hull": null,
+        "player_submarine_verified_db": false,
+        "player_submarine_db_fallback": false,
+        "current_sector": "lofoten_wall",
+        "availability": "committed",
+        "last_mission_id": null,
+        "last_assigned_index": 0,
+        "on_stage": true
+      }
+    },
+    "uss_truxtun": {
+      "unit_id": "uss_truxtun",
+      "name": "USS Truxtun",
+      "faction": "US",
+      "platform_type": "surface_combatant",
+      "dbid": 294,
+      "readiness": 1,
+      "damage": 0,
+      "destroyed": false,
+      "ammo": {},
+      "tags": [
+        "friendly_support"
+      ],
+      "notes": {
+        "sectors": [
+          "bear_island_gap",
+          "nordkapp_seam"
+        ],
+        "theater_role": "friendlySurface",
+        "role": null,
+        "player_submarine_key": null,
+        "player_submarine_label": null,
+        "player_submarine_short_label": null,
+        "player_submarine_platform_dbid": null,
+        "player_submarine_representative_hull": null,
+        "player_submarine_verified_db": false,
+        "player_submarine_db_fallback": false,
+        "current_sector": "nordkapp_seam",
+        "availability": "available",
+        "last_mission_id": null,
+        "last_assigned_index": -1,
+        "on_stage": false
+      }
+    },
+    "uss_laboon": {
+      "unit_id": "uss_laboon",
+      "name": "USS Laboon",
+      "faction": "US",
+      "platform_type": "surface_combatant",
+      "dbid": 294,
+      "readiness": 1,
+      "damage": 0,
+      "destroyed": false,
+      "ammo": {},
+      "tags": [
+        "friendly_support"
+      ],
+      "notes": {
+        "sectors": [
+          "lofoten_wall",
+          "jan_mayen_arc"
+        ],
+        "theater_role": "friendlySurface",
+        "role": null,
+        "player_submarine_key": null,
+        "player_submarine_label": null,
+        "player_submarine_short_label": null,
+        "player_submarine_platform_dbid": null,
+        "player_submarine_representative_hull": null,
+        "player_submarine_verified_db": false,
+        "player_submarine_db_fallback": false,
+        "current_sector": "jan_mayen_arc",
+        "availability": "available",
+        "last_mission_id": null,
+        "last_assigned_index": -1,
+        "on_stage": false
+      }
+    },
+    "uss_ross": {
+      "unit_id": "uss_ross",
+      "name": "USS Ross",
+      "faction": "US",
+      "platform_type": "surface_combatant",
+      "dbid": 294,
+      "readiness": 1,
+      "damage": 0,
+      "destroyed": false,
+      "ammo": {},
+      "tags": [
+        "friendly_support"
+      ],
+      "notes": {
+        "sectors": [
+          "faroe_shetland_exit",
+          "jan_mayen_arc"
+        ],
+        "theater_role": "friendlySurface",
+        "role": null,
+        "player_submarine_key": null,
+        "player_submarine_label": null,
+        "player_submarine_short_label": null,
+        "player_submarine_platform_dbid": null,
+        "player_submarine_representative_hull": null,
+        "player_submarine_verified_db": false,
+        "player_submarine_db_fallback": false,
+        "current_sector": "faroe_shetland_exit",
+        "availability": "available",
+        "last_mission_id": null,
+        "last_assigned_index": -1,
+        "on_stage": false
+      }
+    },
+    "uss_porter": {
+      "unit_id": "uss_porter",
+      "name": "USS Porter",
+      "faction": "US",
+      "platform_type": "surface_combatant",
+      "dbid": 294,
+      "readiness": 1,
+      "damage": 0,
+      "destroyed": false,
+      "ammo": {},
+      "tags": [
+        "friendly_support"
+      ],
+      "notes": {
+        "sectors": [
+          "faroe_shetland_exit",
+          "lofoten_wall"
+        ],
+        "theater_role": "friendlySurface",
+        "role": null,
+        "player_submarine_key": null,
+        "player_submarine_label": null,
+        "player_submarine_short_label": null,
+        "player_submarine_platform_dbid": null,
+        "player_submarine_representative_hull": null,
+        "player_submarine_verified_db": false,
+        "player_submarine_db_fallback": false,
+        "current_sector": "faroe_shetland_exit",
+        "availability": "available",
+        "last_mission_id": null,
+        "last_assigned_index": -1,
+        "on_stage": false
+      }
+    },
+    "uss_gravely": {
+      "unit_id": "uss_gravely",
+      "name": "USS Gravely",
+      "faction": "US",
+      "platform_type": "surface_combatant",
+      "dbid": 294,
+      "readiness": 1,
+      "damage": 0,
+      "destroyed": false,
+      "ammo": {},
+      "tags": [
+        "friendly_support"
+      ],
+      "notes": {
+        "sectors": [
+          "barents_bastion_edge",
+          "nordkapp_seam"
+        ],
+        "theater_role": "friendlySurface",
+        "role": null,
+        "player_submarine_key": null,
+        "player_submarine_label": null,
+        "player_submarine_short_label": null,
+        "player_submarine_platform_dbid": null,
+        "player_submarine_representative_hull": null,
+        "player_submarine_verified_db": false,
+        "player_submarine_db_fallback": false,
+        "current_sector": "barents_bastion_edge",
+        "availability": "committed",
+        "last_mission_id": null,
+        "last_assigned_index": 1,
+        "on_stage": true
+      }
+    },
+    "p8_nord_watch": {
+      "unit_id": "p8_nord_watch",
+      "name": "P-8A Nord Watch",
+      "faction": "US",
+      "platform_type": "maritime_patrol_aircraft",
+      "dbid": 2705,
+      "readiness": 1,
+      "damage": 0,
+      "destroyed": false,
+      "ammo": {},
+      "tags": [
+        "friendly_support"
+      ],
+      "notes": {
+        "sectors": [
+          "bear_island_gap",
+          "nordkapp_seam",
+          "barents_bastion_edge"
+        ],
+        "theater_role": "friendlyAir",
+        "role": null,
+        "player_submarine_key": null,
+        "player_submarine_label": null,
+        "player_submarine_short_label": null,
+        "player_submarine_platform_dbid": null,
+        "player_submarine_representative_hull": null,
+        "player_submarine_verified_db": false,
+        "player_submarine_db_fallback": false,
+        "current_sector": "barents_bastion_edge",
+        "availability": "committed",
+        "last_mission_id": null,
+        "last_assigned_index": 1,
+        "on_stage": true
+      }
+    },
+    "p8_giuk_scout": {
+      "unit_id": "p8_giuk_scout",
+      "name": "P-8A GIUK Scout",
+      "faction": "US",
+      "platform_type": "maritime_patrol_aircraft",
+      "dbid": 2705,
+      "readiness": 1,
+      "damage": 0,
+      "destroyed": false,
+      "ammo": {},
+      "tags": [
+        "friendly_support"
+      ],
+      "notes": {
+        "sectors": [
+          "faroe_shetland_exit",
+          "jan_mayen_arc",
+          "lofoten_wall"
+        ],
+        "theater_role": "friendlyAir",
+        "role": null,
+        "player_submarine_key": null,
+        "player_submarine_label": null,
+        "player_submarine_short_label": null,
+        "player_submarine_platform_dbid": null,
+        "player_submarine_representative_hull": null,
+        "player_submarine_verified_db": false,
+        "player_submarine_db_fallback": false,
+        "current_sector": "lofoten_wall",
+        "availability": "committed",
+        "last_mission_id": null,
+        "last_assigned_index": 0,
+        "on_stage": true
+      }
+    },
+    "p8_bastion_shadow": {
+      "unit_id": "p8_bastion_shadow",
+      "name": "P-8A Bastion Shadow",
+      "faction": "US",
+      "platform_type": "maritime_patrol_aircraft",
+      "dbid": 2705,
+      "readiness": 1,
+      "damage": 0,
+      "destroyed": false,
+      "ammo": {},
+      "tags": [
+        "friendly_support"
+      ],
+      "notes": {
+        "sectors": [
+          "barents_bastion_edge",
+          "bear_island_gap",
+          "jan_mayen_arc"
+        ],
+        "theater_role": "friendlyAir",
+        "role": null,
+        "player_submarine_key": null,
+        "player_submarine_label": null,
+        "player_submarine_short_label": null,
+        "player_submarine_platform_dbid": null,
+        "player_submarine_representative_hull": null,
+        "player_submarine_verified_db": false,
+        "player_submarine_db_fallback": false,
+        "current_sector": "lofoten_wall",
+        "availability": "committed",
+        "last_mission_id": null,
+        "last_assigned_index": 0,
+        "on_stage": true
+      }
+    },
+    "yasen_kazan": {
+      "unit_id": "yasen_kazan",
+      "name": "Yasen Kazan",
+      "faction": "RU",
+      "platform_type": "submarine",
+      "dbid": 667,
+      "readiness": 1,
+      "damage": 0,
+      "destroyed": false,
+      "ammo": {},
+      "tags": [
+        "enemy"
+      ],
+      "notes": {
+        "sectors": [
+          "nordkapp_seam",
+          "barents_bastion_edge"
+        ],
+        "theater_role": "enemySubsurface",
+        "role": "target",
+        "player_submarine_key": null,
+        "player_submarine_label": null,
+        "player_submarine_short_label": null,
+        "player_submarine_platform_dbid": null,
+        "player_submarine_representative_hull": null,
+        "player_submarine_verified_db": false,
+        "player_submarine_db_fallback": false,
+        "current_sector": "barents_bastion_edge",
+        "availability": "committed",
+        "last_mission_id": null,
+        "last_assigned_index": 1,
+        "on_stage": true
+      }
+    },
+    "yasen_novosibirsk": {
+      "unit_id": "yasen_novosibirsk",
+      "name": "Yasen Novosibirsk",
+      "faction": "RU",
+      "platform_type": "submarine",
+      "dbid": 667,
+      "readiness": 1,
+      "damage": 0,
+      "destroyed": false,
+      "ammo": {},
+      "tags": [
+        "enemy"
+      ],
+      "notes": {
+        "sectors": [
+          "faroe_shetland_exit",
+          "jan_mayen_arc"
+        ],
+        "theater_role": "enemySubsurface",
+        "role": "target",
+        "player_submarine_key": null,
+        "player_submarine_label": null,
+        "player_submarine_short_label": null,
+        "player_submarine_platform_dbid": null,
+        "player_submarine_representative_hull": null,
+        "player_submarine_verified_db": false,
+        "player_submarine_db_fallback": false,
+        "current_sector": "faroe_shetland_exit",
+        "availability": "available",
+        "last_mission_id": null,
+        "last_assigned_index": -1,
+        "on_stage": false
+      }
+    },
+    "akula_gatekeeper": {
+      "unit_id": "akula_gatekeeper",
+      "name": "Akula Gatekeeper",
+      "faction": "RU",
+      "platform_type": "submarine",
+      "dbid": 34,
+      "readiness": 1,
+      "damage": 0,
+      "destroyed": false,
+      "ammo": {},
+      "tags": [
+        "enemy"
+      ],
+      "notes": {
+        "sectors": [
+          "faroe_shetland_exit",
+          "jan_mayen_arc"
+        ],
+        "theater_role": "enemySubsurface",
+        "role": "screen",
+        "player_submarine_key": null,
+        "player_submarine_label": null,
+        "player_submarine_short_label": null,
+        "player_submarine_platform_dbid": null,
+        "player_submarine_representative_hull": null,
+        "player_submarine_verified_db": false,
+        "player_submarine_db_fallback": false,
+        "current_sector": "faroe_shetland_exit",
+        "availability": "available",
+        "last_mission_id": null,
+        "last_assigned_index": -1,
+        "on_stage": false
+      }
+    },
+    "akula_bastion_screen": {
+      "unit_id": "akula_bastion_screen",
+      "name": "Akula Bastion Screen",
+      "faction": "RU",
+      "platform_type": "submarine",
+      "dbid": 34,
+      "readiness": 1,
+      "damage": 0,
+      "destroyed": false,
+      "ammo": {},
+      "tags": [
+        "enemy"
+      ],
+      "notes": {
+        "sectors": [
+          "barents_bastion_edge",
+          "nordkapp_seam"
+        ],
+        "theater_role": "enemySubsurface",
+        "role": "screen",
+        "player_submarine_key": null,
+        "player_submarine_label": null,
+        "player_submarine_short_label": null,
+        "player_submarine_platform_dbid": null,
+        "player_submarine_representative_hull": null,
+        "player_submarine_verified_db": false,
+        "player_submarine_db_fallback": false,
+        "current_sector": "barents_bastion_edge",
+        "availability": "committed",
+        "last_mission_id": null,
+        "last_assigned_index": 1,
+        "on_stage": true
+      }
+    }
+  },
+  "mission_history": [],
+  "world_state": {
+    "escalation_level": 1,
+    "escalation_key": "heightened_tension",
+    "campaign_climate": "breakout_hunt",
+    "campaign_seed": "north_lance_4657",
+    "mission_type": "asw",
+    "tone": "breakout_hunt",
+    "season": "summer",
+    "season_label": "Summer",
+    "time_of_day": "day",
+    "time_of_day_label": "Day",
+    "player_submarine": "virginia_block_i",
+    "player_submarine_label": "Virginia Block I",
+    "player_submarine_platform_dbid": 74,
+    "player_submarine_verified_db": true,
+    "mission_stance": "aggressive_intercept",
+    "posture": "aggressive_intercept",
+    "rules_of_engagement": "hostile_flagged_free_fire",
+    "route_family": "sub_hunt",
+    "theater_picture": {
+      "theater_id": "norwegian_sea",
+      "sectors": [
+        {
+          "id": "bear_island_gap",
+          "label": "Bear Island Gap"
+        },
+        {
+          "id": "lofoten_wall",
+          "label": "Lofoten Wall"
+        },
+        {
+          "id": "nordkapp_seam",
+          "label": "Nordkapp Seam"
+        },
+        {
+          "id": "faroe_shetland_exit",
+          "label": "Faroe-Shetland Exit"
+        },
+        {
+          "id": "jan_mayen_arc",
+          "label": "Jan Mayen Arc"
+        },
+        {
+          "id": "barents_bastion_edge",
+          "label": "Barents Bastion Edge"
+        }
+      ],
+      "units": {
+        "uss_north_dakota": {
+          "current_sector": "bear_island_gap",
+          "availability": "available",
+          "last_mission_id": null,
+          "last_assigned_index": -1,
+          "on_stage": false
+        },
+        "yasen_severodvinsk": {
+          "current_sector": "lofoten_wall",
+          "availability": "committed",
+          "last_mission_id": null,
+          "last_assigned_index": 0,
+          "on_stage": true
+        },
+        "akula_screen": {
+          "current_sector": "lofoten_wall",
+          "availability": "committed",
+          "last_mission_id": null,
+          "last_assigned_index": 0,
+          "on_stage": true
+        },
+        "uss_truxtun": {
+          "current_sector": "nordkapp_seam",
+          "availability": "available",
+          "last_mission_id": null,
+          "last_assigned_index": -1,
+          "on_stage": false
+        },
+        "uss_laboon": {
+          "current_sector": "jan_mayen_arc",
+          "availability": "available",
+          "last_mission_id": null,
+          "last_assigned_index": -1,
+          "on_stage": false
+        },
+        "uss_ross": {
+          "current_sector": "faroe_shetland_exit",
+          "availability": "available",
+          "last_mission_id": null,
+          "last_assigned_index": -1,
+          "on_stage": false
+        },
+        "uss_porter": {
+          "current_sector": "faroe_shetland_exit",
+          "availability": "available",
+          "last_mission_id": null,
+          "last_assigned_index": -1,
+          "on_stage": false
+        },
+        "uss_gravely": {
+          "current_sector": "barents_bastion_edge",
+          "availability": "committed",
+          "last_mission_id": null,
+          "last_assigned_index": 1,
+          "on_stage": true
+        },
+        "p8_nord_watch": {
+          "current_sector": "barents_bastion_edge",
+          "availability": "committed",
+          "last_mission_id": null,
+          "last_assigned_index": 1,
+          "on_stage": true
+        },
+        "p8_giuk_scout": {
+          "current_sector": "lofoten_wall",
+          "availability": "committed",
+          "last_mission_id": null,
+          "last_assigned_index": 0,
+          "on_stage": true
+        },
+        "p8_bastion_shadow": {
+          "current_sector": "lofoten_wall",
+          "availability": "committed",
+          "last_mission_id": null,
+          "last_assigned_index": 0,
+          "on_stage": true
+        },
+        "yasen_kazan": {
+          "current_sector": "barents_bastion_edge",
+          "availability": "committed",
+          "last_mission_id": null,
+          "last_assigned_index": 1,
+          "on_stage": true
+        },
+        "yasen_novosibirsk": {
+          "current_sector": "faroe_shetland_exit",
+          "availability": "available",
+          "last_mission_id": null,
+          "last_assigned_index": -1,
+          "on_stage": false
+        },
+        "akula_gatekeeper": {
+          "current_sector": "faroe_shetland_exit",
+          "availability": "available",
+          "last_mission_id": null,
+          "last_assigned_index": -1,
+          "on_stage": false
+        },
+        "akula_bastion_screen": {
+          "current_sector": "barents_bastion_edge",
+          "availability": "committed",
+          "last_mission_id": null,
+          "last_assigned_index": 1,
+          "on_stage": true
+        }
+      }
+    },
+    "authoring_constraints": {
+      "maxDistanceToPrimaryTargetKm": null,
+      "merchantTrafficIntensity": 2,
+      "biologicClutterIntensity": 2,
+      "hostileSurfaceSupportIntensity": 2,
+      "hostileAirSupportIntensity": 2,
+      "friendlySupportIntensity": 2
+    },
+    "experimental_features": {
+      "enabled": false,
+      "plotSeed": "none",
+      "plotSeedLabel": "None"
+    }
+  },
+  "module_state": {
+    "damage": {
+      "repair_rate_per_day": 0.08
+    },
+    "ammo": {}
+  },
+  "enabled_modules": [
+    "damage",
+    "ammo"
+  ]
+}

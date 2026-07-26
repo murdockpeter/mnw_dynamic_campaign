@@ -1,0 +1,97 @@
+Path,Field,en,de,zh,fr,es,ru,ro,pl,el
+north_lance_4657/quest.cmp,name,North Lance,,,,,,,,
+north_lance_4657/quest.cmp,description,"North Lance is a high alert interdiction campaign set in the Norwegian Sea.",,,,,,,,
+north_lance_4657\scenario_01.mis,name,Scenario 1,,,,,,,,
+north_lance_4657\scenario_01.mis,description,"Intercept the opening move and classify the breakout axis before it widens. Expect sparse reporting and a narrow early prosecution window. Escalation: High Alert. ROE: Free Fire On Hostile-Flagged Units. Task: Cut ahead of the marked route and challenge the transit at the likely gate. Intel cue: enemy submarine activity is most likely south-east of your ingress track near Lofoten Wall. Treat that as moderate-confidence cueing (70% assessed confidence), not precise localization.",,,,,,,,
+north_lance_4657\scenario_01.mis,objectives.primary_withdraw_intact,Cut ahead of the marked route and challenge the transit at the likely gate. Engage any hostile-flagged enemy unit. Use the likely egress marker to get in front of the movement instead of chasing the datum. Recover once you have classified the route choice and denied an easy transit. enemy submarine activity is most likely south-east of your ingress track near Lofoten Wall. Treat that as moderate-confidence cueing (70% assessed confidence), not precise localization.,,,,,,,,
+north_lance_4657\scenario_01.mis,messages.mission_from,COMSUBLANT,,,,,,,,
+north_lance_4657\scenario_01.mis,messages.mission_to,USS NORTH CAROLINA,,,,,,,,
+north_lance_4657\scenario_01.mis,messages.mission_objectives,"BT
+SUBJ: SCENARIO 1
+
+1. Situation:
+   Intercept the opening move and classify the breakout axis before it widens.
+
+2. Mission Type:
+   ASW
+
+3. Scenario Time:
+   Summer, Day
+
+4. Primary Task:
+   Cut ahead of the marked route and challenge the transit at the likely gate.
+
+5. Alert State:
+   High Alert
+   The theater is under military pressure. Command wants rapid warning, clean classification, and readiness to strike if ordered.
+
+6. Rules Of Engagement:
+   Free Fire On Hostile-Flagged Units
+   Any hostile-flagged enemy unit may be attacked once detected. Civilian and neutral traffic remain protected.
+
+7. Mission Stance:
+   Aggressive Intercept
+   Get forward on the route, compress the intercept geometry, and accept more exposure to force a firing solution sooner.
+
+8. Designated Target:
+   No specific target designated beyond ROE and commander intent.
+
+9. Intel Cue:
+   enemy submarine activity is most likely south-east of your ingress track near Lofoten Wall. Treat that as moderate-confidence cueing (70% assessed confidence), not precise localization.
+
+10. Marked Cues:
+   1. Likely Contact Area: enemy submarine activity is most likely south-east of your ingress track near Lofoten Wall. moderate-confidence cueing (70% assessed confidence).
+2. Intercept Gate: Likely route decision point. Use this as a geometry cue, not a guaranteed enemy position.
+3. Support Search Line: Friendly support is most relevant around this axis if you want to work with cueing instead of chasing every contact yourself.
+4. Barrier Station: Useful holding point if you choose to turn the mission into a containment problem.
+
+11. Expected Action:
+   Use the likely egress marker to get in front of the movement instead of chasing the datum.
+
+12. End State:
+   Recover once you have classified the route choice and denied an easy transit.
+
+13. Route Summary:
+   72.329410, 11.790510 -> 70.631972, 16.143171 -> 70.616443, 15.690352 -> 71.645688, 20.310816 -> 73.818735, 8.408916
+
+14. Enemy Transit:
+   70.616443, 15.690352 -> 70.621237, 17.593101 -> 71.645688, 20.310816
+
+15. Report to COMSUBLANT only after the ordered task is complete and the boat remains combat effective.",,,,,,,,
+north_lance_4657\scenario_01.mis,messages.mission_success,"BT
+SUBJ: MISSION STATUS - SUCCESS
+
+First Vector is complete. COMSUBLANT has the updated route picture and can shape the next operation from your report.",,,,,,,,
+north_lance_4657\scenario_02.mis,name,Scenario 2,,,,,,,,
+north_lance_4657\scenario_02.mis,description,"Reserved follow-on mission slot. Update the previous mission result in Campaign Tracking before playing this scenario. This placeholder exists so MNW always has a valid next mission, but its content is intended to be rewritten before play.",,,,,,,,
+north_lance_4657\scenario_02.mis,objectives.primary_withdraw_intact,This is a reserved follow-on mission slot. If you want to continue the campaign, return to Campaign Tracking, save the result from the previous mission, and use Continue Campaign to regenerate this scenario before play. If you do not want to continue, treat the previous mission as the campaign conclusion.,,,,,,,,
+north_lance_4657\scenario_02.mis,messages.mission_from,COMSUBLANT,,,,,,,,
+north_lance_4657\scenario_02.mis,messages.mission_to,USS NORTH CAROLINA,,,,,,,,
+north_lance_4657\scenario_02.mis,messages.mission_objectives,"BT
+SUBJ: SCENARIO 2 - PLACEHOLDER
+
+1. This mission slot is reserved so the campaign chain always has a valid next node.
+
+2. If you do not want to continue the campaign, treat the previous mission as the campaign conclusion.
+
+3. If you do want to continue, do not play this scenario yet.
+
+4. Return to Campaign Tracking.
+
+5. Save the result from the previous mission.
+
+6. Click Continue Campaign so the app can rewrite this scenario with updated tasking, geometry, and supporting forces.
+
+7. Rebuild and redeploy if prompted.
+
+8. Launch this scenario only after the tracker confirms it was regenerated.
+
+9. Current placeholder route summary:
+   73.233287, 29.227642 -> 73.937447, 34.816686 -> 74.076862, 36.977296 -> 73.513826, 29.221728 -> 72.904028, 24.833602
+
+10. Current placeholder enemy transit:
+   74.076862, 36.977296 -> 73.895033, 34.361725 -> 73.513826, 29.221728",,,,,,,,
+north_lance_4657\scenario_02.mis,messages.mission_success,"BT
+SUBJ: MISSION STATUS - SUCCESS
+
+Scenario 2 placeholder completed.",,,,,,,,

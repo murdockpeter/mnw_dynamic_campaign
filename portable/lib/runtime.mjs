@@ -116,6 +116,8 @@ function buildTheaterDebugPayload(campaignConfig, state) {
     timeOfDayLabel: state.world_state?.time_of_day_label || null,
     playerSubmarine: state.world_state?.player_submarine || null,
     playerSubmarineLabel: state.world_state?.player_submarine_label || null,
+    playerSubmarinePlatformDbid: state.world_state?.player_submarine_platform_dbid || null,
+    playerSubmarineVerifiedDb: state.world_state?.player_submarine_verified_db ?? null,
     experimentalFeatures: state.world_state?.experimental_features || null,
     missionStance: state.world_state?.mission_stance || state.world_state?.posture || null,
     rulesOfEngagement: state.world_state?.rules_of_engagement || null,

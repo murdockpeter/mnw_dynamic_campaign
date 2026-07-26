@@ -1,0 +1,12 @@
+{
+    "name": {
+        {%- for key, value in name %}
+        "{{key}}": "{{value}}"{% if not loop.last %},{% endif %}
+        {%- endfor %}
+    }{% if description %},
+    "description": {
+        {%- for key, value in description %}
+        "{{key}}": "{{value}}"{% if not loop.last %},{% endif %}
+        {%- endfor %}
+    }{% endif %}
+}

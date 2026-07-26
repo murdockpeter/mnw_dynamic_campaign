@@ -1,0 +1,39 @@
+{
+    "name": {
+        {%- for key, value in name %}
+        "{{key}}": "{{value}}"{% if not loop.last %},{% endif %}
+        {%- endfor %}
+    }{% if description %},
+    "description": {
+        {%- for key, value in description %}
+        "{{key}}": "{{value}}"{% if not loop.last %},{% endif %}
+        {%- endfor %}
+    }{% endif %}{% if objectives %},
+    "objectives": {
+        {%- for obj_key, member in objectives %}
+        "{{obj_key}}": {
+            {%- for member_key, locale in member %}
+            "{{member_key}}": "{{locale}}"{% if not loop.last %},{% endif %}
+            {%- endfor %}
+        }{% if not loop.last %},{% endif %}
+        {%- endfor %}
+    }{% endif %}{% if messages %},
+    "messages": {
+        {%- for obj_key, member in messages %}
+        "{{obj_key}}": {
+            {%- for member_key, locale in member %}
+            "{{member_key}}": "{{locale}}"{% if not loop.last %},{% endif %}
+            {%- endfor %}
+        }{% if not loop.last %},{% endif %}
+        {%- endfor %}
+    }{% endif %}{% if assets %},
+    "assets": {
+        {%- for obj_key, member in assets %}
+        "{{obj_key}}": {
+            {%- for member_key, locale in member %}
+            "{{member_key}}": "{{locale}}"{% if not loop.last %},{% endif %}
+            {%- endfor %}
+        }{% if not loop.last %},{% endif %}
+        {%- endfor %}
+    }{% endif %}
+}
