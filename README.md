@@ -121,6 +121,7 @@ The Electron app can use either:
 - [DEVELOPER_GUIDE.md](./DEVELOPER_GUIDE.md)
 - [DESKTOP_APP_GUIDE.md](./DESKTOP_APP_GUIDE.md)
 - [RESEARCH.md](./RESEARCH.md)
+- [Rainbow Panda AUKUS II repair](./docs/rainbow-panda-aukus2-repair.md)
 - [ui/README.md](./ui/README.md)
 - `docs/local-ai-campaign-workflow.html`
 - `docs/tool-reference.html`

@@ -1,11 +1,13 @@
 param(
     [string]$InputPackage = "C:\Program Files (x86)\Steam\steamapps\common\Modern Naval Warfare\Var\Scenarios\Packages\Campaigns\campaigns.kyt",
-    [string]$OutputPackage = (Join-Path $PSScriptRoot "..\dist\campaigns-rainbow-panda-aukus2-fixed.kyt")
+    [string]$OutputPackage = (Join-Path $PSScriptRoot "..\dist\campaigns.kyt"),
+    [switch]$Aukus2First
 )
 
 $ErrorActionPreference = "Stop"
 
 $missionPath = "rainbow_panda/m2_aukus.mis"
+$campaignPath = "rainbow_panda/quest.cmp"
 $manifestPath = "manifest.json"
 $resolvedInput = (Resolve-Path -LiteralPath $InputPackage).Path
 $resolvedOutput = [System.IO.Path]::GetFullPath($OutputPackage)
@@ -70,6 +72,7 @@ $inputZip = New-Object System.IO.Compression.ZipArchive($inputStream, [System.IO
 
 try {
     $missionEntry = $inputZip.GetEntry($missionPath)
+    $campaignEntry = $inputZip.GetEntry($campaignPath)
     $manifestEntry = $inputZip.GetEntry($manifestPath)
     if ($null -eq $missionEntry) {
         throw "The input package does not contain $missionPath."
@@ -77,11 +80,21 @@ try {
     if ($null -eq $manifestEntry) {
         throw "The input package does not contain $manifestPath."
     }
+    if ($null -eq $campaignEntry) {
+        throw "The input package does not contain $campaignPath."
+    }
 
     $utf8 = New-Object System.Text.UTF8Encoding($false)
     $missionText = $utf8.GetString((Read-ZipEntryBytes $missionEntry))
     $missionText = $missionText.Replace("`r`n", "`n")
+    $missionAlreadyRepaired = (
+        $missionText.Contains("champlain_plot = _P.Element.Plot") -and
+        $missionText.Contains("chafee_plot = _P.Element.Plot") -and
+        -not $missionText.Contains("schirra_element") -and
+        -not $missionText.Contains('csg_squad = Squadron')
+    )
 
+    if (-not $missionAlreadyRepaired) {
     $oldSchirraId = @'
 #USNS Wally Schirra DB ID
 schirra_id = 452
@@ -176,9 +189,136 @@ schirra_hit = _P.Objective.Status(schirra_destroyed, objectives[2], ObjectiveSta
 
 '@
     $missionText = Replace-RequiredText $missionText $oldSchirraTriggers "" "stale supply-ship triggers removal"
+    }
+
+    $carrierAlreadyRemoved = (
+        -not $missionText.Contains("vinson_props") -and
+        -not $missionText.Contains("vinson_element") -and
+        -not $missionText.Contains("sat_props") -and
+        $missionText.Contains("chafee_hit_trigger")
+    )
+
+    if (-not $carrierAlreadyRemoved) {
+        $oldVinsonId = @'
+#Carl Vinson DB ID
+vinson_id = 246
+'@
+        $missionText = Replace-RequiredText $missionText $oldVinsonId "" "failing Carl Vinson database declaration removal"
+
+        $oldSatellite = @'
+##
+# Transmissions
+##
+sat_spawn_zone = _Z.Circular("Sat Spawn Zone", player_spawn_pos, 10000)
+sat_props = Element.Props.FromDatabaseID(us_fact, "MUOS", ElementCategory.SpaceElement, 1, sat_spawn_zone.RandomPosition())
+sat_element = Element(sat_props).SetElevation(500)
+sat_spawn_process = _P.Element.Spawn(player_spawn_process, sat_element, sat_element.Position)
+
+transmission = Transmission.Create(EMFTools.Protocol.Link_16, _date_time, 60, 10, 500, EMFTools.MicroWaveBands.UHF)
+transmission_process = _P.Element.Radio(sat_spawn_process, sat_element, transmission)
+
+'@
+        $missionText = Replace-RequiredText $missionText $oldSatellite "" "MUOS satellite and opening transmission removal"
+
+        $oldVinsonSpawn = @'
+vinson_props = Element.Props.FromDatabaseID(us_fact, "USS Carl Vinson", ElementCategory.Ship, vinson_id, csg_spawn_pos)
+vinson_element = Element(vinson_props).SetHVU(True)
+vinson_spawn_process = _P.Element.Spawn(player_spawn_process, vinson_element, csg_spawn_pos)
+
+'@
+        $missionText = Replace-RequiredText $missionText $oldVinsonSpawn "" "failing Carl Vinson spawn removal"
+
+        $oldMovement = @'
+# Keep unlike surface and air elements out of a single ASWFormation. Mixed
+# formations are fragile during mission construction and snapshot creation.
+vinson_plot = _P.Element.Plot(taylor_spawn_process, vinson_element, Waypoint(csg_end_pos))
+champlain_plot = _P.Element.Plot(vinson_plot, champlain_element, Waypoint(GC(13.59000,117.27000)))
+chafee_plot = _P.Element.Plot(champlain_plot, chafee_element, Waypoint(GC(13.55000,117.18000)))
+'@
+        $newMovement = @'
+# Keep unlike surface and air elements out of a single ASWFormation. Mixed
+# formations are fragile during mission construction and snapshot creation.
+champlain_plot = _P.Element.Plot(taylor_spawn_process, champlain_element, Waypoint(GC(13.59000,117.27000)))
+chafee_plot = _P.Element.Plot(champlain_plot, chafee_element, Waypoint(GC(13.55000,117.18000)))
+'@
+        $missionText = Replace-RequiredText $missionText $oldMovement $newMovement "carrier-free CSG movement"
+
+        $oldVinsonTriggers = @'
+vinson_hit_trigger = _T.OnHit(0.0)
+vinson_death_trigger = _T.Manual()
+vinson_nop_trigger = _T.NonOperational()
+vinson_element.NotifyOnShockSuffered(vinson_hit_trigger)
+vinson_element.NotifyUponDeath(vinson_death_trigger)
+vinson_element.NotifyNonOperational(vinson_nop_trigger)
+vinson_destroyed = _T.Or([vinson_hit_trigger, vinson_death_trigger, vinson_nop_trigger])
+vinson_hit = _P.Objective.Status(vinson_destroyed, objectives[0], ObjectiveStatus.Completed)
+'@
+        $newChafeeTriggers = @'
+chafee_hit_trigger = _T.OnHit(0.0)
+chafee_death_trigger = _T.Manual()
+chafee_nop_trigger = _T.NonOperational()
+chafee_element.NotifyOnShockSuffered(chafee_hit_trigger)
+chafee_element.NotifyUponDeath(chafee_death_trigger)
+chafee_element.NotifyNonOperational(chafee_nop_trigger)
+chafee_destroyed = _T.Or([chafee_hit_trigger, chafee_death_trigger, chafee_nop_trigger])
+chafee_hit = _P.Objective.Status(chafee_destroyed, objectives[0], ObjectiveStatus.Completed)
+'@
+        $missionText = Replace-RequiredText $missionText $oldVinsonTriggers $newChafeeTriggers "primary objective retargeting to USS Chafee"
+
+        $oldEndTransmission = @'
+end_transmission = Transmission.Create(EMFTools.Protocol.Link_16, _date_time, 60, 10, 500, EMFTools.MicroWaveBands.UHF)
+end_transmission_process = _P.Element.Radio(end_message_proccess, sat_element, end_transmission)
+'@
+        $missionText = Replace-RequiredText $missionText $oldEndTransmission "" "MUOS mission-end transmission removal"
+    }
 
     $missionBytes = $utf8.GetBytes($missionText)
     $missionHash = Get-Md5 $missionBytes
+
+    $campaignText = $utf8.GetString((Read-ZipEntryBytes $campaignEntry))
+    $campaignText = $campaignText.Replace("`r`n", "`n")
+    $campaignWasAlreadyReordered = $false
+    $campaignWasAlreadyNormal = $false
+
+    if ($Aukus2First) {
+        $campaignWasAlreadyReordered = (
+            $campaignText.Contains('_start = Mis("campaigns.rainbow_panda.m2_aukus")') -and
+            $campaignText.Contains('_start.PipeMission("campaigns.rainbow_panda.m1_aukus").PipeMission("campaigns.rainbow_panda.m3_el_presidente")')
+        )
+        if (-not $campaignWasAlreadyReordered) {
+            $campaignText = Replace-RequiredText `
+                $campaignText `
+                '_start = Mis("campaigns.rainbow_panda.m1_aukus")' `
+                '_start = Mis("campaigns.rainbow_panda.m2_aukus")' `
+                "AUKUS II test-first starting mission"
+            $campaignText = Replace-RequiredText `
+                $campaignText `
+                '_start.PipeMission("campaigns.rainbow_panda.m2_aukus").PipeMission("campaigns.rainbow_panda.m3_el_presidente")' `
+                '_start.PipeMission("campaigns.rainbow_panda.m1_aukus").PipeMission("campaigns.rainbow_panda.m3_el_presidente")' `
+                "AUKUS II test-first follow-on order"
+        }
+    }
+    else {
+        $campaignWasAlreadyNormal = (
+            $campaignText.Contains('_start = Mis("campaigns.rainbow_panda.m1_aukus")') -and
+            $campaignText.Contains('_start.PipeMission("campaigns.rainbow_panda.m2_aukus").PipeMission("campaigns.rainbow_panda.m3_el_presidente")')
+        )
+        if (-not $campaignWasAlreadyNormal) {
+            $campaignText = Replace-RequiredText `
+                $campaignText `
+                '_start = Mis("campaigns.rainbow_panda.m2_aukus")' `
+                '_start = Mis("campaigns.rainbow_panda.m1_aukus")' `
+                "normal AUKUS I starting mission"
+            $campaignText = Replace-RequiredText `
+                $campaignText `
+                '_start.PipeMission("campaigns.rainbow_panda.m1_aukus").PipeMission("campaigns.rainbow_panda.m3_el_presidente")' `
+                '_start.PipeMission("campaigns.rainbow_panda.m2_aukus").PipeMission("campaigns.rainbow_panda.m3_el_presidente")' `
+                "normal AUKUS II follow-on order"
+        }
+    }
+
+    $campaignBytes = $utf8.GetBytes($campaignText)
+    $campaignHash = Get-Md5 $campaignBytes
 
     $manifestText = $utf8.GetString((Read-ZipEntryBytes $manifestEntry))
     $manifest = $manifestText | ConvertFrom-Json
@@ -187,6 +327,13 @@ schirra_hit = _P.Objective.Status(schirra_destroyed, objectives[2], ObjectiveSta
         throw "Expected exactly one manifest record for $missionPath; found $($missionRecord.Count)."
     }
     $missionRecord[0].hash = $missionHash
+
+    $campaignRecord = @($manifest.content | Where-Object { $_.path -eq $campaignPath })
+    if ($campaignRecord.Count -ne 1) {
+        throw "Expected exactly one manifest record for $campaignPath; found $($campaignRecord.Count)."
+    }
+    $campaignRecord[0].hash = $campaignHash
+
     $manifestBytes = $utf8.GetBytes(($manifest | ConvertTo-Json -Depth 8) + "`n")
 
     $temporaryOutput = "$resolvedOutput.partial"
@@ -207,6 +354,9 @@ schirra_hit = _P.Objective.Status(schirra_destroyed, objectives[2], ObjectiveSta
             try {
                 if ($entry.FullName -eq $missionPath) {
                     $newStream.Write($missionBytes, 0, $missionBytes.Length)
+                }
+                elseif ($entry.FullName -eq $campaignPath) {
+                    $newStream.Write($campaignBytes, 0, $campaignBytes.Length)
                 }
                 elseif ($entry.FullName -eq $manifestPath) {
                     $newStream.Write($manifestBytes, 0, $manifestBytes.Length)
@@ -244,4 +394,10 @@ $result = Get-FileHash -LiteralPath $resolvedOutput -Algorithm MD5
     package_md5 = $result.Hash.ToLowerInvariant()
     repaired_mission = $missionPath
     repaired_mission_md5 = $missionHash
+    mission_was_already_repaired = $missionAlreadyRepaired
+    carrier_was_already_removed = $carrierAlreadyRemoved
+    aukus2_first = [bool]$Aukus2First
+    campaign_was_already_reordered = $campaignWasAlreadyReordered
+    campaign_was_already_normal = $campaignWasAlreadyNormal
+    campaign_md5 = $campaignHash
 }
