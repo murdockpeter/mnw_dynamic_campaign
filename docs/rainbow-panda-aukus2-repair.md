@@ -53,6 +53,37 @@ package, so the repair may need to be rebuilt afterward. Do not install both
 files side by side under different names; the repaired archive is a replacement
 for the stock campaign package, not an additional campaign.
 
+### Critical installation rule
+
+The live directory must contain exactly one `.kyt` campaign archive:
+
+```text
+Modern Naval Warfare\Var\Scenarios\Packages\Campaigns\campaigns.kyt
+```
+
+Move the original package to a backup directory outside
+`Var\Scenarios\Packages\Campaigns`. Do not leave files such as
+`campaigns_backup.kyt`, `campaigns_original.kyt`, or the downloaded ZIP in the
+live campaign directory.
+
+MNW indexes every `.kyt` package in that directory. If both the repaired and
+original packages are present, their identical campaign and mission identities
+collide. Observed symptoms include:
+
+- `An item with the same key has already been added` in `Player.log`;
+- one of the stock campaigns disappearing from the menu;
+- MNW loading the original broken AUKUS II instead of the repaired mission;
+- inconsistent results between restarts or different players.
+
+Before launching, verify in PowerShell:
+
+```powershell
+Get-ChildItem "C:\Program Files (x86)\Steam\steamapps\common\Modern Naval Warfare\Var\Scenarios\Packages\Campaigns" -Filter *.kyt
+```
+
+The command must return only `campaigns.kyt`. Players using another Steam
+library should substitute their actual MNW installation path.
+
 ## Validation
 
 The repair tool is guarded: it stops if the expected stock blocks or manifest
@@ -103,3 +134,23 @@ mission graph.
 Omit `-Aukus2First` to build the normal distribution order. The builder
 restores AUKUS I followed by repaired AUKUS II even when its input is the
 temporary test-first package.
+
+## Troubleshooting a tester installation
+
+If AUKUS II still hangs or another campaign disappears:
+
+1. Fully exit MNW.
+2. Remove every `.kyt` except the repaired `campaigns.kyt` from the live
+   `Packages\Campaigns` directory.
+3. Move all backups and downloaded ZIP files outside the MNW installation.
+4. Fully restart MNW and test again.
+5. If the problem persists, collect:
+
+   ```text
+   %USERPROFILE%\AppData\LocalLow\WaveOps\ModernNavalWarfare\Player.log
+   ```
+
+The distributed package was built and tested against MNW `0.118.8`. A tester
+on a different game build should restore the package shipped with that build
+and use the repair builder against their local package rather than installing
+the prebuilt `campaigns.kyt`.

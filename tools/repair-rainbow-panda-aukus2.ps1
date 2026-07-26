@@ -12,9 +12,15 @@ $manifestPath = "manifest.json"
 $resolvedInput = (Resolve-Path -LiteralPath $InputPackage).Path
 $resolvedOutput = [System.IO.Path]::GetFullPath($OutputPackage)
 $outputDirectory = Split-Path -Parent $resolvedOutput
+$inputDirectory = Split-Path -Parent $resolvedInput
+$siblingKytPackages = @(Get-ChildItem -LiteralPath $inputDirectory -Filter "*.kyt" -File)
 
 if ($resolvedInput -eq $resolvedOutput) {
     throw "InputPackage and OutputPackage must be different. This repair never overwrites the stock package."
+}
+
+if ($siblingKytPackages.Count -gt 1) {
+    Write-Warning "The input directory contains $($siblingKytPackages.Count) .kyt packages. MNW can index every one and create duplicate campaign identities. Keep exactly one campaigns.kyt in the live Packages\Campaigns directory."
 }
 
 New-Item -ItemType Directory -Force -Path $outputDirectory | Out-Null
@@ -400,4 +406,5 @@ $result = Get-FileHash -LiteralPath $resolvedOutput -Algorithm MD5
     campaign_was_already_reordered = $campaignWasAlreadyReordered
     campaign_was_already_normal = $campaignWasAlreadyNormal
     campaign_md5 = $campaignHash
+    source_directory_kyt_count = $siblingKytPackages.Count
 }
