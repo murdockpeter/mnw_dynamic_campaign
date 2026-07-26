@@ -1,0 +1,97 @@
+Path,Field,en,de,zh,fr,es,ru,ro,pl,el
+cold_bastion_6239/quest.cmp,name,Cold Bastion,,,,,,,,
+cold_bastion_6239/quest.cmp,description,"Cold Bastion is a peacetime patrol campaign set in the Luzon Strait.",,,,,,,,
+cold_bastion_6239\scenario_01.mis,name,Scenario 1,,,,,,,,
+cold_bastion_6239\scenario_01.mis,description,"Test the outer screen, identify who is actually guarding the route, and avoid committing on the first cue. The first layer may be decoys, escorts, or a loose barrier. Sort the screen before you chase the wrong contact. Escalation: Peacetime Patrol. ROE: Weapons Tight. Task: Probe the screen edges, identify escorts, and avoid getting sucked into the wrong layer. Intel cue: enemy surface activity is most likely north-west of your ingress track near Luzon Strait Default Route. Treat that as moderate-confidence cueing (66% assessed confidence), not precise localization.",,,,,,,,
+cold_bastion_6239\scenario_01.mis,objectives.primary_withdraw_intact,Probe the screen edges, identify escorts, and avoid getting sucked into the wrong layer. Hold fire except in self-defense. Use the support and barrier markers to understand where the screen is strongest. Recover once you can describe the escort layout and main screen axis. enemy surface activity is most likely north-west of your ingress track near Luzon Strait Default Route. Treat that as moderate-confidence cueing (66% assessed confidence), not precise localization.,,,,,,,,
+cold_bastion_6239\scenario_01.mis,messages.mission_from,COMSUBPAC,,,,,,,,
+cold_bastion_6239\scenario_01.mis,messages.mission_to,USS NORTH CAROLINA,,,,,,,,
+cold_bastion_6239\scenario_01.mis,messages.mission_objectives,"BT
+SUBJ: SCENARIO 1
+
+1. Situation:
+   Test the outer screen, identify who is actually guarding the route, and avoid committing on the first cue.
+
+2. Mission Type:
+   ASuW Military Only
+
+3. Scenario Time:
+   Theater Default, Theater Default
+
+4. Primary Task:
+   Probe the screen edges, identify escorts, and avoid getting sucked into the wrong layer.
+
+5. Alert State:
+   Peacetime Patrol
+   National command authority wants presence, classification, and restraint while the battlespace stays below open conflict.
+
+6. Rules Of Engagement:
+   Weapons Tight
+   Self-defense only unless command issues a specific strike order against a designated hostile unit.
+
+7. Mission Stance:
+   Broad Area Search
+   Trade immediacy for wider search coverage so you can rebuild the picture when the first cue is wrong.
+
+8. Designated Target:
+   No specific target designated beyond ROE and commander intent.
+
+9. Intel Cue:
+   enemy surface activity is most likely north-west of your ingress track near Luzon Strait Default Route. Treat that as moderate-confidence cueing (66% assessed confidence), not precise localization.
+
+10. Marked Cues:
+   1. Likely Contact Area: enemy surface activity is most likely north-west of your ingress track near Luzon Strait Default Route. moderate-confidence cueing (66% assessed confidence).
+2. Intercept Gate: Likely route decision point. Use this as a geometry cue, not a guaranteed enemy position.
+3. Support Search Line: Friendly support is most relevant around this axis if you want to work with cueing instead of chasing every contact yourself.
+4. Barrier Station: Useful holding point if you choose to turn the mission into a containment problem.
+
+11. Expected Action:
+   Use the support and barrier markers to understand where the screen is strongest.
+
+12. End State:
+   Recover once you can describe the escort layout and main screen axis.
+
+13. Route Summary:
+   20.055487, 122.852288 -> 20.255514, 122.585939 -> 20.297503, 122.568738 -> 20.117221, 122.742877 -> 20.056347, 122.909548
+
+14. Enemy Transit:
+   20.297503, 122.568738 -> 20.242698, 122.638978 -> 20.191662, 122.652619 -> 20.117221, 122.742877
+
+15. Report to COMSUBPAC only after the ordered task is complete and the boat remains combat effective.",,,,,,,,
+cold_bastion_6239\scenario_01.mis,messages.mission_success,"BT
+SUBJ: MISSION STATUS - SUCCESS
+
+Initial Scout is complete. COMSUBPAC has the updated route picture and can shape the next operation from your report.",,,,,,,,
+cold_bastion_6239\scenario_02.mis,name,Scenario 2,,,,,,,,
+cold_bastion_6239\scenario_02.mis,description,"Reserved follow-on mission slot. Update the previous mission result in Campaign Tracking before playing this scenario. This placeholder exists so MNW always has a valid next mission, but its content is intended to be rewritten before play.",,,,,,,,
+cold_bastion_6239\scenario_02.mis,objectives.primary_withdraw_intact,This is a reserved follow-on mission slot. If you want to continue the campaign, return to Campaign Tracking, save the result from the previous mission, and use Continue Campaign to regenerate this scenario before play. If you do not want to continue, treat the previous mission as the campaign conclusion.,,,,,,,,
+cold_bastion_6239\scenario_02.mis,messages.mission_from,COMSUBPAC,,,,,,,,
+cold_bastion_6239\scenario_02.mis,messages.mission_to,USS NORTH CAROLINA,,,,,,,,
+cold_bastion_6239\scenario_02.mis,messages.mission_objectives,"BT
+SUBJ: SCENARIO 2 - PLACEHOLDER
+
+1. This mission slot is reserved so the campaign chain always has a valid next node.
+
+2. If you do not want to continue the campaign, treat the previous mission as the campaign conclusion.
+
+3. If you do want to continue, do not play this scenario yet.
+
+4. Return to Campaign Tracking.
+
+5. Save the result from the previous mission.
+
+6. Click Continue Campaign so the app can rewrite this scenario with updated tasking, geometry, and supporting forces.
+
+7. Rebuild and redeploy if prompted.
+
+8. Launch this scenario only after the tracker confirms it was regenerated.
+
+9. Current placeholder route summary:
+   20.370450, 122.585651 -> 20.470569, 122.554685 -> 20.495590, 122.831935 -> 20.344350, 122.556242 -> 20.361805, 122.656517
+
+10. Current placeholder enemy transit:
+   20.495590, 122.831935 -> 20.473732, 122.488303 -> 20.427593, 122.444712 -> 20.344350, 122.556242",,,,,,,,
+cold_bastion_6239\scenario_02.mis,messages.mission_success,"BT
+SUBJ: MISSION STATUS - SUCCESS
+
+Scenario 2 placeholder completed.",,,,,,,,

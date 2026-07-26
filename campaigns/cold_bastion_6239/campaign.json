@@ -1,0 +1,31 @@
+{
+  "campaign_id": "cold_bastion_6239",
+  "campaign_seed": "cold_bastion_6239",
+  "title": "Cold Bastion",
+  "theater": "Luzon Strait",
+  "description": "Cold Bastion is a peacetime patrol campaign set in the Luzon Strait.",
+  "active_persistence_system": "baseline_modular",
+  "authoring_constraints": {
+    "maxDistanceToPrimaryTargetKm": 40,
+    "merchantTrafficIntensity": 2,
+    "biologicClutterIntensity": 2,
+    "hostileSurfaceSupportIntensity": 2,
+    "hostileAirSupportIntensity": 2,
+    "friendlySupportIntensity": 2
+  },
+  "experimental_features": {
+    "enabled": false,
+    "plotSeed": "none",
+    "plotSeedLabel": "None"
+  },
+  "campaign_climate": "surveillance",
+  "mission_type": "asuw_military",
+  "season": "theater_default",
+  "season_label": "Theater Default",
+  "time_of_day": "theater_default",
+  "time_of_day_label": "Theater Default",
+  "player_submarine": "virginia_block_i",
+  "player_submarine_label": "Virginia Block I",
+  "mission_stance": "wide_area_search",
+  "rules_of_engagement": "weapons_tight"
+}

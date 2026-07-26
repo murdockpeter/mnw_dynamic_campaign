@@ -1,0 +1,97 @@
+Path,Field,en,de,zh,fr,es,ru,ro,pl,el
+atlas_barrier_3892/quest.cmp,name,Atlas Barrier,,,,,,,,
+atlas_barrier_3892/quest.cmp,description,"Atlas Barrier is a peacetime patrol campaign set in the Luzon Strait.",,,,,,,,
+atlas_barrier_3892\scenario_01.mis,name,Scenario 1,,,,,,,,
+atlas_barrier_3892\scenario_01.mis,description,"Confirm which corridor is real before the contact picture widens beyond useful reporting range. Command wants route certainty more than a risky close trail on weak early reporting. Escalation: Peacetime Patrol. ROE: Weapons Tight. Task: Confirm which corridor is real and leave a clean handoff for follow-on forces. Intel cue: enemy surface activity is most likely north-west of your ingress track near Luzon Strait Default Route. Treat that as moderate-confidence cueing (71% assessed confidence), not precise localization.",,,,,,,,
+atlas_barrier_3892\scenario_01.mis,objectives.primary_withdraw_intact,Confirm which corridor is real and leave a clean handoff for follow-on forces. Hold fire except in self-defense. Compare the likely contact area against the marked route decision point before committing. Recover once command has a clear route picture for follow-on forces. enemy surface activity is most likely north-west of your ingress track near Luzon Strait Default Route. Treat that as moderate-confidence cueing (71% assessed confidence), not precise localization.,,,,,,,,
+atlas_barrier_3892\scenario_01.mis,messages.mission_from,COMSUBPAC,,,,,,,,
+atlas_barrier_3892\scenario_01.mis,messages.mission_to,USS NORTH CAROLINA,,,,,,,,
+atlas_barrier_3892\scenario_01.mis,messages.mission_objectives,"BT
+SUBJ: SCENARIO 1
+
+1. Situation:
+   Confirm which corridor is real before the contact picture widens beyond useful reporting range.
+
+2. Mission Type:
+   ASuW Military Only
+
+3. Scenario Time:
+   Theater Default, Theater Default
+
+4. Primary Task:
+   Confirm which corridor is real and leave a clean handoff for follow-on forces.
+
+5. Alert State:
+   Peacetime Patrol
+   National command authority wants presence, classification, and restraint while the battlespace stays below open conflict.
+
+6. Rules Of Engagement:
+   Weapons Tight
+   Self-defense only unless command issues a specific strike order against a designated hostile unit.
+
+7. Mission Stance:
+   Broad Area Search
+   Trade immediacy for wider search coverage so you can rebuild the picture when the first cue is wrong.
+
+8. Designated Target:
+   No specific target designated beyond ROE and commander intent.
+
+9. Intel Cue:
+   enemy surface activity is most likely north-west of your ingress track near Luzon Strait Default Route. Treat that as moderate-confidence cueing (71% assessed confidence), not precise localization.
+
+10. Marked Cues:
+   1. Likely Contact Area: enemy surface activity is most likely north-west of your ingress track near Luzon Strait Default Route. moderate-confidence cueing (71% assessed confidence).
+2. Intercept Gate: Likely route decision point. Use this as a geometry cue, not a guaranteed enemy position.
+3. Support Search Line: Friendly support is most relevant around this axis if you want to work with cueing instead of chasing every contact yourself.
+4. Barrier Station: Useful holding point if you choose to turn the mission into a containment problem.
+
+11. Expected Action:
+   Compare the likely contact area against the marked route decision point before committing.
+
+12. End State:
+   Recover once command has a clear route picture for follow-on forces.
+
+13. Route Summary:
+   20.109362, 122.874045 -> 20.312929, 122.621599 -> 20.326682, 122.568552 -> 20.156336, 122.760083 -> 20.102629, 122.923162
+
+14. Enemy Transit:
+   20.326682, 122.568552 -> 20.244115, 122.612122 -> 20.234626, 122.667453 -> 20.156336, 122.760083
+
+15. Report to COMSUBPAC only after the ordered task is complete and the boat remains combat effective.",,,,,,,,
+atlas_barrier_3892\scenario_01.mis,messages.mission_success,"BT
+SUBJ: MISSION STATUS - SUCCESS
+
+Initial Scout is complete. COMSUBPAC has the updated route picture and can shape the next operation from your report.",,,,,,,,
+atlas_barrier_3892\scenario_02.mis,name,Scenario 2,,,,,,,,
+atlas_barrier_3892\scenario_02.mis,description,"Reserved follow-on mission slot. Update the previous mission result in Campaign Tracking before playing this scenario. This placeholder exists so MNW always has a valid next mission, but its content is intended to be rewritten before play.",,,,,,,,
+atlas_barrier_3892\scenario_02.mis,objectives.primary_withdraw_intact,This is a reserved follow-on mission slot. If you want to continue the campaign, return to Campaign Tracking, save the result from the previous mission, and use Continue Campaign to regenerate this scenario before play. If you do not want to continue, treat the previous mission as the campaign conclusion.,,,,,,,,
+atlas_barrier_3892\scenario_02.mis,messages.mission_from,COMSUBPAC,,,,,,,,
+atlas_barrier_3892\scenario_02.mis,messages.mission_to,USS NORTH CAROLINA,,,,,,,,
+atlas_barrier_3892\scenario_02.mis,messages.mission_objectives,"BT
+SUBJ: SCENARIO 2 - PLACEHOLDER
+
+1. This mission slot is reserved so the campaign chain always has a valid next node.
+
+2. If you do not want to continue the campaign, treat the previous mission as the campaign conclusion.
+
+3. If you do want to continue, do not play this scenario yet.
+
+4. Return to Campaign Tracking.
+
+5. Save the result from the previous mission.
+
+6. Click Continue Campaign so the app can rewrite this scenario with updated tasking, geometry, and supporting forces.
+
+7. Rebuild and redeploy if prompted.
+
+8. Launch this scenario only after the tracker confirms it was regenerated.
+
+9. Current placeholder route summary:
+   20.389603, 122.567710 -> 20.506122, 122.878370 -> 20.587513, 122.839255 -> 20.348335, 122.532175 -> 20.373663, 122.654378
+
+10. Current placeholder enemy transit:
+   20.587513, 122.839255 -> 20.493290, 122.537502 -> 20.446750, 122.451937 -> 20.348335, 122.532175",,,,,,,,
+atlas_barrier_3892\scenario_02.mis,messages.mission_success,"BT
+SUBJ: MISSION STATUS - SUCCESS
+
+Scenario 2 placeholder completed.",,,,,,,,

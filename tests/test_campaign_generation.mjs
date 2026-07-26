@@ -396,7 +396,7 @@ test("player submarine selection persists into blueprint metadata and mission sc
 
   assert.equal(blueprint.playerSubmarine, "virginia_block_ii");
   assert.equal(blueprint.player.platformShortLabel, "Virginia B2");
-  assert.match(blueprint.warnings.join(" "), /Block III MNW database entry as a fallback/i);
+  assert.doesNotMatch(blueprint.warnings.join(" "), /fallback/i);
 
   const scenario = blueprint.scenarios[0];
   const artifacts = buildScenarioPackageArtifacts({ blueprint, scenario });
@@ -404,7 +404,7 @@ test("player submarine selection persists into blueprint metadata and mission sc
   const script = artifacts.files[scriptPath];
 
   assert.match(script, /\(Player\) Virginia B2/);
-  assert.match(script, /virginia_id = 1015/);
+  assert.match(script, /virginia_id = 1005/);
 });
 
 test("season and time-of-day controls affect scenario clocks and briefing text", () => {

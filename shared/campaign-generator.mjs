@@ -279,14 +279,14 @@ const PLAYER_SUBMARINE_CATALOG = {
   virginia_block_i: {
     label: "Virginia Block I",
     shortLabel: "Virginia B1",
-    dbid: 1015,
-    dbFallback: true
+    dbid: 1004,
+    dbFallback: false
   },
   virginia_block_ii: {
     label: "Virginia Block II",
     shortLabel: "Virginia B2",
-    dbid: 1015,
-    dbFallback: true
+    dbid: 1005,
+    dbFallback: false
   },
   virginia_block_iii: {
     label: "Virginia Block III",

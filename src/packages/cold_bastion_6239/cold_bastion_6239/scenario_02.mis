@@ -1,0 +1,187 @@
+import random
+
+##
+# Globals
+##
+_debug_mode = False
+_version = "0.0.0"
+_msv = "0.113.1"
+_author = "MNW Desktop Wizard"
+_operation_type = OperationType.ASuW
+_date_time = "2028/04/02 22:20:00"
+_weather = EnvTools.GetRandomWeatherParameters()
+
+civ_fact = 0
+us_fact = 236
+ch_fact = 46
+
+virginia_id = 1004
+arleigh_id = 294
+p8_id = 2705
+t054a_id = 1965
+t055_id = 3883
+harbin_id = 60
+
+cargo_ids = [
+99992101, 99992105, 99992106, 99992107, 99992108,
+99992109, 99992110, 99992111, 99992201, 99992202,
+99992203, 99992204, 99992205, 99992206, 99992207,
+99992208, 99992209, 99992210, 99992211, 99992301,
+99992302, 99992303, 99992304, 99992305, 99992306,
+99992307, 99992308, 99992309, 99992310, 99992311,
+99992312, 99992313, 99992314, 99992315, 99992401
+]
+
+def _get_random_cargo():
+    return cargo_ids[random.randrange(0, len(cargo_ids))]
+
+player_spawn_pos = GC(20.370450, 122.585651)
+datum_pos = GC(20.470569, 122.554685)
+lead_pos = GC(20.495590, 122.831935)
+escort_pos = GC(20.473732, 122.488303)
+barrier_pos = GC(20.427593, 122.444712)
+enemy_dest = GC(20.344350, 122.556242)
+helo_patrol_pos = GC(20.446651, 122.518714)
+friendly_ddg_pos = GC(20.228296, 122.816423)
+friendly_ddg_dest = GC(20.295837, 122.743520)
+p8_spawn_pos = GC(20.600024, 122.669703)
+battle_area_center = GC(20.490148, 122.522473)
+withdrawal_poi_pos = GC(20.361805, 122.656517)
+
+_diplomacy.AddFactions([civ_fact, us_fact, ch_fact])
+_diplomacy.SetTensionLevel(TensionLevel.ColdWar).SetMissionROE(RulesOfEngagement.Hold)
+_diplomacy.SetStatus(civ_fact).SetStatus(us_fact).SetStatus(ch_fact, CoalitionStatus.Enemy)
+
+objectives = [
+    Obj(_objectives["primary_withdraw_intact"], True).SetStatus(ObjectiveStatus.InProgress),
+]
+
+player_spawn_zone = _Z.Circular("Player Spawn Zone", player_spawn_pos, 1000)
+player_props = Element.Props.FromElementID(us_fact, "(Player) Virginia B1", ElementCategory.Submarine, virginia_id, player_spawn_pos)
+player_element = Element(player_props).SetElevation(-145).SetHeading(275).SetPlayable().SetScope(Global.Scope.Player)
+player_spawn_process = _P.Element.Spawn(_mission_started, player_element, player_element.Position)
+
+player_mk48_arsenal_process = _P.Element.Arsenal(player_spawn_process, player_element, BaseCategory.Subsurface, ElementCategory.Torpedo, 1712, 12)
+player_mk3_arsenal_process = _P.Element.Arsenal(player_mk48_arsenal_process, player_element, BaseCategory.Subsurface, ElementCategory.Expendable, 126, 12)
+player_mk4_arsenal_process = _P.Element.Arsenal(player_mk3_arsenal_process, player_element, BaseCategory.Subsurface, ElementCategory.Expendable, 2458, 12)
+
+preloads = []
+for i in range(4):
+    preloads.append(ArsenalPacket(BaseCategory.Subsurface, ElementCategory.Torpedo, 1712))
+for j in range(14):
+    if j <= 7:
+        preloads.append(ArsenalPacket(BaseCategory.Subsurface, ElementCategory.Expendable, 126))
+    else:
+        preloads.append(ArsenalPacket(BaseCategory.Subsurface, ElementCategory.Expendable, 2458))
+player_preload_process = _P.Element.PreloadArsenal(player_mk4_arsenal_process, player_element, preloads)
+
+messageModel = MessageModel(
+    EMFTools.Protocol.Link_16,
+    EMFTools.MicroWaveBands.UHF,
+    _date_time,
+    MessagePriority.High,
+    _messages["mission_from"],
+    _messages["mission_to"],
+    "TASKING ORDER",
+    _messages["mission_objectives"]
+)
+datum_poi = PointOfInterest("Enemy Datum", Waypoint(datum_pos))
+support_poi = PointOfInterest("Support Station", Waypoint(friendly_ddg_dest))
+withdrawal_poi = PointOfInterest("Withdrawal Box", Waypoint(withdrawal_poi_pos))
+annotation_poi_0 = PointOfInterest("Likely Contact Area", Waypoint(GC(20.470569, 122.554685)))
+annotation_poi_1 = PointOfInterest("Intercept Gate", Waypoint(GC(20.344350, 122.556242)))
+annotation_poi_2 = PointOfInterest("Support Search Line", Waypoint(GC(20.295837, 122.743520)))
+annotation_poi_3 = PointOfInterest("Barrier Station", Waypoint(GC(20.427593, 122.444712)))
+messageModel.AttachPOIs([datum_poi, support_poi, withdrawal_poi, annotation_poi_0, annotation_poi_1, annotation_poi_2, annotation_poi_3])
+message_process = _P.Message(player_spawn_process, messageModel)
+
+sat_spawn_zone = _Z.Circular("Sat Spawn Zone", player_spawn_pos, 10000)
+sat_props = Element.Props.FromDatabaseID(us_fact, "MUOS", ElementCategory.SpaceElement, 1, sat_spawn_zone.RandomPosition())
+sat_element = Element(sat_props).SetElevation(500)
+sat_spawn_process = _P.Element.Spawn(player_spawn_process, sat_element, sat_element.Position)
+transmission = Transmission.Create(EMFTools.Protocol.Link_16, _date_time, 60, 10, 500, EMFTools.MicroWaveBands.UHF)
+transmission_process = _P.Element.Radio(sat_spawn_process, sat_element, transmission)
+
+friendly_ddg_props = Element.Props.FromDatabaseID(us_fact, "USS Spruance", ElementCategory.Ship, arleigh_id, friendly_ddg_pos)
+friendly_ddg = Element(friendly_ddg_props).SetElevation(0).SetHeading(310).SetHVU(True)
+friendly_ddg_spawn = _P.Element.Spawn(player_spawn_process, friendly_ddg, friendly_ddg.Position)
+friendly_ddg_plot = _P.Element.Plot(friendly_ddg_spawn, friendly_ddg, Waypoint(friendly_ddg_dest))
+
+p8_props = Element.Props.FromDatabaseID(us_fact, "P-8A Poseidon", ElementCategory.Aircraft, p8_id, p8_spawn_pos)
+p8_element = Element(p8_props).SetElevation(5200).SetHeading(255)
+p8_spawn = _P.Element.Spawn(friendly_ddg_plot, p8_element, p8_element.Position)
+p8_plot = _P.Element.Plot(p8_spawn, p8_element, Waypoint(GC(20.470569, 122.554685)))
+
+bio_props = Element.Props.FromDatabaseID(civ_fact, "Biologic 0", ElementCategory.Biologic, 1, GC(20.776814, 123.020578))
+bio_element = Element(bio_props).SetElevation(-60).SetHeading(random.randrange(0, 359))
+_P.Element.Spawn(player_spawn_process, bio_element, bio_element.Position)
+bio_props = Element.Props.FromDatabaseID(civ_fact, "Biologic 1", ElementCategory.Biologic, 1, GC(20.856894, 123.179115))
+bio_element = Element(bio_props).SetElevation(-100).SetHeading(random.randrange(0, 359))
+_P.Element.Spawn(player_spawn_process, bio_element, bio_element.Position)
+bio_props = Element.Props.FromDatabaseID(civ_fact, "Biologic 2", ElementCategory.Biologic, 1, GC(20.962236, 122.490320))
+bio_element = Element(bio_props).SetElevation(-140).SetHeading(random.randrange(0, 359))
+_P.Element.Spawn(player_spawn_process, bio_element, bio_element.Position)
+
+
+
+cargo_props = Element.Props.FromDatabaseID(civ_fact, "Merchant 1", ElementCategory.Ship, _get_random_cargo(), GC(19.984936, 122.739089))
+cargo_element = Element(cargo_props).SetHeading(random.randrange(180, 280))
+_P.Element.Spawn(player_spawn_process, cargo_element, cargo_element.Position)
+cargo_props = Element.Props.FromDatabaseID(civ_fact, "Merchant 2", ElementCategory.Ship, _get_random_cargo(), GC(21.284313, 122.826229))
+cargo_element = Element(cargo_props).SetHeading(random.randrange(180, 280))
+_P.Element.Spawn(player_spawn_process, cargo_element, cargo_element.Position)
+cargo_props = Element.Props.FromDatabaseID(civ_fact, "Merchant 3", ElementCategory.Ship, _get_random_cargo(), GC(20.414108, 121.783019))
+cargo_element = Element(cargo_props).SetHeading(random.randrange(180, 280))
+_P.Element.Spawn(player_spawn_process, cargo_element, cargo_element.Position)
+cargo_props = Element.Props.FromDatabaseID(civ_fact, "Merchant 4", ElementCategory.Ship, _get_random_cargo(), GC(20.625475, 122.245305))
+cargo_element = Element(cargo_props).SetHeading(random.randrange(180, 280))
+_P.Element.Spawn(player_spawn_process, cargo_element, cargo_element.Position)
+
+t055_props = Element.Props.FromDatabaseID(ch_fact, "PLAN Lead DDG", ElementCategory.Ship, t055_id, lead_pos)
+t055_element = Element(t055_props).SetElevation(0).SetHeading(150).SetHVU(True)
+t055_spawn = _P.Element.Spawn(player_spawn_process, t055_element, t055_element.Position)
+t055_plot = _P.Element.Plot(t055_spawn, t055_element, Waypoint(enemy_dest))
+
+t054a_props = Element.Props.FromDatabaseID(ch_fact, "PLAN Escort FFG", ElementCategory.Ship, t054a_id, escort_pos)
+t054a_element = Element(t054a_props).SetElevation(0).SetHeading(150).SetHVU(True)
+t054a_spawn = _P.Element.Spawn(t055_plot, t054a_element, t054a_element.Position)
+t054a_plot = _P.Element.Plot(t054a_spawn, t054a_element, Waypoint(GC(20.344350, 122.556242)))
+
+barrier_props = Element.Props.FromDatabaseID(ch_fact, "PLAN Barrier FFG", ElementCategory.Ship, t054a_id, barrier_pos)
+barrier_element = Element(barrier_props).SetElevation(0).SetHeading(205)
+barrier_spawn = _P.Element.Spawn(t054a_plot, barrier_element, barrier_element.Position)
+barrier_plot = _P.Element.Plot(barrier_spawn, barrier_element, Waypoint(GC(20.361805, 122.656517)))
+
+harbin_props = Element.Props.FromDatabaseID(ch_fact, "PLAN Z-9 Screen", ElementCategory.Aircraft, harbin_id, helo_patrol_pos)
+harbin_element = Element(harbin_props).SetElevation(950).SetHeading(190).SetHVU(True)
+harbin_spawn = _P.Element.Spawn(barrier_plot, harbin_element, harbin_element.Position)
+harbin_plot = _P.Element.Plot(harbin_spawn, harbin_element, Waypoint(GC(20.427593, 122.444712)))
+
+withdrawal_antenna_trigger = _T.AntennasRaised(True)
+player_element.NotifyOnAntennaRaised(withdrawal_antenna_trigger)
+withdrawal_complete = _P.Objective.Status(withdrawal_antenna_trigger, objectives[0], ObjectiveStatus.Completed)
+
+player_death_trigger = _T.Manual()
+player_nop_trigger = _T.NonOperational()
+player_element.NotifyUponDeath(player_death_trigger)
+player_element.NotifyNonOperational(player_nop_trigger)
+player_lost = _T.Or([player_death_trigger, player_nop_trigger])
+player_fail = _P.Objective.Status(player_lost, objectives[0], ObjectiveStatus.Failed)
+
+out_trigger = _T.Objective(objectives)
+end_trigger = _T.Manual()
+outcome = Out(out_trigger, end_trigger, us_fact)
+
+end_message_model = MessageModel(
+    EMFTools.Protocol.Link_16,
+    EMFTools.MicroWaveBands.UHF,
+    _date_time,
+    MessagePriority.High,
+    _messages["mission_from"],
+    _messages["mission_to"],
+    "MISSION STATUS UPDATE",
+    _messages["mission_success"]
+)
+end_message_process = _P.Message(out_trigger, end_message_model)
+end_transmission = Transmission.Create(EMFTools.Protocol.Link_16, _date_time, 60, 10, 500, EMFTools.MicroWaveBands.UHF)
+end_transmission_process = _P.Element.Radio(end_message_process, sat_element, end_transmission)

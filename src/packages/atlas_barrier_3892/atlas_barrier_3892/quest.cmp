@@ -1,0 +1,12 @@
+##
+# Globals
+##
+_debug_mode = False
+_version = "0.0.0"
+_msv = "0.113.1"
+_author = "MNW Desktop Wizard"
+_difficulty_level = 1
+
+## Missions
+_start = Mis("atlas_barrier_3892.atlas_barrier_3892.scenario_01")
+_m1 = _start.PipeMission("atlas_barrier_3892.atlas_barrier_3892.scenario_02")

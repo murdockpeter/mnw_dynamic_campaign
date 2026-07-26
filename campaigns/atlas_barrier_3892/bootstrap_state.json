@@ -1,0 +1,592 @@
+{
+  "metadata": {
+    "campaign_id": "atlas_barrier_3892",
+    "campaign_seed": "atlas_barrier_3892",
+    "title": "Atlas Barrier",
+    "theater": "Luzon Strait",
+    "description": "Atlas Barrier is a peacetime patrol campaign set in the Luzon Strait.",
+    "active_persistence_system": "baseline_modular",
+    "authoring_constraints": {
+      "maxDistanceToPrimaryTargetKm": 40,
+      "merchantTrafficIntensity": 2,
+      "biologicClutterIntensity": 2,
+      "hostileSurfaceSupportIntensity": 2,
+      "hostileAirSupportIntensity": 2,
+      "friendlySupportIntensity": 2
+    },
+    "experimental_features": {
+      "enabled": false,
+      "plotSeed": "none",
+      "plotSeedLabel": "None"
+    },
+    "campaign_climate": "surveillance",
+    "mission_type": "asuw_military",
+    "season": "theater_default",
+    "season_label": "Theater Default",
+    "time_of_day": "theater_default",
+    "time_of_day_label": "Theater Default",
+    "player_submarine": "virginia_block_iii",
+    "player_submarine_label": "Virginia Block III",
+    "mission_stance": "wide_area_search",
+    "rules_of_engagement": "weapons_tight"
+  },
+  "current_mission_id": "atlas_barrier_3892.atlas_barrier_3892.scenario_01",
+  "campaign_clock": "2028-04-02T04:20:00.000Z",
+  "order_of_battle": {
+    "uss_north_carolina": {
+      "unit_id": "uss_north_carolina",
+      "name": "USS North Carolina",
+      "faction": "US",
+      "platform_type": "submarine",
+      "dbid": 1015,
+      "readiness": 1,
+      "damage": 0,
+      "destroyed": false,
+      "ammo": {
+        "mk48_mod7": 12,
+        "decoy_mk3": 12,
+        "decoy_2458": 12
+      },
+      "tags": [
+        "player"
+      ],
+      "notes": {
+        "sectors": [],
+        "theater_role": "player",
+        "role": null,
+        "player_submarine_key": "virginia_block_iii",
+        "player_submarine_label": "Virginia Block III",
+        "player_submarine_short_label": "Virginia B3",
+        "player_submarine_db_fallback": false,
+        "current_sector": "balintang_approach",
+        "availability": "available",
+        "last_mission_id": null,
+        "last_assigned_index": -1,
+        "on_stage": false
+      }
+    },
+    "plan_lead_ddg": {
+      "unit_id": "plan_lead_ddg",
+      "name": "PLAN Lead DDG",
+      "faction": "CN",
+      "platform_type": "surface_combatant",
+      "dbid": 3883,
+      "readiness": 1,
+      "damage": 0,
+      "destroyed": false,
+      "ammo": {},
+      "tags": [
+        "enemy"
+      ],
+      "notes": {
+        "sectors": [],
+        "theater_role": "core_enemy",
+        "role": null,
+        "player_submarine_key": null,
+        "player_submarine_label": null,
+        "player_submarine_short_label": null,
+        "player_submarine_db_fallback": false,
+        "current_sector": "luzon_strait_route",
+        "availability": "committed",
+        "last_mission_id": null,
+        "last_assigned_index": 1,
+        "on_stage": true
+      }
+    },
+    "plan_escort_ffg": {
+      "unit_id": "plan_escort_ffg",
+      "name": "PLAN Escort FFG",
+      "faction": "CN",
+      "platform_type": "surface_combatant",
+      "dbid": 1965,
+      "readiness": 1,
+      "damage": 0,
+      "destroyed": false,
+      "ammo": {},
+      "tags": [
+        "enemy"
+      ],
+      "notes": {
+        "sectors": [],
+        "theater_role": "core_enemy",
+        "role": null,
+        "player_submarine_key": null,
+        "player_submarine_label": null,
+        "player_submarine_short_label": null,
+        "player_submarine_db_fallback": false,
+        "current_sector": "taiwan_east",
+        "availability": "available",
+        "last_mission_id": null,
+        "last_assigned_index": -1,
+        "on_stage": false
+      }
+    },
+    "uss_spruance": {
+      "unit_id": "uss_spruance",
+      "name": "USS Spruance",
+      "faction": "US",
+      "platform_type": "surface_combatant",
+      "dbid": 294,
+      "readiness": 1,
+      "damage": 0,
+      "destroyed": false,
+      "ammo": {},
+      "tags": [
+        "friendly_support"
+      ],
+      "notes": {
+        "sectors": [
+          "balintang_approach",
+          "philippine_sea_screen"
+        ],
+        "theater_role": "friendlySurface",
+        "role": null,
+        "player_submarine_key": null,
+        "player_submarine_label": null,
+        "player_submarine_short_label": null,
+        "player_submarine_db_fallback": false,
+        "current_sector": "luzon_strait_route",
+        "availability": "committed",
+        "last_mission_id": null,
+        "last_assigned_index": 1,
+        "on_stage": true
+      }
+    },
+    "uss_milius": {
+      "unit_id": "uss_milius",
+      "name": "USS Milius",
+      "faction": "US",
+      "platform_type": "surface_combatant",
+      "dbid": 294,
+      "readiness": 1,
+      "damage": 0,
+      "destroyed": false,
+      "ammo": {},
+      "tags": [
+        "friendly_support"
+      ],
+      "notes": {
+        "sectors": [
+          "bashi_channel",
+          "taiwan_east"
+        ],
+        "theater_role": "friendlySurface",
+        "role": null,
+        "player_submarine_key": null,
+        "player_submarine_label": null,
+        "player_submarine_short_label": null,
+        "player_submarine_db_fallback": false,
+        "current_sector": "luzon_strait_route",
+        "availability": "committed",
+        "last_mission_id": null,
+        "last_assigned_index": 1,
+        "on_stage": true
+      }
+    },
+    "uss_rafael_peralta": {
+      "unit_id": "uss_rafael_peralta",
+      "name": "USS Rafael Peralta",
+      "faction": "US",
+      "platform_type": "surface_combatant",
+      "dbid": 294,
+      "readiness": 1,
+      "damage": 0,
+      "destroyed": false,
+      "ammo": {},
+      "tags": [
+        "friendly_support"
+      ],
+      "notes": {
+        "sectors": [
+          "philippine_sea_screen",
+          "balintang_approach"
+        ],
+        "theater_role": "friendlySurface",
+        "role": null,
+        "player_submarine_key": null,
+        "player_submarine_label": null,
+        "player_submarine_short_label": null,
+        "player_submarine_db_fallback": false,
+        "current_sector": "philippine_sea_screen",
+        "availability": "available",
+        "last_mission_id": null,
+        "last_assigned_index": -1,
+        "on_stage": false
+      }
+    },
+    "p8_triton_watch": {
+      "unit_id": "p8_triton_watch",
+      "name": "P-8A Triton Watch",
+      "faction": "US",
+      "platform_type": "maritime_patrol_aircraft",
+      "dbid": 2705,
+      "readiness": 1,
+      "damage": 0,
+      "destroyed": false,
+      "ammo": {},
+      "tags": [
+        "friendly_support"
+      ],
+      "notes": {
+        "sectors": [
+          "bashi_channel",
+          "balintang_approach",
+          "philippine_sea_screen"
+        ],
+        "theater_role": "friendlyAir",
+        "role": null,
+        "player_submarine_key": null,
+        "player_submarine_label": null,
+        "player_submarine_short_label": null,
+        "player_submarine_db_fallback": false,
+        "current_sector": "luzon_strait_route",
+        "availability": "committed",
+        "last_mission_id": null,
+        "last_assigned_index": 1,
+        "on_stage": true
+      }
+    },
+    "p8_seaborne_cue": {
+      "unit_id": "p8_seaborne_cue",
+      "name": "P-8A Seaborne Cue",
+      "faction": "US",
+      "platform_type": "maritime_patrol_aircraft",
+      "dbid": 2705,
+      "readiness": 1,
+      "damage": 0,
+      "destroyed": false,
+      "ammo": {},
+      "tags": [
+        "friendly_support"
+      ],
+      "notes": {
+        "sectors": [
+          "taiwan_east",
+          "philippine_sea_screen"
+        ],
+        "theater_role": "friendlyAir",
+        "role": null,
+        "player_submarine_key": null,
+        "player_submarine_label": null,
+        "player_submarine_short_label": null,
+        "player_submarine_db_fallback": false,
+        "current_sector": "luzon_strait_route",
+        "availability": "committed",
+        "last_mission_id": null,
+        "last_assigned_index": 1,
+        "on_stage": true
+      }
+    },
+    "plan_screen_ddg": {
+      "unit_id": "plan_screen_ddg",
+      "name": "PLAN Screen DDG",
+      "faction": "CN",
+      "platform_type": "surface_combatant",
+      "dbid": 3883,
+      "readiness": 1,
+      "damage": 0,
+      "destroyed": false,
+      "ammo": {},
+      "tags": [
+        "enemy"
+      ],
+      "notes": {
+        "sectors": [
+          "philippine_sea_screen",
+          "balintang_approach"
+        ],
+        "theater_role": "enemySurface",
+        "role": null,
+        "player_submarine_key": null,
+        "player_submarine_label": null,
+        "player_submarine_short_label": null,
+        "player_submarine_db_fallback": false,
+        "current_sector": "luzon_strait_route",
+        "availability": "committed",
+        "last_mission_id": null,
+        "last_assigned_index": 1,
+        "on_stage": true
+      }
+    },
+    "plan_barrier_ffg": {
+      "unit_id": "plan_barrier_ffg",
+      "name": "PLAN Barrier FFG",
+      "faction": "CN",
+      "platform_type": "surface_combatant",
+      "dbid": 1965,
+      "readiness": 1,
+      "damage": 0,
+      "destroyed": false,
+      "ammo": {},
+      "tags": [
+        "enemy"
+      ],
+      "notes": {
+        "sectors": [
+          "philippine_sea_screen",
+          "bashi_channel"
+        ],
+        "theater_role": "enemySurface",
+        "role": null,
+        "player_submarine_key": null,
+        "player_submarine_label": null,
+        "player_submarine_short_label": null,
+        "player_submarine_db_fallback": false,
+        "current_sector": "bashi_channel",
+        "availability": "available",
+        "last_mission_id": null,
+        "last_assigned_index": -1,
+        "on_stage": false
+      }
+    },
+    "plan_reserve_ffg": {
+      "unit_id": "plan_reserve_ffg",
+      "name": "PLAN Reserve FFG",
+      "faction": "CN",
+      "platform_type": "surface_combatant",
+      "dbid": 1965,
+      "readiness": 1,
+      "damage": 0,
+      "destroyed": false,
+      "ammo": {},
+      "tags": [
+        "enemy"
+      ],
+      "notes": {
+        "sectors": [
+          "taiwan_east",
+          "bashi_channel"
+        ],
+        "theater_role": "enemySurface",
+        "role": null,
+        "player_submarine_key": null,
+        "player_submarine_label": null,
+        "player_submarine_short_label": null,
+        "player_submarine_db_fallback": false,
+        "current_sector": "luzon_strait_route",
+        "availability": "committed",
+        "last_mission_id": null,
+        "last_assigned_index": 1,
+        "on_stage": true
+      }
+    },
+    "plan_z9_screen": {
+      "unit_id": "plan_z9_screen",
+      "name": "PLAN Z-9 Screen",
+      "faction": "CN",
+      "platform_type": "helicopter",
+      "dbid": 60,
+      "readiness": 1,
+      "damage": 0,
+      "destroyed": false,
+      "ammo": {},
+      "tags": [
+        "enemy"
+      ],
+      "notes": {
+        "sectors": [
+          "bashi_channel",
+          "balintang_approach"
+        ],
+        "theater_role": "enemyAir",
+        "role": null,
+        "player_submarine_key": null,
+        "player_submarine_label": null,
+        "player_submarine_short_label": null,
+        "player_submarine_db_fallback": false,
+        "current_sector": "bashi_channel",
+        "availability": "available",
+        "last_mission_id": null,
+        "last_assigned_index": -1,
+        "on_stage": false
+      }
+    },
+    "plan_z9_barrier": {
+      "unit_id": "plan_z9_barrier",
+      "name": "PLAN Z-9 Barrier",
+      "faction": "CN",
+      "platform_type": "helicopter",
+      "dbid": 60,
+      "readiness": 1,
+      "damage": 0,
+      "destroyed": false,
+      "ammo": {},
+      "tags": [
+        "enemy"
+      ],
+      "notes": {
+        "sectors": [
+          "philippine_sea_screen",
+          "taiwan_east"
+        ],
+        "theater_role": "enemyAir",
+        "role": null,
+        "player_submarine_key": null,
+        "player_submarine_label": null,
+        "player_submarine_short_label": null,
+        "player_submarine_db_fallback": false,
+        "current_sector": "luzon_strait_route",
+        "availability": "committed",
+        "last_mission_id": null,
+        "last_assigned_index": 1,
+        "on_stage": true
+      }
+    }
+  },
+  "mission_history": [],
+  "world_state": {
+    "escalation_level": 0,
+    "escalation_key": "peacetime",
+    "campaign_climate": "surveillance",
+    "campaign_seed": "atlas_barrier_3892",
+    "mission_type": "asuw_military",
+    "tone": "surveillance",
+    "season": "theater_default",
+    "season_label": "Theater Default",
+    "time_of_day": "theater_default",
+    "time_of_day_label": "Theater Default",
+    "player_submarine": "virginia_block_iii",
+    "player_submarine_label": "Virginia Block III",
+    "mission_stance": "wide_area_search",
+    "posture": "wide_area_search",
+    "rules_of_engagement": "weapons_tight",
+    "route_family": "surface_shadow",
+    "theater_picture": {
+      "theater_id": "luzon_strait",
+      "sectors": [
+        {
+          "id": "bashi_channel",
+          "label": "Bashi Channel"
+        },
+        {
+          "id": "balintang_approach",
+          "label": "Balintang Approach"
+        },
+        {
+          "id": "philippine_sea_screen",
+          "label": "Philippine Sea Screen"
+        },
+        {
+          "id": "taiwan_east",
+          "label": "East of Taiwan"
+        }
+      ],
+      "units": {
+        "uss_north_carolina": {
+          "current_sector": "balintang_approach",
+          "availability": "available",
+          "last_mission_id": null,
+          "last_assigned_index": -1,
+          "on_stage": false
+        },
+        "plan_lead_ddg": {
+          "current_sector": "luzon_strait_route",
+          "availability": "committed",
+          "last_mission_id": null,
+          "last_assigned_index": 1,
+          "on_stage": true
+        },
+        "plan_escort_ffg": {
+          "current_sector": "taiwan_east",
+          "availability": "available",
+          "last_mission_id": null,
+          "last_assigned_index": -1,
+          "on_stage": false
+        },
+        "uss_spruance": {
+          "current_sector": "luzon_strait_route",
+          "availability": "committed",
+          "last_mission_id": null,
+          "last_assigned_index": 1,
+          "on_stage": true
+        },
+        "uss_milius": {
+          "current_sector": "luzon_strait_route",
+          "availability": "committed",
+          "last_mission_id": null,
+          "last_assigned_index": 1,
+          "on_stage": true
+        },
+        "uss_rafael_peralta": {
+          "current_sector": "philippine_sea_screen",
+          "availability": "available",
+          "last_mission_id": null,
+          "last_assigned_index": -1,
+          "on_stage": false
+        },
+        "p8_triton_watch": {
+          "current_sector": "luzon_strait_route",
+          "availability": "committed",
+          "last_mission_id": null,
+          "last_assigned_index": 1,
+          "on_stage": true
+        },
+        "p8_seaborne_cue": {
+          "current_sector": "luzon_strait_route",
+          "availability": "committed",
+          "last_mission_id": null,
+          "last_assigned_index": 1,
+          "on_stage": true
+        },
+        "plan_screen_ddg": {
+          "current_sector": "luzon_strait_route",
+          "availability": "committed",
+          "last_mission_id": null,
+          "last_assigned_index": 1,
+          "on_stage": true
+        },
+        "plan_barrier_ffg": {
+          "current_sector": "bashi_channel",
+          "availability": "available",
+          "last_mission_id": null,
+          "last_assigned_index": -1,
+          "on_stage": false
+        },
+        "plan_reserve_ffg": {
+          "current_sector": "luzon_strait_route",
+          "availability": "committed",
+          "last_mission_id": null,
+          "last_assigned_index": 1,
+          "on_stage": true
+        },
+        "plan_z9_screen": {
+          "current_sector": "bashi_channel",
+          "availability": "available",
+          "last_mission_id": null,
+          "last_assigned_index": -1,
+          "on_stage": false
+        },
+        "plan_z9_barrier": {
+          "current_sector": "luzon_strait_route",
+          "availability": "committed",
+          "last_mission_id": null,
+          "last_assigned_index": 1,
+          "on_stage": true
+        }
+      }
+    },
+    "authoring_constraints": {
+      "maxDistanceToPrimaryTargetKm": 40,
+      "merchantTrafficIntensity": 2,
+      "biologicClutterIntensity": 2,
+      "hostileSurfaceSupportIntensity": 2,
+      "hostileAirSupportIntensity": 2,
+      "friendlySupportIntensity": 2
+    },
+    "experimental_features": {
+      "enabled": false,
+      "plotSeed": "none",
+      "plotSeedLabel": "None"
+    }
+  },
+  "module_state": {
+    "damage": {
+      "repair_rate_per_day": 0.08
+    },
+    "ammo": {}
+  },
+  "enabled_modules": [
+    "damage",
+    "ammo"
+  ]
+}
