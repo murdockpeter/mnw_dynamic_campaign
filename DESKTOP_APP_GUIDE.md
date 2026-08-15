@@ -28,7 +28,7 @@ You do not need:
 
 On Windows, use:
 
-- `MNW Dynamic Campaign Console Setup 0.1.5.exe`
+- `MNW Dynamic Campaign Console Setup 0.1.6.exe`
 
 On macOS, use:
 
