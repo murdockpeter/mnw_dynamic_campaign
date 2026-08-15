@@ -104,6 +104,7 @@ Notes:
 - the `Find Paths` button can auto-fill the most common Windows path fields before you save
 - the `Use Latest Generated Campaign` button can repoint the saved defaults to the newest generated package tree
 - preview releases are enabled by default during prerelease testing and can be disabled under App Updates
+- the GitHub preview update path was live-tested from installed version 0.1.5 to 0.1.6, including check, download, restart-to-install, and post-update launch
 
 ### Authoring
 

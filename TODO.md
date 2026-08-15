@@ -21,7 +21,7 @@ Completed in 0.1.5:
 
 Remaining release/content tracks:
 
-- [ ] Validate install and automatic update against a real tagged GitHub prerelease.
+- [x] Validate install and automatic update against a real tagged GitHub prerelease.
 - [x] Expand local DB-informed selection beyond Virginia hulls into editable friendly, enemy, and support force pools.
 - [x] Implement bespoke mission-objective scripts for Spec Ops, Counter-Piracy, and Counter-Terror experimental content; keep Land Attack gated until shore-target and weapon scripting are supportable.
 
@@ -383,10 +383,12 @@ Acceptance checks:
 ### 0.1.4-6. If time allows, provide a first usable GitHub release auto-upgrade path
 
 - [x] Audit the existing updater implementation to confirm what is already release-ready versus still provisional.
-- [ ] Validate the packaged-app path for update-source configuration, manual check, download, and restart-to-install behavior.
+- [x] Validate the packaged-app path for update-source configuration, manual check, download, and restart-to-install behavior.
 - [x] Confirm GitHub Releases defaults are sensible for the intended public distribution path.
 - [x] Add or extend tests around settings persistence and any updater-related edge cases that can be covered without a packaged live release.
 - [x] Tighten user-facing status text and docs so non-technical testers understand what is supported in packaged builds versus source mode.
+
+Live validation completed on 2026-08-15 using public GitHub prereleases `v0.1.5` and `v0.1.6`. The public 0.1.5 installer matched its `latest.yml` SHA-512, installed successfully, discovered 0.1.6 through the GitHub provider with preview releases enabled, downloaded the update, invoked restart-to-install, registered version 0.1.6, and passed the packaged smoke test after replacement. `tools/validate-live-updater.mjs` preserves the check/download/install validation path for future releases.
 
 Implementation targets:
 - `.github/workflows/release.yml`
