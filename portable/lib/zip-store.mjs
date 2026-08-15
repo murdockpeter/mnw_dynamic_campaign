@@ -135,3 +135,54 @@ export async function readZipEntries(targetPath) {
   }
   return entries;
 }
+
+async function readHandleBuffer(handle, length, position) {
+  const buffer = Buffer.alloc(length);
+  const { bytesRead } = await handle.read(buffer, 0, length, position);
+  return buffer.subarray(0, bytesRead);
+}
+
+export async function readZipEntry(targetPath, requestedName) {
+  const handle = await fs.open(targetPath, "r");
+  try {
+    const stats = await handle.stat();
+    const tailLength = Math.min(stats.size, 65557);
+    const tailStart = stats.size - tailLength;
+    const tail = await readHandleBuffer(handle, tailLength, tailStart);
+    let endOffset = -1;
+    for (let offset = tail.length - 22; offset >= 0; offset -= 1) {
+      if (tail.readUInt32LE(offset) === 0x06054b50) { endOffset = offset; break; }
+    }
+    if (endOffset < 0) throw new Error(`Invalid ZIP archive: ${targetPath}`);
+    const entryCount = tail.readUInt16LE(endOffset + 10);
+    let centralOffset = tail.readUInt32LE(endOffset + 16);
+    const normalizedRequest = requestedName.replaceAll("\\", "/");
+    for (let index = 0; index < entryCount; index += 1) {
+      const header = await readHandleBuffer(handle, 46, centralOffset);
+      if (header.length < 46 || header.readUInt32LE(0) !== 0x02014b50) throw new Error(`Invalid ZIP central directory: ${targetPath}`);
+      const method = header.readUInt16LE(10);
+      const compressedSize = header.readUInt32LE(20);
+      const nameLength = header.readUInt16LE(28);
+      const extraLength = header.readUInt16LE(30);
+      const commentLength = header.readUInt16LE(32);
+      const localOffset = header.readUInt32LE(42);
+      const name = (await readHandleBuffer(handle, nameLength, centralOffset + 46)).toString("utf8").replaceAll("\\", "/");
+      if (name === normalizedRequest) {
+        const localHeader = await readHandleBuffer(handle, 30, localOffset);
+        if (localHeader.length < 30 || localHeader.readUInt32LE(0) !== 0x04034b50) throw new Error(`Invalid ZIP local entry: ${name}`);
+        const localNameLength = localHeader.readUInt16LE(26);
+        const localExtraLength = localHeader.readUInt16LE(28);
+        const dataOffset = localOffset + 30 + localNameLength + localExtraLength;
+        const compressed = await readHandleBuffer(handle, compressedSize, dataOffset);
+        if (compressed.length !== compressedSize) throw new Error(`Truncated ZIP entry: ${name}`);
+        if (method === 0) return compressed;
+        if (method === 8) return zlib.inflateRawSync(compressed);
+        throw new Error(`Unsupported ZIP compression method ${method} for ${name}`);
+      }
+      centralOffset += 46 + nameLength + extraLength + commentLength;
+    }
+    return null;
+  } finally {
+    await handle.close();
+  }
+}

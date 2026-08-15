@@ -273,6 +273,7 @@ async function configureUpdater(settings) {
   attachUpdaterListeners();
   autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.allowPrerelease = settings?.updates?.allowPrerelease !== false;
   autoUpdater.setFeedURL(providerConfig);
   updaterConfigured = true;
   setUpdateState({
@@ -280,6 +281,7 @@ async function configureUpdater(settings) {
     configured: true,
     provider: providerConfig.provider,
     source: describeUpdateSource(providerConfig),
+    allowPrerelease: autoUpdater.allowPrerelease,
     status: updateState.updateDownloaded ? "downloaded" : "idle",
     message: updateState.updateDownloaded
       ? updateState.message
@@ -473,9 +475,9 @@ ipcMain.handle("mnw:exportSupportBundle", async (_event, payload) => {
   return exportSupportBundleForDesktop(getDesktopContext(payload));
 });
 
-ipcMain.handle("mnw:loadLocalPlatformCatalog", async () => {
+ipcMain.handle("mnw:loadLocalPlatformCatalog", async (_event, payload) => {
   const { loadLocalPlatformCatalogForDesktop } = await loadPortableModule("portable/lib/desktop-api.mjs");
-  return loadLocalPlatformCatalogForDesktop(getDesktopContext());
+  return loadLocalPlatformCatalogForDesktop(getDesktopContext(payload));
 });
 
 ipcMain.handle("mnw:generateCampaign", async (_event, payload) => {

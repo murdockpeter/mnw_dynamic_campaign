@@ -22,7 +22,7 @@ contextBridge.exposeInMainWorld("mnwDesktop", {
   saveCampaignState: (payload) => ipcRenderer.invoke("mnw:saveCampaignState", payload),
   restoreCampaignState: (payload) => ipcRenderer.invoke("mnw:restoreCampaignState", payload),
   exportSupportBundle: (payload) => ipcRenderer.invoke("mnw:exportSupportBundle", payload),
-  loadLocalPlatformCatalog: () => ipcRenderer.invoke("mnw:loadLocalPlatformCatalog"),
+  loadLocalPlatformCatalog: (payload) => ipcRenderer.invoke("mnw:loadLocalPlatformCatalog", payload),
   generateCampaign: (payload) => ipcRenderer.invoke("mnw:generateCampaign", payload),
   continueCampaign: (payload) => ipcRenderer.invoke("mnw:continueCampaign", payload),
   getUpdateState: () => ipcRenderer.invoke("mnw:getUpdateState"),

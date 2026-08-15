@@ -6,6 +6,7 @@
   "main": "electron/main.cjs",
   "license": "MIT",
   "dependencies": {
+    "@msgpack/msgpack": "^3.1.3",
     "electron-updater": "^6.8.9",
     "ws": "^8.21.0"
   },
@@ -38,7 +39,6 @@
       "modules/**/*",
       "storage/**/*",
       "src/**/*",
-      "generated/**/*",
       "state/**/*",
       "README.md",
       "DEVELOPER_GUIDE.md",
@@ -68,10 +68,6 @@
       {
         "from": "tests",
         "to": "seed/tests"
-      },
-      {
-        "from": "generated/db/virginia-platforms.json",
-        "to": "seed/generated/db/virginia-platforms.json"
       }
     ],
     "directories": {
@@ -81,7 +77,8 @@
       {
         "provider": "github",
         "owner": "murdockpeter",
-        "repo": "mnw_dynamic_campaign"
+        "repo": "mnw_dynamic_campaign",
+        "releaseType": "prerelease"
       }
     ],
     "win": {

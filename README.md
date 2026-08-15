@@ -9,6 +9,7 @@ It contains:
 - a modular persistence scaffold
 - a browser and Electron frontend
 - a deterministic campaign generator that does not require external AI
+- local-only MNW database indexing for editable friendly, enemy, and support force pools
 - a continuation workflow that rewrites a reserved follow-on mission slot after mission results are saved and reviewed
 - optional AISStream sampling that can seed merchant traffic from live AIS contact snapshots
 - developer and player workflows side by side
@@ -70,6 +71,7 @@ Practical current model:
 - `Continue Campaign` rewrites that reserved slot from the latest saved result
 - the app also keeps one additional reserved slot behind it so MNW always has a valid next mission node
 - if the player does not want to continue, the previous completed mission can be treated as the campaign conclusion
+- advanced authoring can index the installed MNW `.core` database and use selected platform pools without copying those database records into the installer
 
 ## Main Components
 

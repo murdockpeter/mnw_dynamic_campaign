@@ -200,31 +200,31 @@ const MISSION_TYPE_CATALOG = {
   },
   spec_ops: {
     label: "Spec Ops",
-    description: "Experimental mission family. Biases the briefing toward insertion, reconnaissance, or covert shoreline support without changing the core combat geometry yet.",
+    description: "Experimental bespoke mission family for covert insertion-area penetration and shoreline-support positioning.",
     operationType: "Special Operations",
     availability: "experimental",
     supportByFamily: {
-      surface_shadow: "partial",
+      surface_shadow: "supported",
       sub_hunt: "unsupported"
     }
   },
   counter_piracy: {
     label: "Counter-Piracy",
-    description: "Experimental mission family. Biases the mission toward vessel protection, interception, and selective surface engagement.",
+    description: "Experimental bespoke mission family for vessel protection, interception, and selective surface engagement.",
     operationType: "Maritime Security",
     availability: "experimental",
     supportByFamily: {
-      surface_shadow: "partial",
+      surface_shadow: "supported",
       sub_hunt: "unsupported"
     }
   },
   counter_terror: {
     label: "Counter-Terror",
-    description: "Experimental mission family. Biases the mission toward interdiction of designated hostile cells, facilitators, or disguised logistics traffic.",
+    description: "Experimental bespoke mission family for interdiction of a designated hostile maritime facilitator.",
     operationType: "Maritime Security",
     availability: "experimental",
     supportByFamily: {
-      surface_shadow: "partial",
+      surface_shadow: "supported",
       sub_hunt: "unsupported"
     }
   },
@@ -1970,9 +1970,7 @@ function resolveMissionTypeSupport(value, family = "surface_shadow", experimenta
       ? "Land Attack is not technically supported by the current generator or MNW scripting path. It remains a gated placeholder and will fall back to a surface-attack mission."
       : warning;
   } else if (requestedDef.availability === "experimental" && resolvedKey === requestedKey) {
-    warning = warning
-      ? `${warning} Experimental content is enabled, but this mission family still uses narrative overlays on top of the existing geometry.`
-      : `${requestedDef.label} is experimental. The current implementation biases briefing language and force mix, but it does not yet have a bespoke mission script family.`;
+    warning = `${requestedDef.label} uses its bespoke experimental objective script. Keep Experimental Content enabled; this family remains subject to gameplay validation.`;
   }
   return {
     requestedKey,
@@ -2757,7 +2755,8 @@ function buildScenarioAnnotations(template, geometry, forces, missionDef, missio
   const missionStance = MISSION_STANCE_CATALOG[normalizeMissionStanceKey(missionStanceKey)] || MISSION_STANCE_CATALOG.wide_area_search;
   const escalation = ESCALATION_CATALOG[normalizeEscalationKey(options.escalationKey, "peacetime")] || ESCALATION_CATALOG.peacetime;
   const roe = ROE_CATALOG[normalizeRoeKey(options.roeKey, "weapons_tight")] || ROE_CATALOG.weapons_tight;
-  const missionType = MISSION_TYPE_CATALOG[normalizeMissionTypeKey(options.missionTypeKey, template.family)] || MISSION_TYPE_CATALOG[defaultMissionTypeForFamily(template.family)];
+  const missionTypeKey = normalizeMissionTypeKey(options.missionTypeKey, template.family, { enabled: true });
+  const missionType = MISSION_TYPE_CATALOG[missionTypeKey] || MISSION_TYPE_CATALOG[defaultMissionTypeForFamily(template.family)];
   const scenarioTarget = resolveScenarioTarget(template, forces);
   const likelyContactPoint = template.family === "surface_shadow"
     ? geometry.datum
@@ -2801,6 +2800,24 @@ function buildScenarioAnnotations(template, geometry, forces, missionDef, missio
     detail: "Useful holding point if you choose to turn the mission into a containment problem."
   });
 
+  if (missionTypeKey === "spec_ops") {
+    annotations.push({
+      id: "special_operations_insertion_area",
+      label: "Insertion Support Area",
+      kind: "special_operations",
+      point: geometry.datum,
+      detail: "Enter this area without compromising the submarine to establish the covert support window."
+    });
+  } else if (missionTypeKey === "counter_piracy" || missionTypeKey === "counter_terror") {
+    annotations.push({
+      id: "maritime_interdiction_target",
+      label: missionTypeKey === "counter_piracy" ? "Piracy Interdiction Target" : "Maritime Facilitator",
+      kind: "target",
+      point: geometry.lead,
+      detail: `Positive identification and attack authority apply to ${scenarioTarget.name}; civilian traffic remains protected.`
+    });
+  }
+
   if (task === TASK_CATALOG.designated_strike) {
     annotations.push({
       id: "designated_target",
@@ -2828,27 +2845,40 @@ function buildScenarioAnnotations(template, geometry, forces, missionDef, missio
     });
   }
 
-  const objectiveLine = task === TASK_CATALOG.designated_strike
-    ? `Positively identify ${scenarioTarget.name}, attack it, and withdraw before the escorts can localize your firing point.`
-    : task.objectiveLine;
-  const mapIntent = task === TASK_CATALOG.designated_strike
-    ? `Stalk from the marked likely contact area, use the route gate to predict the turn, fire from advantage, then exit along the withdrawal axis.`
-    : task.mapIntent;
-  const endCondition = task === TASK_CATALOG.designated_strike
-    ? `End the mission only after ${scenarioTarget.name} is destroyed or the attack opportunity is lost and you have disengaged cleanly.`
-    : task === TASK_CATALOG.break_contact_escape
-      ? "End the mission after you have opened distance, cleared the search geometry, and recovered with the boat intact."
-      : task.endCondition;
+  const bespokeAttackMission = missionTypeKey === "counter_piracy" || missionTypeKey === "counter_terror";
+  const objectiveLine = missionTypeKey === "spec_ops"
+    ? "Penetrate the marked insertion support area while remaining covert and establish the special-operations support window."
+    : bespokeAttackMission
+      ? `Positively identify and neutralize ${scenarioTarget.name} without attacking protected civilian traffic.`
+      : task === TASK_CATALOG.designated_strike
+        ? `Positively identify ${scenarioTarget.name}, attack it, and withdraw before the escorts can localize your firing point.`
+        : task.objectiveLine;
+  const mapIntent = missionTypeKey === "spec_ops"
+    ? "Use the likely-contact and intercept markings to avoid the screen, then enter the insertion support area from the quietest approach."
+    : bespokeAttackMission
+      ? "Use the contact-area cue to separate the designated hostile vessel from neutral traffic before firing."
+      : task === TASK_CATALOG.designated_strike
+        ? `Stalk from the marked likely contact area, use the route gate to predict the turn, fire from advantage, then exit along the withdrawal axis.`
+        : task.mapIntent;
+  const endCondition = missionTypeKey === "spec_ops"
+    ? "The mission completes when the submarine enters the insertion support area intact."
+    : bespokeAttackMission
+      ? `The mission completes when ${scenarioTarget.name} is destroyed; loss of protected civilian traffic fails the mission.`
+      : task === TASK_CATALOG.designated_strike
+        ? `End the mission only after ${scenarioTarget.name} is destroyed or the attack opportunity is lost and you have disengaged cleanly.`
+        : task === TASK_CATALOG.break_contact_escape
+          ? "End the mission after you have opened distance, cleared the search geometry, and recovered with the boat intact."
+          : task.endCondition;
 
   return {
     primaryTask: {
-      key: missionDef.taskType || "classify_trail",
-      label: task.label,
+      key: missionTypeKey === "spec_ops" ? "covert_insertion" : bespokeAttackMission ? "maritime_interdiction" : missionDef.taskType || "classify_trail",
+      label: missionTypeKey === "spec_ops" ? "Establish Covert Support Window" : bespokeAttackMission ? "Interdict Designated Vessel" : task.label,
       objectiveLine,
       mapIntent,
       endCondition,
-      designatedTarget: task === TASK_CATALOG.designated_strike ? scenarioTarget.name : null,
-      attackRequired: task === TASK_CATALOG.designated_strike
+      designatedTarget: task === TASK_CATALOG.designated_strike || bespokeAttackMission ? scenarioTarget.name : null,
+      attackRequired: task === TASK_CATALOG.designated_strike || bespokeAttackMission
     },
     missionType,
     missionStance,
@@ -2891,8 +2921,69 @@ function getTheaterSectorCatalog(template) {
   return [{ id: "main_axis", label: "Main Axis" }];
 }
 
-function buildTheaterUnitCatalog(template, playerName) {
-  const pools = THEATER_FORCE_POOLS[template.id] || {};
+const FORCE_POOL_KEYS = Object.freeze(["friendlySurface", "friendlyAir", "enemySurface", "enemyAir", "enemySubsurface", "enemySurfaceSupport"]);
+
+function forcePoolPlatformType(poolKey, role) {
+  if (poolKey === "enemySubsurface" || role === "subsurface_combatant") return "submarine";
+  if (role === "asw_helicopter") return "helicopter";
+  if (poolKey === "friendlyAir" || poolKey === "enemyAir") return "maritime_patrol_aircraft";
+  return "surface_combatant";
+}
+
+function normalizeForcePoolPolicy(rawPolicy, template, year) {
+  const rawPools = rawPolicy?.pools;
+  if (!rawPools || typeof rawPools !== "object") return null;
+  const sectorIds = (THEATER_FORCE_POOLS[template.id]?.sectors || []).map((sector) => sector.id);
+  const defaults = THEATER_FORCE_POOLS[template.id] || {};
+  const pools = {};
+  for (const poolKey of FORCE_POOL_KEYS) {
+    if (!Array.isArray(rawPools[poolKey])) continue;
+    const seen = new Set();
+    const defaultFactions = [...new Set((defaults[poolKey] || []).map((unit) => unit.faction).filter(Boolean))];
+    const allowedFactions = defaultFactions.length
+      ? defaultFactions
+      : poolKey.startsWith("friendly") ? [template.player.faction] : template.enemies.map((unit) => unit.faction);
+    pools[poolKey] = rawPools[poolKey].flatMap((unit, index) => {
+      const dbid = Number(unit?.dbid);
+      const introYear = Number(unit?.introYear || 0) || null;
+      if (!Number.isInteger(dbid) || dbid <= 0 || seen.has(dbid) || (introYear && introYear > year)) return [];
+      seen.add(dbid);
+      const faction = String(unit.faction || "UNKNOWN").toUpperCase();
+      if (!allowedFactions.includes(faction)) return [];
+      const role = poolKey === "enemySubsurface" ? (index === 0 ? "target" : "screen") : null;
+      return [{
+        unitId: `db_${poolKey}_${faction.toLowerCase()}_${dbid}`,
+        name: String(unit.name || unit.platformName || `DBID ${dbid}`).trim(),
+        faction,
+        platformType: forcePoolPlatformType(poolKey, unit.role),
+        dbid,
+        sectors: sectorIds,
+        role,
+        introYear,
+        platformId: Number(unit.platformId || 0) || null,
+        platformName: String(unit.platformName || "") || null,
+        catalogSource: "local_mnw_db"
+      }];
+    });
+  }
+  const requiredEnemyKey = template.family === "sub_hunt" ? "enemySubsurface" : "enemySurface";
+  if (pools[requiredEnemyKey] && pools[requiredEnemyKey].length < 2) delete pools[requiredEnemyKey];
+  if (!Object.keys(pools).length) return null;
+  return { source: "local_mnw_db", indexedArchive: rawPolicy.indexedArchive || null, pools };
+}
+
+function effectiveForcePools(template, forcePoolPolicy = null) {
+  const defaults = THEATER_FORCE_POOLS[template.id] || {};
+  return { ...defaults, ...(forcePoolPolicy?.pools || {}) };
+}
+
+function forcePoolPolicySeedFragment(forcePoolPolicy = null) {
+  if (!forcePoolPolicy?.pools) return "default_force_pools";
+  return FORCE_POOL_KEYS.map((key) => `${key}:${(forcePoolPolicy.pools[key] || []).map((unit) => unit.dbid).join(",")}`).join("|");
+}
+
+function buildTheaterUnitCatalog(template, playerName, forcePoolPolicy = null) {
+  const pools = effectiveForcePools(template, forcePoolPolicy);
   const catalog = [];
 
   const addUnit = (unit, tags = [], notes = {}) => {
@@ -2927,9 +3018,11 @@ function buildTheaterUnitCatalog(template, playerName) {
     name: playerName
   }, ["player"], { theater_role: "player" });
 
-  template.enemies.forEach((enemy) => {
-    addUnit(enemy, ["enemy"], { theater_role: "core_enemy" });
-  });
+  if (!forcePoolPolicy || (!forcePoolPolicy.pools.enemySurface && !forcePoolPolicy.pools.enemySubsurface)) {
+    template.enemies.forEach((enemy) => {
+      addUnit(enemy, ["enemy"], { theater_role: "core_enemy" });
+    });
+  }
 
   ["friendlySurface", "friendlyAir", "enemySurface", "enemyAir", "enemySubsurface", "enemySurfaceSupport"].forEach((key) => {
     (pools[key] || []).forEach((unit) => {
@@ -2979,7 +3072,10 @@ function selectUnitsForMission(pool = [], theaterPicture, scenarioSector, desire
     return [];
   }
 
-  const available = [...pool];
+  const available = pool.filter((unit) => {
+    const track = theaterPicture.units[unit.unitId] || {};
+    return track.availability !== "unavailable" && track.availability !== "destroyed";
+  });
   const selected = [];
   const exactSectorScore = Number.isFinite(selectionOptions.exactSectorScore) ? selectionOptions.exactSectorScore : 100;
   const nonExactSectorScore = Number.isFinite(selectionOptions.nonExactSectorScore) ? selectionOptions.nonExactSectorScore : 40;
@@ -3112,8 +3208,8 @@ function buildAisMerchantTraffic(family, geometry, density, authoringConstraints
   }));
 }
 
-function buildScenarioForces(template, geometry, index, theaterPicture, rng, authoringConstraints = {}, aisSnapshot = null, missionTypeKey = null, forceBias = {}) {
-  const pools = THEATER_FORCE_POOLS[template.id] || {};
+function buildScenarioForces(template, geometry, index, theaterPicture, rng, authoringConstraints = {}, aisSnapshot = null, missionTypeKey = null, forceBias = {}, forcePoolPolicy = null) {
+  const pools = effectiveForcePools(template, forcePoolPolicy);
   const scenarioSector = pickScenarioSector(template, geometry, index);
   const density = Number(geometry?.density || 1);
   const resolvedMissionType = normalizeMissionTypeKey(missionTypeKey, template.family);
@@ -3593,7 +3689,7 @@ function buildScenarioRecord(
       missionSlug: missionDef.slug || missionDef.name || "opening"
     })
     : finalizedGeometry;
-  const forces = buildScenarioForces(template, geometry, index, theaterPicture, rng, authoringConstraints, aisSnapshot, resolvedMissionType, forceBias);
+  const forces = buildScenarioForces(template, geometry, index, theaterPicture, rng, authoringConstraints, aisSnapshot, resolvedMissionType, forceBias, options?.forcePoolPolicy || null);
   const intel = buildScenarioIntel(template, geometry, forces, index, rng, normalizedMissionStance);
   const tasking = buildScenarioAnnotations(template, geometry, forces, missionDef, normalizedMissionStance, intel, {
     escalationKey,
@@ -3738,6 +3834,14 @@ export function getContinuationChoiceCatalog() {
   };
 }
 
+export function getTheaterForcePoolCatalog(theaterId) {
+  const pools = THEATER_FORCE_POOLS[theaterId] || {};
+  return Object.fromEntries(Object.entries(pools).map(([key, value]) => [
+    key,
+    Array.isArray(value) ? value.map((item) => ({ ...item, sectors: Array.isArray(item.sectors) ? [...item.sectors] : item.sectors })) : value
+  ]));
+}
+
 export function buildContinuationScenario({
   campaignId,
   campaignSeed = null,
@@ -3766,7 +3870,8 @@ export function buildContinuationScenario({
   authoringConstraints = {},
   reserved = false,
   aisSnapshot = null,
-  experimental = { enabled: false, plotSeed: "none" }
+  experimental = { enabled: false, plotSeed: "none" },
+  forcePoolPolicy = null
 } = {}) {
   const effectiveCampaignSeed = sanitizeCampaignId(campaignSeed || campaignId || "generated_campaign");
   const theater = THEATER_TEMPLATES[theaterId] || THEATER_TEMPLATES.luzon_strait;
@@ -3782,7 +3887,7 @@ export function buildContinuationScenario({
   const advancedTime = plusHours(referenceIso || `${year}-01-01T00:00:00Z`, tempoDef.advanceHours).iso;
   const adjustedTime = applyTimeOfDayPolicy(advancedTime, theater.id, normalizedTimeOfDay, missionIndex);
   const startIso = adjustedTime.iso;
-  const rng = mulberry32(hashSeed([
+  const continuationSeedParts = [
     effectiveCampaignSeed,
     theater.id,
     objective,
@@ -3793,13 +3898,16 @@ export function buildContinuationScenario({
     priorMissionCount,
     lastOutcome,
     authoringConstraintSeedFragment(normalizeAuthoringConstraints({ authoringConstraints }))
-  ].join(":")));
+  ];
+  if (forcePoolPolicy?.pools) continuationSeedParts.push(forcePoolPolicySeedFragment(forcePoolPolicy));
+  const rng = mulberry32(hashSeed(continuationSeedParts.join(":")));
   const densityCount = Math.max(4, priorMissionCount + 2);
   const playerPlatform = materializePlayerPlatform(theater.player, playerName, playerSubmarine);
+  const normalizedForcePoolPolicy = normalizeForcePoolPolicy(forcePoolPolicy, theater, year);
   const theaterCatalog = buildTheaterUnitCatalog({
     ...theater,
     player: playerPlatform
-  }, playerName);
+  }, playerName, normalizedForcePoolPolicy);
   const theaterPicture = initializeTheaterPicture({
     ...theater,
     player: playerPlatform
@@ -3853,7 +3961,8 @@ export function buildContinuationScenario({
     normalizedAuthoringConstraints,
     aisSnapshot,
     resolvedMissionType,
-    continuationVariation.forceBias
+    continuationVariation.forceBias,
+    normalizedForcePoolPolicy
   );
   const continuationMissionDef = {
     taskType: derivedTaskType,
@@ -3939,6 +4048,7 @@ export function buildContinuationScenario({
     missionStance: normalizedMissionStance,
     playerSubmarine: playerPlatform.variantKey,
     playerSubmarineLabel: playerPlatform.platformLabel,
+    forcePoolPolicy: normalizedForcePoolPolicy,
     variation: {
       key: continuationVariation.key,
       forceBias: continuationVariation.forceBias
@@ -4002,11 +4112,13 @@ export function buildCampaignBlueprint(spec = {}) {
   const missionType = missionTypeSupport.resolvedKey;
   const requestedRoe = normalizeRoeKey(spec.rulesOfEngagement || spec.roe || CAMPAIGN_CLIMATE_CATALOG[tone].defaultRoe);
   const authoringConstraints = normalizeAuthoringConstraints(spec);
+  const forcePoolPolicy = normalizeForcePoolPolicy(spec.forcePoolPolicy, theater, year);
   const warnings = missionTypeSupport.warning ? [missionTypeSupport.warning] : [];
   if (playerPlatform.dbFallback) {
     warnings.push(`${playerPlatform.platformLabel} currently uses the verified Block III MNW database entry as a fallback. Platform identity and mission text will reflect your selection, but DB-specific differentiation still needs confirmed game data.`);
   }
-  const seed = hashSeed(`${campaignSeed}:${theater.id}:${tone}:${posture}:${missionType}:${requestedRoe}:${year}:${playableScenarioCount}:${playerName}:${playerSubmarineKey}:${authoringConstraintSeedFragment(authoringConstraints)}`);
+  const forcePoolSeedSuffix = forcePoolPolicy ? `:${forcePoolPolicySeedFragment(forcePoolPolicy)}` : "";
+  const seed = hashSeed(`${campaignSeed}:${theater.id}:${tone}:${posture}:${missionType}:${requestedRoe}:${year}:${playableScenarioCount}:${playerName}:${playerSubmarineKey}:${authoringConstraintSeedFragment(authoringConstraints)}${forcePoolSeedSuffix}`);
   const rng = mulberry32(seed);
   const archetypeRng = mulberry32(hashSeed(`${seed}:archetypes`));
   const allArchetypes = pickArchetypes(tone, totalScenarioCount, archetypeRng);
@@ -4015,8 +4127,9 @@ export function buildCampaignBlueprint(spec = {}) {
   const theaterUnits = buildTheaterUnitCatalog({
     ...theater,
     player: playerPlatform
-  }, playerName);
+  }, playerName, forcePoolPolicy);
   const theaterPicture = initializeTheaterPicture(theater, theaterUnits, rng);
+  const resolvedForcePools = effectiveForcePools(theater, forcePoolPolicy);
   const scenarios = playableArchetypes.map((missionDef, index) => buildScenarioRecord(
       theater,
       campaignId,
@@ -4038,7 +4151,8 @@ export function buildCampaignBlueprint(spec = {}) {
         missionTypeKey: missionType,
         seasonKey,
         timeOfDayKey,
-        experimental
+        experimental,
+        forcePoolPolicy
       }
     ));
   scenarios.push(buildScenarioRecord(
@@ -4062,7 +4176,8 @@ export function buildCampaignBlueprint(spec = {}) {
         missionTypeKey: missionType,
         seasonKey,
         timeOfDayKey,
-        experimental
+        experimental,
+        forcePoolPolicy
       }
   ));
 
@@ -4105,10 +4220,13 @@ export function buildCampaignBlueprint(spec = {}) {
     rulesOfEngagement: requestedRoe,
     rulesOfEngagementLabel: ROE_CATALOG[requestedRoe].label,
     authoringConstraints,
+    forcePoolPolicy,
     year,
     family: theater.family,
     player: playerPlatform,
-    enemies: theater.enemies.map((enemy) => ({ ...enemy })),
+    enemies: forcePoolPolicy
+      ? [...(resolvedForcePools.enemySurface || []), ...(resolvedForcePools.enemySubsurface || [])].map((enemy) => ({ ...enemy }))
+      : theater.enemies.map((enemy) => ({ ...enemy })),
     theaterUnits,
     theaterPicture,
     scenarios,

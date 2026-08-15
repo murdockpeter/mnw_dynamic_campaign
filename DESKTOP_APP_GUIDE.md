@@ -103,6 +103,7 @@ Notes:
 - the token is not written into generated campaign package files
 - the `Find Paths` button can auto-fill the most common Windows path fields before you save
 - the `Use Latest Generated Campaign` button can repoint the saved defaults to the newest generated package tree
+- preview releases are enabled by default during prerelease testing and can be disabled under App Updates
 
 ### Authoring
 
@@ -120,10 +121,15 @@ This workspace lets you:
 - choose a mission stance
 - choose rules of engagement
 - choose a player unit name
+- optionally enable `Local DB Force Pools` under advanced controls, refresh the installed MNW catalog, and select friendly, enemy, air, subsurface, and support platforms
 - optionally set `Max Scenario Radius (km)` to compress generated mission geometry around the player start
 - write campaign files
 - build the package
 - deploy the package
+
+Local database indexing stays on your computer. The app caches a normalized catalog in its generated-data workspace and rebuilds it when the installed `.core` archive changes; the installer does not contain extracted MNW platform records. Required enemy pools are validated before generation, while an empty optional support pool means that support type will not be spawned.
+
+With `Experimental Content` enabled, Spec Ops completes on entry into a scripted insertion-support zone, while Counter-Piracy and Counter-Terror complete when the designated interdiction target is destroyed and fail if protected traffic is lost. Land Attack remains gated and falls back safely because the current writer does not yet support shore targets and their weapon pipeline.
 
 Current theater families include:
 

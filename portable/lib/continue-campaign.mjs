@@ -6,8 +6,9 @@ import {
   findTheaterTemplateByName
 } from "../../shared/campaign-generator.mjs";
 import { buildQuestScript, buildScenarioPackageArtifacts } from "./generated-campaign-files.mjs";
-import { ensureDir, readJson, writeJson, writeText } from "./fs-helpers.mjs";
+import { ensureDir, readJson, writeText } from "./fs-helpers.mjs";
 import { exportRuntimePayload, loadLatestResult, loadOrBootstrapState, readMissionChain } from "./runtime.mjs";
+import { writeJsonSafely } from "./safe-write.mjs";
 
 async function readTextIfExists(targetPath) {
   try {
@@ -37,6 +38,20 @@ function upsertScenarioLocaleRows(existingCsv, campaignId, scenarioSlug, rows) {
 
 function missionSlugFromId(missionId) {
   return String(missionId || "").split(".").pop() || null;
+}
+
+function theaterPictureWithPersistentLosses(state) {
+  const picture = structuredClone(state.world_state?.theater_picture || {});
+  picture.units = picture.units || {};
+  for (const unit of Object.values(state.order_of_battle || {})) {
+    if (!unit.destroyed) continue;
+    picture.units[unit.unit_id] = {
+      ...(picture.units[unit.unit_id] || {}),
+      availability: "destroyed",
+      on_stage: false
+    };
+  }
+  return picture;
 }
 
 export async function appendContinuationScenario({
@@ -88,7 +103,7 @@ export async function appendContinuationScenario({
     operationalTempo,
     priorMissionCount: currentSlotIndex + 1,
     lastOutcome: latestResult?.outcome || "success",
-    theaterPicture: state.world_state?.theater_picture || null,
+    theaterPicture: theaterPictureWithPersistentLosses(state),
     posture: state.world_state?.posture || "wide_area_search",
     missionStance: state.world_state?.mission_stance || state.world_state?.posture || "wide_area_search",
     missionType: state.world_state?.mission_type || campaignConfig.mission_type || null,
@@ -98,6 +113,7 @@ export async function appendContinuationScenario({
     currentEscalation: state.world_state?.escalation_key || null,
     requestedRoe: state.world_state?.rules_of_engagement || campaignConfig.rules_of_engagement || null,
     authoringConstraints: state.world_state?.authoring_constraints || campaignConfig.authoring_constraints || {},
+    forcePoolPolicy: state.world_state?.force_pool_policy || campaignConfig.force_pool_policy || null,
     aisSnapshot,
     experimental: state.world_state?.experimental_features || campaignConfig.experimental_features || { enabled: false, plotSeed: "none" }
   });
@@ -126,6 +142,7 @@ export async function appendContinuationScenario({
     currentEscalation: scenario.escalationKey || state.world_state?.escalation_key || null,
     requestedRoe: scenario.roeKey || state.world_state?.rules_of_engagement || campaignConfig.rules_of_engagement || null,
     authoringConstraints: state.world_state?.authoring_constraints || campaignConfig.authoring_constraints || {},
+    forcePoolPolicy: state.world_state?.force_pool_policy || campaignConfig.force_pool_policy || null,
     reserved: true,
     aisSnapshot,
     experimental: state.world_state?.experimental_features || campaignConfig.experimental_features || { enabled: false, plotSeed: "none" }
@@ -191,6 +208,7 @@ export async function appendContinuationScenario({
   state.world_state.escalation_level = scenario.escalationLevel ?? state.world_state.escalation_level ?? 0;
   state.world_state.rules_of_engagement = scenario.continuation?.roeKey || state.world_state.rules_of_engagement || campaignConfig.rules_of_engagement || "weapons_tight";
   state.world_state.authoring_constraints = state.world_state.authoring_constraints || campaignConfig.authoring_constraints || {};
+  state.world_state.force_pool_policy = scenario.forcePoolPolicy || state.world_state.force_pool_policy || campaignConfig.force_pool_policy || null;
   state.world_state.experimental_features = scenario.continuation?.experimentalEnabled
     ? {
       enabled: true,
@@ -215,8 +233,8 @@ export async function appendContinuationScenario({
       created_at: new Date().toISOString()
     }
   ];
-  await writeJson(statePath, state);
-  await writeJson(path.join(campaignDir, "modules.json"), modulesConfig);
+  await writeJsonSafely(statePath, state);
+  await writeJsonSafely(path.join(campaignDir, "modules.json"), modulesConfig);
 
   const runtime = await exportRuntimePayload({ repoRoot, campaignId, stateDir });
 

@@ -8,6 +8,7 @@ import {
   getPlayerSubmarineCatalog,
   getRoeCatalog,
   getSeasonCatalog,
+  getTheaterForcePoolCatalog,
   getTheaterTemplates,
   getTimeOfDayCatalog,
 } from "../shared/campaign-generator.mjs";
@@ -25,6 +26,7 @@ let currentUpdateState = null;
 let currentCampaignControls = null;
 let latestResultPreviewFingerprint = null;
 let localPlatformCatalog = null;
+let authoredForcePoolSelection = {};
 
 function escapeMarkup(value) {
   return String(value ?? "")
@@ -1097,6 +1099,7 @@ function renderSettingsPreview(settings) {
   document.getElementById("settings-update-github-owner").value = settings.updates?.githubOwner || "";
   document.getElementById("settings-update-github-repo").value = settings.updates?.githubRepo || "";
   document.getElementById("settings-update-auto-check").checked = settings.updates?.autoCheckOnLaunch !== false;
+  document.getElementById("settings-update-allow-prerelease").checked = settings.updates?.allowPrerelease !== false;
   renderUpdateProviderFields(settings.updates?.provider || "generic");
   packageIdSyncEnabled = preferredPackageId === preferredCampaignId;
   document.getElementById("settings-package-sync").checked = packageIdSyncEnabled;
@@ -1297,7 +1300,8 @@ function collectDesktopSettingsForm() {
       feedUrl: document.getElementById("settings-update-feed-url").value.trim(),
       githubOwner: document.getElementById("settings-update-github-owner").value.trim(),
       githubRepo: document.getElementById("settings-update-github-repo").value.trim(),
-      autoCheckOnLaunch: document.getElementById("settings-update-auto-check").checked
+      autoCheckOnLaunch: document.getElementById("settings-update-auto-check").checked,
+      allowPrerelease: document.getElementById("settings-update-allow-prerelease").checked
     },
     firstLaunchComplete: true
   };
@@ -1493,6 +1497,7 @@ function collectWizardSpec() {
     scenarioCount: Number(document.getElementById("wizard-scenario-count").value || 1),
     playerSubmarine: document.getElementById("wizard-player-submarine")?.value || "virginia_block_iii",
     playerName: document.getElementById("wizard-player-name").value.trim(),
+    forcePoolPolicy: collectForcePoolPolicy(),
     experimentalFeatures: {
       enabled: experimentalEnabled,
       plotSeed
@@ -1985,9 +1990,11 @@ async function initializeWizard() {
   if (desktopApi?.loadLocalPlatformCatalog) {
     localPlatformCatalog = await desktopApi.loadLocalPlatformCatalog();
     refreshPlayerHullSuggestions(false);
+    renderForcePoolEditor(true);
   }
   document.getElementById("wizard-theater").onchange = () => {
     syncWizardDefaultsWithTheater();
+    renderForcePoolEditor(true);
     refreshCurrentWizardBlueprint();
   };
   [
@@ -2012,6 +2019,7 @@ async function initializeWizard() {
   ].forEach((id) => {
     document.getElementById(id).oninput = () => refreshCurrentWizardBlueprint();
   });
+  document.getElementById("wizard-year").addEventListener("change", () => renderForcePoolEditor(false));
   [
     "wizard-merchant-traffic-intensity",
     "wizard-biologic-clutter-intensity",
@@ -2027,6 +2035,19 @@ async function initializeWizard() {
   };
   document.getElementById("wizard-plot-seed").onchange = () => refreshCurrentWizardBlueprint();
   document.getElementById("wizard-player-submarine").addEventListener("change", () => refreshPlayerHullSuggestions(true));
+  document.getElementById("wizard-db-force-pools-enabled").addEventListener("change", () => {
+    renderForcePoolEditor(false);
+    refreshCurrentWizardBlueprint();
+  });
+  document.getElementById("wizard-db-force-refresh").addEventListener("click", async () => {
+    const status = document.getElementById("wizard-db-force-status");
+    status.textContent = "Refreshing the local MNW database index...";
+    localPlatformCatalog = await desktopApi.loadLocalPlatformCatalog({ refresh: true });
+    authoredForcePoolSelection = {};
+    refreshPlayerHullSuggestions(false);
+    renderForcePoolEditor(true);
+    refreshCurrentWizardBlueprint();
+  });
   document.getElementById("wizard-regenerate-seed").onclick = () => {
     setWizardCampaignSeed(generateCampaignSeed(), {
       syncTitle: true,
@@ -2088,6 +2109,11 @@ async function initializeWizard() {
       await refreshWorkflowStatus();
     } catch (error) {
       setWizardStatus(`Deployment blocked: ${error.message}`);
+    }
+    const forcePoolErrors = validateForcePoolSelection();
+    if (forcePoolErrors.length) {
+      setWizardStatus(forcePoolErrors.join(" "));
+      return;
     }
   };
 }
@@ -2294,8 +2320,7 @@ function refreshPlayerHullSuggestions(selectRepresentative = false) {
   const status = document.getElementById("wizard-player-catalog-status");
   const selected = getPlayerSubmarineCatalog()[document.getElementById("wizard-player-submarine")?.value];
   if (!datalist || !status || !selected) return;
-  const record = localPlatformCatalog?.records?.find((item) => Number(item.platformId) === Number(selected.platformDbid));
-  const hulls = record?.hulls || [];
+  const hulls = (localPlatformCatalog?.catalog?.units || []).filter((item) => Number(item.platformId) === Number(selected.platformDbid) && item.namedHull);
   datalist.innerHTML = hulls.map((hull) => `<option value="${escapeMarkup(hull.name)}">${escapeMarkup(hull.hullNumber || "")}</option>`).join("");
   if (hulls.length) {
     status.textContent = `${hulls.length} locally indexed ${selected.label} hulls available from MNW DB platform ${selected.platformDbid}.`;
@@ -2309,6 +2334,111 @@ function refreshPlayerHullSuggestions(selectRepresentative = false) {
       ? `No matching hull names found for MNW DB platform ${selected.platformDbid}; free-text naming remains available.`
       : "Local DB hull catalog not indexed; using curated generator defaults.";
   }
+}
+
+function forcePoolDefinitions() {
+  const theaterId = document.getElementById("wizard-theater")?.value || "luzon_strait";
+  const theater = getTheaterTemplates()[theaterId];
+  const base = getTheaterForcePoolCatalog(theaterId);
+  const enemyFaction = theater?.enemies?.[0]?.faction || "CN";
+  const supportFactions = (key, fallback) => {
+    const values = [...new Set((base[key] || []).map((unit) => unit.faction).filter(Boolean))];
+    return values.length ? values : fallback;
+  };
+  return [
+    { key: "friendlySurface", label: "Friendly Surface Support", factions: ["US"], roles: ["surface_combatant"], defaults: base.friendlySurface || [], required: 0 },
+    { key: "friendlyAir", label: "Friendly Air Support", factions: ["US"], roles: ["asw_helicopter", "maritime_patrol_aircraft", "aircraft"], defaults: base.friendlyAir || [], required: 0 },
+    theater?.family === "sub_hunt"
+      ? { key: "enemySubsurface", label: "Enemy Subsurface Pool", factions: [enemyFaction], roles: ["subsurface_combatant"], defaults: base.enemySubsurface || [], required: 2 }
+      : { key: "enemySurface", label: "Enemy Surface Pool", factions: [enemyFaction], roles: ["surface_combatant"], defaults: base.enemySurface || [], required: 2 },
+    { key: "enemySurfaceSupport", label: "Enemy Surface Support", factions: supportFactions("enemySurfaceSupport", [enemyFaction]), roles: ["surface_combatant"], defaults: base.enemySurfaceSupport || [], required: 0 },
+    { key: "enemyAir", label: "Enemy Air Support", factions: supportFactions("enemyAir", [enemyFaction]), roles: ["asw_helicopter", "maritime_patrol_aircraft", "aircraft"], defaults: base.enemyAir || [], required: 0 }
+  ];
+}
+
+function unitsForForcePool(definition) {
+  const year = Number(document.getElementById("wizard-year")?.value || 0);
+  return (localPlatformCatalog?.catalog?.units || []).filter((unit) => {
+    if (year && unit.introYear && unit.introYear > year) return false;
+    return definition.factions.includes(unit.faction) && definition.roles.includes(unit.role);
+  });
+}
+
+function renderForcePoolEditor(reset = false) {
+  const root = document.getElementById("wizard-db-force-pools");
+  const status = document.getElementById("wizard-db-force-status");
+  const toggle = document.getElementById("wizard-db-force-pools-enabled");
+  const enabled = Boolean(toggle?.checked);
+  if (!root || !status || !toggle) return;
+  if (!localPlatformCatalog?.available) {
+    root.innerHTML = "";
+    status.textContent = localPlatformCatalog?.error || "The local MNW database is not available. Confirm the game path in Setup.";
+    toggle.checked = false;
+    toggle.disabled = true;
+    return;
+  }
+  toggle.disabled = false;
+  const definitions = forcePoolDefinitions();
+  if (reset) authoredForcePoolSelection = {};
+  for (const definition of definitions) {
+    const eligibleIds = new Set(unitsForForcePool(definition).map((unit) => Number(unit.dbid)));
+    if (!authoredForcePoolSelection[definition.key]) {
+      const defaultIds = new Set(definition.defaults.map((unit) => Number(unit.dbid)));
+      authoredForcePoolSelection[definition.key] = new Set(unitsForForcePool(definition).filter((unit) => defaultIds.has(Number(unit.dbid))).map((unit) => Number(unit.dbid)));
+    } else {
+      authoredForcePoolSelection[definition.key] = new Set([...authoredForcePoolSelection[definition.key]].filter((dbid) => eligibleIds.has(Number(dbid))));
+    }
+  }
+  root.innerHTML = definitions.map((definition) => {
+    const units = unitsForForcePool(definition);
+    const options = units.length ? units.map((unit) => `
+      <label class="force-pool-option">
+        <input type="checkbox" data-force-pool="${definition.key}" value="${unit.dbid}" ${authoredForcePoolSelection[definition.key].has(Number(unit.dbid)) ? "checked" : ""} ${enabled ? "" : "disabled"}>
+        <span><strong>${escapeMarkup(unit.name)}</strong><span class="muted">${escapeMarkup(unit.platformName)} · DBID ${unit.dbid} · ${unit.introYear || "year unknown"}</span></span>
+      </label>`).join("") : '<div class="muted">No matching installed platforms.</div>';
+    return `<article class="nested-card force-pool-group"><strong>${definition.label}</strong><div class="muted">${definition.required ? `Select at least ${definition.required}.` : "Optional; zero disables this support pool."}</div>${options}</article>`;
+  }).join("");
+  root.querySelectorAll("input[data-force-pool]").forEach((node) => {
+    node.addEventListener("change", () => {
+      const key = node.dataset.forcePool;
+      if (node.checked) authoredForcePoolSelection[key].add(Number(node.value));
+      else authoredForcePoolSelection[key].delete(Number(node.value));
+      updateForcePoolStatus();
+      refreshCurrentWizardBlueprint();
+    });
+  });
+  updateForcePoolStatus();
+}
+
+function validateForcePoolSelection() {
+  if (!document.getElementById("wizard-db-force-pools-enabled")?.checked) return [];
+  if (!localPlatformCatalog?.available) return ["Local MNW DB catalog is unavailable."];
+  return forcePoolDefinitions().flatMap((definition) => {
+    const count = authoredForcePoolSelection[definition.key]?.size || 0;
+    return count < definition.required ? [`${definition.label} requires at least ${definition.required} selections.`] : [];
+  });
+}
+
+function updateForcePoolStatus() {
+  const status = document.getElementById("wizard-db-force-status");
+  const enabled = document.getElementById("wizard-db-force-pools-enabled")?.checked;
+  if (!status) return;
+  if (!enabled) {
+    status.textContent = `Local index ready: ${localPlatformCatalog?.catalog?.units?.length || 0} selectable units. Enable authored pools to use it.`;
+    return;
+  }
+  const errors = validateForcePoolSelection();
+  status.textContent = errors.length ? errors.join(" ") : `Authored pools valid. Source: ${localPlatformCatalog.catalog.source.archiveName}.`;
+}
+
+function collectForcePoolPolicy() {
+  if (!document.getElementById("wizard-db-force-pools-enabled")?.checked || validateForcePoolSelection().length) return null;
+  const byDbid = new Map((localPlatformCatalog?.catalog?.units || []).map((unit) => [Number(unit.dbid), unit]));
+  const pools = {};
+  for (const definition of forcePoolDefinitions()) {
+    pools[definition.key] = [...(authoredForcePoolSelection[definition.key] || [])].map((dbid) => byDbid.get(dbid)).filter(Boolean);
+  }
+  return { source: "local_mnw_db", indexedArchive: localPlatformCatalog.catalog.source.archiveName, pools };
 }
 
 async function reloadRuntimeForCampaign(campaignId) {

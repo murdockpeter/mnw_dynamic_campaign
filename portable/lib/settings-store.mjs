@@ -28,7 +28,8 @@ function defaultSettings() {
       feedUrl: "",
       githubOwner: "murdockpeter",
       githubRepo: "mnw_dynamic_campaign",
-      autoCheckOnLaunch: true
+      autoCheckOnLaunch: true,
+      allowPrerelease: true
     },
     firstLaunchComplete: false
   };

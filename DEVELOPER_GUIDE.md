@@ -170,13 +170,14 @@ The `Authoring` workspace currently exposes:
 - mission stance
 - rules of engagement
 - player unit name
+- optional local-DB force-pool authoring for friendly surface/air and enemy surface/air/subsurface/support units
 - optional `Max Scenario Radius (km)`
 
 `Max Scenario Radius (km)` is an authoring-time pacing control. When set, the generator scales non-AIS generated scenario geometry inward around the player start so generated placements stay inside the requested radius. The value is persisted into generated `campaign.json` and bootstrap state, and continuation scenarios inherit it.
 
 ### How Platform Selection Works Per Side
 
-Player-side and enemy-side platform choices are not random.
+By default, player-side and enemy-side platform choices come from deterministic theater templates. When local-DB force pools are enabled, the authored normalized pool replaces the corresponding template pools.
 
 They come from the selected theater template in [shared/campaign-generator.mjs](C:/Users/Peter%20G.%20Robbins/Documents/claudeprojects/mnw_dynamic_campaign/shared/campaign-generator.mjs:230).
 
@@ -195,7 +196,9 @@ Current examples:
   - enemies: Russian submarines
   - geometry family: `sub_hunt`
 
-Theater selection determines the sides and baseline force composition. Tone selection determines the narrative progression of the mission sequence.
+Theater selection determines the sides and baseline force composition. Campaign climate determines the narrative progression of the mission sequence. Local force-pool filtering also applies theater faction and campaign-year constraints before a platform can be selected.
+
+Experimental surface mission types are dispatched through distinct objective logic in the generated script: Spec Ops uses an insertion-zone trigger, and Counter-Piracy/Counter-Terror use designated-target destruction plus protected-traffic failure triggers. Land Attack intentionally remains `future` until valid shore-target placement and weapon employment can be generated.
 
 ## Placeholder Follow-On Model
 
@@ -379,8 +382,10 @@ powershell -ExecutionPolicy Bypass -File .\tools\index-db.ps1
 To inspect verified local platform mappings after indexing, run:
 
 ```powershell
-python .\tools\inspect-local-db.py --category submarines --pattern Virginia --write-json .\generated\db\virginia-platforms.json --write-markdown .\docs\local-db-platform-notes.md
+python .\tools\inspect-local-db.py --category submarines --pattern Virginia --write-json .\generated\db\virginia-platforms.json --write-markdown .\generated\db\local-db-platform-notes.md
 ```
+
+The desktop force-pool editor does not require the bulk inventory script. It reads only the needed MessagePack entries from the installed `.core` ZIP, caches a normalized local catalog beneath ignored `generated/db/`, and refreshes that cache when the archive changes. Do not commit generated platform records or add them to installer resources.
 
 ## Testing
 

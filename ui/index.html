@@ -173,6 +173,11 @@
                     <span>Check On Launch</span>
                     <input id="settings-update-auto-check" type="checkbox" checked>
                   </label>
+                  <label class="toggle compact-toggle">
+                    <span>Receive Preview Releases</span>
+                    <input id="settings-update-allow-prerelease" type="checkbox" checked>
+                  </label>
+                  <div></div>
                   <label class="full-width update-provider-scope update-provider-generic">
                     <span>Update Feed Base URL</span>
                     <input id="settings-update-feed-url" type="text" placeholder="https://example.com/mnw/releases">
@@ -338,6 +343,26 @@
               <datalist id="wizard-player-hulls"></datalist>
               <span id="wizard-player-catalog-status" class="wizard-meta">Curated generator default.</span>
             </label>
+            <details class="card nested-card" style="margin-top:16px;">
+              <summary class="collapsible-summary">
+                <div>
+                  <strong>Local DB Force Pools</strong>
+                  <div class="muted">Build campaign forces from the database installed with MNW on this computer.</div>
+                </div>
+                <span class="badge alt">Advanced</span>
+              </summary>
+              <div class="collapsible-content">
+                <label class="toggle compact-toggle">
+                  <span>Use Authored Local DB Pools</span>
+                  <input id="wizard-db-force-pools-enabled" type="checkbox">
+                </label>
+                <div class="builder-actions" style="margin-top:12px;">
+                  <button id="wizard-db-force-refresh" type="button">Refresh Local DB Index</button>
+                </div>
+                <p id="wizard-db-force-status" class="muted builder-help">Enable this option to replace curated theater pools.</p>
+                <div id="wizard-db-force-pools" class="force-pool-grid"></div>
+              </div>
+            </details>
             <p id="wizard-status" class="muted builder-help">
               Write campaign files first, then build and deploy. The desktop app also initializes Campaign Tracking for the first mission.
             </p>
@@ -396,7 +421,7 @@
               </p>
               <p>
                 Mission type tells the generator what operational problem to emphasize. Some options are fully supported now, others are
-                partial placeholders that bias the package while signaling their current limits.
+                gated mission types. Spec Ops, Counter-Piracy, and Counter-Terror use bespoke experimental objectives; Land Attack remains a clearly labeled future placeholder.
               </p>
               <p>
                 Mission stance is the player-agency bias for the generated package. It tells the generator whether to favor forward intercepts,

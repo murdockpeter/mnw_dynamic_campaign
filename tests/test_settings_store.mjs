@@ -28,6 +28,7 @@ test("loadSettings preserves nested defaults for legacy settings files", async (
   assert.equal(settings.updates.provider, "generic");
   assert.equal(settings.updates.feedUrl, "https://example.com/releases");
   assert.equal(settings.updates.autoCheckOnLaunch, true);
+  assert.equal(settings.updates.allowPrerelease, true);
   assert.equal(settings.updates.githubOwner, "murdockpeter");
   assert.equal(settings.schemaVersion, SETTINGS_SCHEMA_VERSION);
 

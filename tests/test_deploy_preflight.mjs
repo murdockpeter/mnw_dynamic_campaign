@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 
 import { deployPackage, inspectPackageIdentity } from "../portable/lib/deploy-package.mjs";
-import { writeStoredZip } from "../portable/lib/zip-store.mjs";
+import { readZipEntry, writeStoredZip } from "../portable/lib/zip-store.mjs";
 
 function quest(campaignId, missionId) {
   return Buffer.from(`_start = Mis("${campaignId}.${campaignId}.${missionId}")\n`, "utf8");
@@ -17,6 +17,7 @@ test("deployment blocks duplicate campaign identities in differently named archi
   const target = path.join(root, "live");
   await fs.mkdir(target);
   await writeStoredZip(source, [{ name: "demo/quest.cmp", data: quest("demo", "one") }]);
+  assert.match((await readZipEntry(source, "demo/quest.cmp")).toString("utf8"), /demo\.demo\.one/);
   await writeStoredZip(path.join(target, "backup.kyt"), [{ name: "demo/quest.cmp", data: quest("demo", "one") }]);
 
   const identity = await inspectPackageIdentity(source);

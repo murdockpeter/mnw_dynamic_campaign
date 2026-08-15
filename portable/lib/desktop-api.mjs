@@ -18,6 +18,7 @@ import { loadSettings, saveSettings } from "./settings-store.mjs";
 import { ensureWorkspace } from "./workspace-bootstrap.mjs";
 import { writeStoredZip } from "./zip-store.mjs";
 import { appendAuditEvent } from "./audit-log.mjs";
+import { buildLocalPlatformCatalog, filterPlatformCatalog, findCoreDbArchive, deriveDbDirFromCampaignPath } from "./local-db-catalog.mjs";
 
 const execFile = promisify(execFileCallback);
 
@@ -638,19 +639,36 @@ export async function exportSupportBundleForDesktop({ campaignId, stateDir, sett
   return { outputPath, campaignId: effectiveCampaignId, auditPath, entries: ["summary.json", "settings.redacted.json", "workflow.json", "runtime.json", "Player.log.tail.txt"] };
 }
 
-export async function loadLocalPlatformCatalogForDesktop({ contentRoot, workspaceRoot, appVersion } = {}) {
+export async function loadLocalPlatformCatalogForDesktop({ refresh = false, filters = {}, settingsPath, contentRoot, workspaceRoot, appVersion } = {}) {
+  const settings = await readDesktopSettings(settingsPath);
   const roots = await resolveRoots({ contentRoot, workspaceRoot, appVersion });
-  const candidates = [
-    path.join(roots.workspaceRoot, "generated", "db", "virginia-platforms.json"),
-    path.join(roots.contentRoot, "generated", "db", "virginia-platforms.json")
-  ];
-  for (const candidate of candidates) {
+  const cachePath = path.join(roots.workspaceRoot, "generated", "db", "platform-catalog.json");
+  const dbDir = deriveDbDirFromCampaignPath(settings.gameCampaignPath);
+  let catalog = null;
+  if (!refresh) {
     try {
-      const payload = await readJson(candidate);
-      return { available: true, sourcePath: candidate, category: payload.category, records: payload.records || [] };
-    } catch { /* Try the next catalog path. */ }
+      const cached = await readJson(cachePath);
+      const archive = await findCoreDbArchive(dbDir);
+      if (cached.source?.archiveName === path.basename(archive.archivePath)
+        && cached.source?.modifiedMs === archive.modifiedMs
+        && cached.source?.size === archive.size) catalog = cached;
+    } catch { /* Build a fresh local index below. */ }
   }
-  return { available: false, sourcePath: null, category: "submarines", records: [] };
+  if (!catalog) {
+    try {
+      catalog = await buildLocalPlatformCatalog({ dbDir, gameCampaignPath: settings.gameCampaignPath });
+      await writeJson(cachePath, catalog);
+      await appendAuditEvent(roots.workspaceRoot, "local_db_catalog_indexed", { archiveName: catalog.source.archiveName, platformCount: catalog.platforms.length, unitCount: catalog.units.length });
+    } catch (error) {
+      return { available: false, sourcePath: null, error: error.message, catalog: null, units: [] };
+    }
+  }
+  return {
+    available: true,
+    sourcePath: cachePath,
+    catalog,
+    units: filterPlatformCatalog(catalog, filters)
+  };
 }
 
 export async function generateCampaignForDesktop({ spec, dryRun = false, settingsPath, contentRoot, workspaceRoot, appVersion } = {}) {

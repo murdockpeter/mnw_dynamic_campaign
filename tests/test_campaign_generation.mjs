@@ -1,12 +1,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import {
   buildCampaignBlueprint,
   buildContinuationScenario
 } from "../shared/campaign-generator.mjs";
-import { buildScenarioPackageArtifacts } from "../portable/lib/generated-campaign-files.mjs";
+import { buildGeneratedCampaignFiles, buildScenarioPackageArtifacts } from "../portable/lib/generated-campaign-files.mjs";
 
 function decodeBase64Field(field) {
   return Buffer.from(field.en, "base64").toString("utf8");
@@ -477,6 +479,144 @@ test("season and time-of-day controls affect scenario clocks and briefing text",
   });
   assert.match(continuation.startMnw, /02:10:00$/);
   assert.equal(continuation.temporalContext.label, "Summer, Night");
+});
+
+test("local DB force-pool policy drives theater OOB, scenario forces, and persistence", async () => {
+  const forcePoolPolicy = {
+    source: "local_mnw_db",
+    indexedArchive: "test.core",
+    pools: {
+      friendlySurface: [],
+      friendlyAir: [],
+      enemySubsurface: [
+        { dbid: 667, name: "Project 885M Yasen-M", platformName: "Project 885M Yasen-M", platformId: 667, faction: "RU", role: "subsurface_combatant", introYear: 2021 },
+        { dbid: 34, name: "Project 971M Akula III", platformName: "Project 971M Akula III", platformId: 34, faction: "RU", role: "subsurface_combatant", introYear: 2001 }
+      ],
+      enemySurfaceSupport: [],
+      enemyAir: []
+    }
+  };
+  const spec = {
+    title: "DB Pool Test",
+    campaignId: "db_pool_test",
+    campaignSeed: "db_pool_test",
+    theater: "south_china_sea",
+    missionType: "asw",
+    year: 2028,
+    scenarioCount: 1,
+    playerName: "USS Test",
+    forcePoolPolicy
+  };
+  const blueprint = buildCampaignBlueprint(spec);
+  assert.equal(blueprint.forcePoolPolicy.source, "local_mnw_db");
+  assert.deepEqual(new Set(blueprint.scenarios[0].forces.enemyPrimary.map((unit) => unit.dbid)), new Set([667, 34]));
+  assert.equal(blueprint.scenarios[0].forces.enemySurfaceSupport.length, 0);
+  assert.ok(blueprint.theaterUnits.some((unit) => unit.unitId === "db_enemySubsurface_ru_667"));
+
+  const generated = await buildGeneratedCampaignFiles({ templateRoot: path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."), spec });
+  const campaignConfig = JSON.parse(generated.campaignFiles["campaign.json"]);
+  const bootstrapState = JSON.parse(generated.campaignFiles["bootstrap_state.json"]);
+  const generatedMissionPath = Object.keys(generated.packageFiles).find((key) => key.endsWith(".mis"));
+  const generatedMission = generated.packageFiles[generatedMissionPath];
+  assert.equal(campaignConfig.force_pool_policy.indexedArchive, "test.core");
+  assert.equal(bootstrapState.world_state.force_pool_policy.pools.enemySubsurface.length, 2);
+  assert.match(generatedMission, /Project 885M Yasen-M/);
+  assert.match(generatedMission, /Project 971M Akula III/);
+  assert.doesNotMatch(generatedMission, /USS Spruance|P-8A Poseidon|Akula Screen/);
+
+  const priorPicture = structuredClone(blueprint.theaterPicture);
+  priorPicture.units.db_enemySubsurface_ru_667.availability = "destroyed";
+  const continuation = buildContinuationScenario({
+    campaignId: "db_pool_test",
+    campaignSeed: "db_pool_test",
+    theaterId: "south_china_sea",
+    year: 2028,
+    playerName: "USS Test",
+    missionIndex: 2,
+    slotNumber: 3,
+    referenceIso: "2028-01-02T00:00:00Z",
+    theaterPicture: priorPicture,
+    forcePoolPolicy
+  });
+  assert.ok(continuation.forces.enemyPrimary.every((unit) => unit.dbid !== 667));
+  assert.equal(continuation.forcePoolPolicy.indexedArchive, "test.core");
+});
+
+test("surface mission scripts emit authored DB pools without legacy fallback forces", () => {
+  const blueprint = buildCampaignBlueprint({
+    title: "Surface DB Pool Test",
+    campaignId: "surface_db_pool_test",
+    campaignSeed: "surface_db_pool_test",
+    theater: "luzon_strait",
+    missionType: "surveillance",
+    year: 2028,
+    scenarioCount: 1,
+    playerName: "USS Test",
+    forcePoolPolicy: {
+      source: "local_mnw_db",
+      indexedArchive: "test.core",
+      pools: {
+        friendlySurface: [],
+        friendlyAir: [],
+        enemySurface: [
+          { dbid: 9001, name: "Authored Lead Destroyer", faction: "CN", role: "surface_combatant", introYear: 2020 },
+          { dbid: 9002, name: "Authored Escort Frigate", faction: "CN", role: "surface_combatant", introYear: 2020 }
+        ],
+        enemySurfaceSupport: [],
+        enemyAir: [],
+        enemySubsurface: []
+      }
+    }
+  });
+  const scenario = blueprint.scenarios[0];
+  const artifacts = buildScenarioPackageArtifacts({ blueprint, scenario });
+  const missionPath = Object.keys(artifacts.files).find((key) => key.endsWith(".mis"));
+  const mission = artifacts.files[missionPath];
+
+  assert.match(mission, /Authored Lead Destroyer/);
+  assert.match(mission, /Authored Escort Frigate/);
+  assert.match(mission, /9001/);
+  assert.match(mission, /9002/);
+  assert.doesNotMatch(mission, /USS Spruance|P-8A Poseidon|PLAN Lead DDG|PLAN Escort FFG|PLAN Z-9 Screen/);
+});
+
+test("experimental surface mission types use bespoke objective scripts", () => {
+  const cases = [
+    {
+      missionType: "spec_ops",
+      scriptPattern: /_mission_family = "spec_ops"[\s\S]*Special Operations Insertion Support Area[\s\S]*_T\.Zone/,
+      objectivePattern: /insertion support area/i
+    },
+    {
+      missionType: "counter_piracy",
+      scriptPattern: /_mission_family = "counter_piracy"[\s\S]*NotifyUponDeath\(interdiction_target_destroyed\)[\s\S]*protected_traffic_lost/,
+      objectivePattern: /protected civilian traffic/i
+    },
+    {
+      missionType: "counter_terror",
+      scriptPattern: /_mission_family = "counter_terror"[\s\S]*NotifyUponDeath\(interdiction_target_destroyed\)[\s\S]*protected_traffic_lost/,
+      objectivePattern: /designated hostile vessel/i
+    }
+  ];
+
+  for (const entry of cases) {
+    const blueprint = buildCampaignBlueprint({
+      title: `${entry.missionType} Test`,
+      campaignId: `${entry.missionType}_test`,
+      theater: "luzon_strait",
+      missionType: entry.missionType,
+      year: 2028,
+      scenarioCount: 1,
+      playerName: "USS Test",
+      experimentalFeatures: { enabled: true, plotSeed: "none" }
+    });
+    const scenario = blueprint.scenarios[0];
+    const artifacts = buildScenarioPackageArtifacts({ blueprint, scenario });
+    const missionPath = Object.keys(artifacts.files).find((key) => key.endsWith(".mis"));
+    assert.match(artifacts.files[missionPath], entry.scriptPattern);
+    assert.match(scenario.objectiveText, entry.objectivePattern);
+    assert.match(blueprint.warnings[0], /bespoke experimental objective script/i);
+  }
 });
 
 test("surveillance snapshot remains stable", async () => {

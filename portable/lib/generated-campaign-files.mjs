@@ -215,7 +215,6 @@ function buildSurfaceMissionScript(blueprint, scenario) {
   const g = scenario.geometry;
   const operationType = operationTypeForScenario(blueprint, scenario);
   const diplomacyLine = diplomacyLineForScenario(scenario);
-  const additionalBarrier = scenario.index >= 1;
   const playerPlatform = resolvePlayerPlatform(blueprint);
   const annotationPoiLines = buildAnnotationPoiList(scenario.tasking?.annotations || []);
   const annotationPoiAttachList = buildAnnotationPoiAttachList(scenario.tasking?.annotations || []);
@@ -236,6 +235,104 @@ function buildSurfaceMissionScript(blueprint, scenario) {
     seedKey: `${scenario.missionId}:surface:merchants`,
     existingPoints: aisMerchantTraffic.map((contact) => contact.point)
   });
+  const friendlySurfaceUnits = scenario.forces?.friendlySurface || [];
+  const friendlyAirUnits = scenario.forces?.friendlyAir || [];
+  const enemySurfaceUnits = [
+    ...(scenario.forces?.enemyPrimary || []),
+    ...(scenario.forces?.enemySecondary || [])
+  ];
+  const enemyAirUnits = scenario.forces?.enemyAir || [];
+  const friendlySurfacePositions = buildDeconflictedPositions({
+    center: g.ddg,
+    count: friendlySurfaceUnits.length,
+    radiusKm: 8,
+    minSpacingKm: 3,
+    seedKey: `${scenario.missionId}:surface:friendly_surface`
+  });
+  const friendlyAirPositions = buildDeconflictedPositions({
+    center: g.p8,
+    count: friendlyAirUnits.length,
+    radiusKm: 12,
+    minSpacingKm: 4,
+    seedKey: `${scenario.missionId}:surface:friendly_air`
+  });
+  const enemySurfacePositions = [g.lead, g.escort, g.barrier, ...buildDeconflictedPositions({
+    center: g.center,
+    count: Math.max(0, enemySurfaceUnits.length - 3),
+    radiusKm: 18,
+    minSpacingKm: 5,
+    seedKey: `${scenario.missionId}:surface:enemy_surface`
+  })];
+  const enemyAirPositions = buildDeconflictedPositions({
+    center: g.helo,
+    count: enemyAirUnits.length,
+    radiusKm: 10,
+    minSpacingKm: 4,
+    seedKey: `${scenario.missionId}:surface:enemy_air`
+  });
+  let friendlyAnchor = "player_spawn_process";
+  const friendlySurfaceBlock = friendlySurfaceUnits.map((unit, index) => {
+    const variable = `friendly_surface_${index}`;
+    const block = `${variable}_props = Element.Props.FromDatabaseID(${factionRuntimeId(unit.faction)}, ${pythonStringLiteral(unit.name)}, ElementCategory.Ship, ${unit.dbid}, ${formatGc(friendlySurfacePositions[index])})
+${variable}_element = Element(${variable}_props).SetElevation(0).SetHeading(310).SetHVU(True)
+${variable}_spawn = _P.Element.Spawn(${friendlyAnchor}, ${variable}_element, ${variable}_element.Position)
+${variable}_plot = _P.Element.Plot(${variable}_spawn, ${variable}_element, Waypoint(friendly_ddg_dest))`;
+    friendlyAnchor = `${variable}_plot`;
+    return block;
+  }).join("\n");
+  const friendlyAirBlock = friendlyAirUnits.map((unit, index) => {
+    const variable = `friendly_air_${index}`;
+    const block = `${variable}_props = Element.Props.FromDatabaseID(${factionRuntimeId(unit.faction)}, ${pythonStringLiteral(unit.name)}, ElementCategory.Aircraft, ${unit.dbid}, ${formatGc(friendlyAirPositions[index])})
+${variable}_element = Element(${variable}_props).SetElevation(5200).SetHeading(255)
+${variable}_spawn = _P.Element.Spawn(${friendlyAnchor}, ${variable}_element, ${variable}_element.Position)
+${variable}_plot = _P.Element.Plot(${variable}_spawn, ${variable}_element, Waypoint(${formatGc(g.datum)}))`;
+    friendlyAnchor = `${variable}_plot`;
+    return block;
+  }).join("\n");
+  let enemyAnchor = "player_spawn_process";
+  const enemySurfaceBlock = enemySurfaceUnits.map((unit, index) => {
+    const variable = `enemy_surface_${index}`;
+    const destination = index === 0 ? "enemy_dest" : formatGc(index === 1 ? g.destination : g.withdrawal);
+    const block = `${variable}_props = Element.Props.FromDatabaseID(${factionRuntimeId(unit.faction)}, ${pythonStringLiteral(unit.name)}, ElementCategory.Ship, ${unit.dbid}, ${formatGc(enemySurfacePositions[index])})
+${variable}_element = Element(${variable}_props).SetElevation(0).SetHeading(${index < 2 ? 150 : 205}).SetHVU(${index < 2 ? "True" : "False"})
+${variable}_spawn = _P.Element.Spawn(${enemyAnchor}, ${variable}_element, ${variable}_element.Position)
+${variable}_plot = _P.Element.Plot(${variable}_spawn, ${variable}_element, Waypoint(${destination}))`;
+    enemyAnchor = `${variable}_plot`;
+    return block;
+  }).join("\n");
+  const enemyAirBlock = enemyAirUnits.map((unit, index) => {
+    const variable = `enemy_air_${index}`;
+    const block = `${variable}_props = Element.Props.FromDatabaseID(${factionRuntimeId(unit.faction)}, ${pythonStringLiteral(unit.name)}, ElementCategory.Aircraft, ${unit.dbid}, ${formatGc(enemyAirPositions[index])})
+${variable}_element = Element(${variable}_props).SetElevation(950).SetHeading(190).SetHVU(True)
+${variable}_spawn = _P.Element.Spawn(${enemyAnchor}, ${variable}_element, ${variable}_element.Position)
+${variable}_plot = _P.Element.Plot(${variable}_spawn, ${variable}_element, Waypoint(${formatGc(g.barrier)}))`;
+    enemyAnchor = `${variable}_plot`;
+    return block;
+  }).join("\n");
+  const supportPoiLine = friendlySurfaceUnits.length
+    ? 'support_poi = PointOfInterest("Support Station", Waypoint(friendly_ddg_dest))'
+    : "";
+  const supportPoiAttachment = friendlySurfaceUnits.length ? ", support_poi" : "";
+  const missionFamily = ["spec_ops", "counter_piracy", "counter_terror"].includes(scenario.missionType)
+    ? scenario.missionType
+    : "surface_shadow";
+  const protectedMerchantExists = aisMerchantTraffic.length + merchantPositions.length > 0;
+  const standardObjectiveBlock = `withdrawal_antenna_trigger = _T.AntennasRaised(True)
+player_element.NotifyOnAntennaRaised(withdrawal_antenna_trigger)
+withdrawal_complete = _P.Objective.Status(withdrawal_antenna_trigger, objectives[0], ObjectiveStatus.Completed)`;
+  const missionObjectiveBlock = scenario.missionType === "spec_ops"
+    ? `insertion_support_zone = _Z.Circular("Special Operations Insertion Support Area", datum_pos, 5000)
+insertion_support_props = _T.Zone.Props(_T.ZoneEvent.IsInside, _T.AnyAll.Any)
+insertion_support_trigger = _T.Zone(insertion_support_zone, [player_element], insertion_support_props)
+insertion_support_complete = _P.Objective.Status(insertion_support_trigger, objectives[0], ObjectiveStatus.Completed)`
+    : ["counter_piracy", "counter_terror"].includes(scenario.missionType) && enemySurfaceUnits.length
+      ? `interdiction_target_destroyed = _T.Manual()
+enemy_surface_0_element.NotifyUponDeath(interdiction_target_destroyed)
+interdiction_complete = _P.Objective.Status(interdiction_target_destroyed, objectives[0], ObjectiveStatus.Completed)
+${protectedMerchantExists ? `protected_traffic_lost = _T.Manual()
+cargo_element.NotifyUponDeath(protected_traffic_lost)
+interdiction_failed = _P.Objective.Status(protected_traffic_lost, objectives[0], ObjectiveStatus.Failed)` : ""}`
+      : standardObjectiveBlock;
   const biologicBlock = biologicPositions.map((point, idx) => `bio_props = Element.Props.FromDatabaseID(civ_fact, "Biologic ${idx}", ElementCategory.Biologic, 1, ${formatGc(point)})
 bio_element = Element(bio_props).SetElevation(${-60 - (idx * 40)}).SetHeading(random.randrange(0, 359))
 _P.Element.Spawn(player_spawn_process, bio_element, bio_element.Position)`).join("\n");
@@ -254,6 +351,7 @@ _debug_mode = False
 _version = "0.0.0"
 _msv = "0.113.1"
 _author = "MNW Desktop Wizard"
+_mission_family = "${missionFamily}"
 _operation_type = OperationType.${operationType}
 _date_time = "${scenario.startMnw}"
 _weather = EnvTools.GetRandomWeatherParameters()
@@ -263,11 +361,6 @@ us_fact = 236
 ch_fact = 46
 
 virginia_id = ${playerPlatform.dbid}
-arleigh_id = 294
-p8_id = 2705
-t054a_id = 1965
-t055_id = 3883
-harbin_id = 60
 
 cargo_ids = [
 99992101, 99992105, 99992106, 99992107, 99992108,
@@ -333,10 +426,10 @@ messageModel = MessageModel(
     _messages["mission_objectives"]
 )
 datum_poi = PointOfInterest("Enemy Datum", Waypoint(datum_pos))
-support_poi = PointOfInterest("Support Station", Waypoint(friendly_ddg_dest))
+${supportPoiLine}
 withdrawal_poi = PointOfInterest("Withdrawal Box", Waypoint(withdrawal_poi_pos))
 ${annotationPoiLines}
-messageModel.AttachPOIs([datum_poi, support_poi, withdrawal_poi${annotationPoiAttachList}])
+messageModel.AttachPOIs([datum_poi${supportPoiAttachment}, withdrawal_poi${annotationPoiAttachList}])
 message_process = _P.Message(player_spawn_process, messageModel)
 
 sat_spawn_zone = _Z.Circular("Sat Spawn Zone", player_spawn_pos, 10000)
@@ -346,15 +439,9 @@ sat_spawn_process = _P.Element.Spawn(player_spawn_process, sat_element, sat_elem
 transmission = Transmission.Create(EMFTools.Protocol.Link_16, _date_time, 60, 10, 500, EMFTools.MicroWaveBands.UHF)
 transmission_process = _P.Element.Radio(sat_spawn_process, sat_element, transmission)
 
-friendly_ddg_props = Element.Props.FromDatabaseID(us_fact, "USS Spruance", ElementCategory.Ship, arleigh_id, friendly_ddg_pos)
-friendly_ddg = Element(friendly_ddg_props).SetElevation(0).SetHeading(310).SetHVU(True)
-friendly_ddg_spawn = _P.Element.Spawn(player_spawn_process, friendly_ddg, friendly_ddg.Position)
-friendly_ddg_plot = _P.Element.Plot(friendly_ddg_spawn, friendly_ddg, Waypoint(friendly_ddg_dest))
+${friendlySurfaceBlock}
 
-p8_props = Element.Props.FromDatabaseID(us_fact, "P-8A Poseidon", ElementCategory.Aircraft, p8_id, p8_spawn_pos)
-p8_element = Element(p8_props).SetElevation(5200).SetHeading(255)
-p8_spawn = _P.Element.Spawn(friendly_ddg_plot, p8_element, p8_element.Position)
-p8_plot = _P.Element.Plot(p8_spawn, p8_element, Waypoint(${formatGc(g.datum)}))
+${friendlyAirBlock}
 
 ${biologicBlock}
 
@@ -362,30 +449,11 @@ ${aisMerchantBlock}
 
 ${merchantBlock}
 
-t055_props = Element.Props.FromDatabaseID(ch_fact, "PLAN Lead DDG", ElementCategory.Ship, t055_id, lead_pos)
-t055_element = Element(t055_props).SetElevation(0).SetHeading(150).SetHVU(True)
-t055_spawn = _P.Element.Spawn(player_spawn_process, t055_element, t055_element.Position)
-t055_plot = _P.Element.Plot(t055_spawn, t055_element, Waypoint(enemy_dest))
+${enemySurfaceBlock}
 
-t054a_props = Element.Props.FromDatabaseID(ch_fact, "PLAN Escort FFG", ElementCategory.Ship, t054a_id, escort_pos)
-t054a_element = Element(t054a_props).SetElevation(0).SetHeading(150).SetHVU(True)
-t054a_spawn = _P.Element.Spawn(t055_plot, t054a_element, t054a_element.Position)
-t054a_plot = _P.Element.Plot(t054a_spawn, t054a_element, Waypoint(${formatGc(g.destination)}))
+${enemyAirBlock}
 
-${additionalBarrier ? `barrier_props = Element.Props.FromDatabaseID(ch_fact, "PLAN Barrier FFG", ElementCategory.Ship, t054a_id, barrier_pos)
-barrier_element = Element(barrier_props).SetElevation(0).SetHeading(205)
-barrier_spawn = _P.Element.Spawn(t054a_plot, barrier_element, barrier_element.Position)
-barrier_plot = _P.Element.Plot(barrier_spawn, barrier_element, Waypoint(${formatGc(g.withdrawal)}))
-` : `barrier_plot = t054a_plot
-`}
-harbin_props = Element.Props.FromDatabaseID(ch_fact, "PLAN Z-9 Screen", ElementCategory.Aircraft, harbin_id, helo_patrol_pos)
-harbin_element = Element(harbin_props).SetElevation(950).SetHeading(190).SetHVU(True)
-harbin_spawn = _P.Element.Spawn(barrier_plot, harbin_element, harbin_element.Position)
-harbin_plot = _P.Element.Plot(harbin_spawn, harbin_element, Waypoint(${formatGc(g.barrier)}))
-
-withdrawal_antenna_trigger = _T.AntennasRaised(True)
-player_element.NotifyOnAntennaRaised(withdrawal_antenna_trigger)
-withdrawal_complete = _P.Objective.Status(withdrawal_antenna_trigger, objectives[0], ObjectiveStatus.Completed)
+${missionObjectiveBlock}
 
 player_death_trigger = _T.Manual()
 player_nop_trigger = _T.NonOperational()
@@ -444,16 +512,8 @@ function buildSubHuntMissionScript(blueprint, scenario) {
     seedKey: `${scenario.missionId}:subhunt:merchants`,
     existingPoints: aisMerchantTraffic.map((contact) => contact.point)
   });
-  const friendlySurface = scenario.forces?.friendlySurface?.[0] || {
-    name: "USS Spruance",
-    dbid: 294,
-    faction: "US"
-  };
-  const friendlyAir = scenario.forces?.friendlyAir?.[0] || {
-    name: "P-8A Poseidon",
-    dbid: 2705,
-    faction: "US"
-  };
+  const friendlySurface = scenario.forces?.friendlySurface?.[0] || null;
+  const friendlyAir = scenario.forces?.friendlyAir?.[0] || null;
   const primaryTarget = scenario.forces?.enemyPrimary?.find((unit) => unit.notes?.role === "target")
     || scenario.forces?.enemyPrimary?.[0]
     || {
@@ -461,13 +521,9 @@ function buildSubHuntMissionScript(blueprint, scenario) {
       dbid: 667,
       faction: "RU"
     };
-  const escortUnit = scenario.forces?.enemyPrimary?.find((unit) => unit.unitId !== primaryTarget.unitId)
-    || scenario.forces?.enemyPrimary?.find((unit) => unit.notes?.role === "screen")
-    || {
-      name: "Akula Screen",
-      dbid: 34,
-      faction: "RU"
-    };
+  const escortUnit = scenario.forces?.enemyPrimary?.find((unit) => unit.notes?.role === "screen")
+    || scenario.forces?.enemyPrimary?.find((unit) => unit.unitId !== primaryTarget.unitId)
+    || null;
   const enemySupportSurface = scenario.forces?.enemySurfaceSupport || [];
   const enemySupportAir = scenario.forces?.enemyAir || [];
   const supportFaction = enemySupportSurface[0]?.faction || enemySupportAir[0]?.faction || "RU";
@@ -486,18 +542,42 @@ function buildSubHuntMissionScript(blueprint, scenario) {
     minSpacingKm: 4,
     seedKey: `${scenario.missionId}:subhunt:support_air`
   });
+  const friendlySurfaceBlock = friendlySurface
+    ? `ddg_props = Element.Props.FromDatabaseID(${factionRuntimeId(friendlySurface.faction)}, ${pythonStringLiteral(friendlySurface.name)}, ElementCategory.Ship, ${friendlySurface.dbid}, ddg_spawn_pos)
+ddg_element = Element(ddg_props).SetElevation(0).SetHeading(45).SetHVU(True)
+ddg_spawn = _P.Element.Spawn(player_spawn_process, ddg_element, ddg_element.Position)
+ddg_plot = _P.Element.Plot(ddg_spawn, ddg_element, Waypoint(ddg_screen_pos))`
+    : "";
+  const friendlyAirAnchor = friendlySurface ? "ddg_plot" : "player_spawn_process";
+  const friendlyAirBlock = friendlyAir
+    ? `p8_props = Element.Props.FromDatabaseID(${factionRuntimeId(friendlyAir.faction)}, ${pythonStringLiteral(friendlyAir.name)}, ElementCategory.Aircraft, ${friendlyAir.dbid}, p8_spawn_pos)
+p8_element = Element(p8_props).SetElevation(5000).SetHeading(220)
+p8_spawn = _P.Element.Spawn(${friendlyAirAnchor}, p8_element, p8_element.Position)`
+    : "";
+  const ambientSpawnAnchor = friendlyAir ? "p8_spawn" : friendlyAirAnchor;
   const biologicBlock = biologicPositions.map((point, idx) => `bio_props = Element.Props.FromDatabaseID(civ_fact, "Biologic %s" % ${idx}, ElementCategory.Biologic, 1, ${formatGc(point)})
 bio_element = Element(bio_props).SetElevation(${-60 - (idx * 35)}).SetHeading(random.randrange(0, 359))
-_P.Element.Spawn(p8_spawn, bio_element, bio_element.Position)`).join("\n");
+_P.Element.Spawn(${ambientSpawnAnchor}, bio_element, bio_element.Position)`).join("\n");
   const aisMerchantBlock = aisMerchantTraffic.map((contact, idx) => `cargo_props = Element.Props.FromDatabaseID(civ_fact, "${String(contact.name || `AIS Merchant ${idx + 1}`).replaceAll("\"", "")}", ElementCategory.Ship, ${pickGenericCargoDbid(contact.mmsi || contact.id || `${scenario.missionId}:ais:${idx}`)}, ${formatGc(contact.point)})
 cargo_element = Element(cargo_props).SetHeading(random.randrange(200, 280))
-_P.Element.Spawn(p8_spawn, cargo_element, cargo_element.Position)`).join("\n");
+_P.Element.Spawn(${ambientSpawnAnchor}, cargo_element, cargo_element.Position)`).join("\n");
   const merchantBlock = merchantPositions.map((point, idx) => `cargo_props = Element.Props.FromDatabaseID(civ_fact, "Merchant %s" % (${aisMerchantTraffic.length + idx} + 1), ElementCategory.Ship, _get_random_cargo(), ${formatGc(point)})
 cargo_element = Element(cargo_props).SetHeading(random.randrange(200, 280))
-_P.Element.Spawn(p8_spawn, cargo_element, cargo_element.Position)`).join("\n");
+_P.Element.Spawn(${ambientSpawnAnchor}, cargo_element, cargo_element.Position)`).join("\n");
+  const escortBlock = escortUnit
+    ? `escort_spawn_zone = _Z.Circular("Escort Spawn Zone", escort_spawn_pos, 10000)
+escort_props = Element.Props.FromDatabaseID(${factionRuntimeId(escortUnit.faction)}, ${pythonStringLiteral(escortUnit.name)}, ElementCategory.Submarine, ${escortUnit.dbid}, escort_spawn_pos)
+escort_element = Element(escort_props).SetElevation(${escortDepthFeet}).SetHeading(245).SetHVU(True)
+escort_spawn = _P.Element.Spawn(yasen_spawn, escort_element, escort_element.Position)
+escort_dive = _P.Element.Dive(escort_spawn, escort_element)
+
+yasen_plot = _P.Element.Plot(escort_dive, yasen_element, Waypoint(egress_pos))
+escort_plot = _P.Element.Plot(yasen_plot, escort_element, Waypoint(egress_pos))`
+    : "yasen_plot = _P.Element.Plot(yasen_dive, yasen_element, Waypoint(egress_pos))";
+  const enemyPlotAnchor = escortUnit ? "escort_plot" : "yasen_plot";
   const supportGroupBlock = enemySupportSurface.length || enemySupportAir.length
     ? `
-support_plot_anchor = escort_plot
+support_plot_anchor = ${enemyPlotAnchor}
 ${enemySupportSurface.map((unit, index) => {
   const variable = `support_surface_${index}`;
   const spawnAnchor = index === 0 ? "support_plot_anchor" : `support_surface_${index - 1}_plot`;
@@ -537,10 +617,7 @@ rus_fact = 183
 ch_fact = 46
 
 virginia_id = ${playerPlatform.dbid}
-arleigh_id = 294
-p8_id = 2705
 yasen_id = ${primaryTarget.dbid}
-escort_id = ${escortUnit.dbid}
 
 cargo_ids = [
 99992101, 99992105, 99992106, 99992107, 99992108,
@@ -619,14 +696,9 @@ sat_spawn_process = _P.Element.Spawn(player_spawn_process, sat_element, sat_elem
 transmission = Transmission.Create(EMFTools.Protocol.Link_16, _date_time, 60, 10, 500, EMFTools.MicroWaveBands.UHF)
 transmission_process = _P.Element.Radio(sat_spawn_process, sat_element, transmission)
 
-ddg_props = Element.Props.FromDatabaseID(${factionRuntimeId(friendlySurface.faction)}, "${friendlySurface.name}", ElementCategory.Ship, arleigh_id if ${friendlySurface.dbid} == 294 else ${friendlySurface.dbid}, ddg_spawn_pos)
-ddg_element = Element(ddg_props).SetElevation(0).SetHeading(45).SetHVU(True)
-ddg_spawn = _P.Element.Spawn(player_spawn_process, ddg_element, ddg_element.Position)
-ddg_plot = _P.Element.Plot(ddg_spawn, ddg_element, Waypoint(ddg_screen_pos))
+${friendlySurfaceBlock}
 
-p8_props = Element.Props.FromDatabaseID(${factionRuntimeId(friendlyAir.faction)}, "${friendlyAir.name}", ElementCategory.Aircraft, p8_id if ${friendlyAir.dbid} == 2705 else ${friendlyAir.dbid}, p8_spawn_pos)
-p8_element = Element(p8_props).SetElevation(5000).SetHeading(220)
-p8_spawn = _P.Element.Spawn(ddg_plot, p8_element, p8_element.Position)
+${friendlyAirBlock}
 
 ${biologicBlock}
 
@@ -635,19 +707,12 @@ ${aisMerchantBlock}
 ${merchantBlock}
 
 yasen_spawn_zone = _Z.Circular("Yasen Spawn Zone", yasen_spawn_pos, 12000)
-yasen_props = Element.Props.FromDatabaseID(${factionRuntimeId(primaryTarget.faction)}, "${primaryTarget.name}", ElementCategory.Submarine, yasen_id, yasen_spawn_pos)
+yasen_props = Element.Props.FromDatabaseID(${factionRuntimeId(primaryTarget.faction)}, ${pythonStringLiteral(primaryTarget.name)}, ElementCategory.Submarine, yasen_id, yasen_spawn_pos)
 yasen_element = Element(yasen_props).SetElevation(${targetDepthFeet}).SetHeading(245)
-yasen_spawn = _P.Element.Spawn(p8_spawn, yasen_element, yasen_element.Position)
+yasen_spawn = _P.Element.Spawn(${ambientSpawnAnchor}, yasen_element, yasen_element.Position)
 yasen_dive = _P.Element.Dive(yasen_spawn, yasen_element)
 
-escort_spawn_zone = _Z.Circular("Escort Spawn Zone", escort_spawn_pos, 10000)
-escort_props = Element.Props.FromDatabaseID(${factionRuntimeId(escortUnit.faction)}, "${escortUnit.name}", ElementCategory.Submarine, escort_id, escort_spawn_pos)
-escort_element = Element(escort_props).SetElevation(${escortDepthFeet}).SetHeading(245).SetHVU(True)
-escort_spawn = _P.Element.Spawn(yasen_spawn, escort_element, escort_element.Position)
-escort_dive = _P.Element.Dive(escort_spawn, escort_element)
-
-yasen_plot = _P.Element.Plot(escort_dive, yasen_element, Waypoint(egress_pos))
-escort_plot = _P.Element.Plot(yasen_plot, escort_element, Waypoint(egress_pos))
+${escortBlock}
 
 ${supportGroupBlock}
 
@@ -796,6 +861,7 @@ export async function buildGeneratedCampaignFiles({ templateRoot, spec }) {
     description: blueprint.description,
     active_persistence_system: "baseline_modular",
     authoring_constraints: blueprint.authoringConstraints,
+    force_pool_policy: blueprint.forcePoolPolicy || null,
     experimental_features: blueprint.experimentalFeatures || { enabled: false, plotSeed: "none", plotSeedLabel: "None" },
     campaign_climate: blueprint.campaignClimate || blueprint.tone,
     mission_type: blueprint.missionType || null,
@@ -860,6 +926,7 @@ export async function buildGeneratedCampaignFiles({ templateRoot, spec }) {
       route_family: blueprint.family,
       theater_picture: blueprint.theaterPicture,
       authoring_constraints: blueprint.authoringConstraints,
+      force_pool_policy: blueprint.forcePoolPolicy || null,
       experimental_features: blueprint.experimentalFeatures || { enabled: false, plotSeed: "none", plotSeedLabel: "None" }
     },
     module_state: {

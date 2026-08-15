@@ -22,8 +22,10 @@ Completed in 0.1.5:
 Remaining release/content tracks:
 
 - [ ] Validate install and automatic update against a real tagged GitHub prerelease.
-- [ ] Expand local DB-informed selection beyond Virginia hulls into editable friendly, enemy, and support force pools.
-- [ ] Implement bespoke mission-script families for currently experimental content.
+- [x] Expand local DB-informed selection beyond Virginia hulls into editable friendly, enemy, and support force pools.
+- [x] Implement bespoke mission-objective scripts for Spec Ops, Counter-Piracy, and Counter-Terror experimental content; keep Land Attack gated until shore-target and weapon scripting are supportable.
+
+Local force-pool selection now indexes the player's installed `.core` archive at runtime, normalizes selectable surface, subsurface, air, and merchant records, filters them by theater side and campaign year, and exposes editable pools in Advanced Authoring. Selected pools drive both mission families, persist into campaign/bootstrap/continuation state, and honor permanent unit losses. No extracted MNW database catalog is bundled with the installer.
 
 This is the agreed line in the sand for the first persistence milestone.
 
@@ -200,7 +202,7 @@ Acceptance checks:
 
 Status:
 - Implemented with support levels (`supported`, `partial`, `future`) and fallback warnings.
-- Current mission-type biasing is meaningful but still lightweight compared to a future fully bespoke mission-family system.
+- Stable mission-type biasing remains lightweight. Experimental Spec Ops, Counter-Piracy, and Counter-Terror now have distinct completion/failure scripting and task annotations; Land Attack remains a future placeholder.
 
 ### 7. Strengthen generated orders and player expectation-setting
 
@@ -253,7 +255,7 @@ Notes:
 
 Status:
 - Implemented as an experimental-content track with an explicit UI toggle and curated plot-seed catalog.
-- Experimental mission families now remain separate from the stable supported set and surface warnings instead of silent weak-fit generation.
+- Experimental mission families remain separate from the stable supported set and surface warnings instead of silent weak-fit generation. Spec Ops, Counter-Piracy, and Counter-Terror use bespoke objective scripts when enabled.
 - Land attack is now called out as not technically supported by the current generator or MNW mission-script pipeline and continues to fall back safely.
 
 ## Release 0.1.4 Backlog
