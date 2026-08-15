@@ -443,6 +443,41 @@ ipcMain.handle("mnw:saveManualResult", async (_event, payload) => {
   return ingestResultPayloadForDesktop(getDesktopContext(payload));
 });
 
+ipcMain.handle("mnw:loadCampaignControls", async (_event, payload) => {
+  const { loadCampaignControlsForDesktop } = await loadPortableModule("portable/lib/desktop-api.mjs");
+  return loadCampaignControlsForDesktop(getDesktopContext(payload));
+});
+
+ipcMain.handle("mnw:saveModuleConfig", async (_event, payload) => {
+  const { saveModuleConfigForDesktop } = await loadPortableModule("portable/lib/desktop-api.mjs");
+  return saveModuleConfigForDesktop(getDesktopContext(payload));
+});
+
+ipcMain.handle("mnw:previewMissionResult", async (_event, payload) => {
+  const { previewMissionResultForDesktop } = await loadPortableModule("portable/lib/desktop-api.mjs");
+  return previewMissionResultForDesktop(getDesktopContext(payload));
+});
+
+ipcMain.handle("mnw:saveCampaignState", async (_event, payload) => {
+  const { saveCampaignStateForDesktop } = await loadPortableModule("portable/lib/desktop-api.mjs");
+  return saveCampaignStateForDesktop(getDesktopContext(payload));
+});
+
+ipcMain.handle("mnw:restoreCampaignState", async (_event, payload) => {
+  const { restoreCampaignStateForDesktop } = await loadPortableModule("portable/lib/desktop-api.mjs");
+  return restoreCampaignStateForDesktop(getDesktopContext(payload));
+});
+
+ipcMain.handle("mnw:exportSupportBundle", async (_event, payload) => {
+  const { exportSupportBundleForDesktop } = await loadPortableModule("portable/lib/desktop-api.mjs");
+  return exportSupportBundleForDesktop(getDesktopContext(payload));
+});
+
+ipcMain.handle("mnw:loadLocalPlatformCatalog", async () => {
+  const { loadLocalPlatformCatalogForDesktop } = await loadPortableModule("portable/lib/desktop-api.mjs");
+  return loadLocalPlatformCatalogForDesktop(getDesktopContext());
+});
+
 ipcMain.handle("mnw:generateCampaign", async (_event, payload) => {
   const { generateCampaignForDesktop } = await loadPortableModule("portable/lib/desktop-api.mjs");
   return generateCampaignForDesktop(getDesktopContext(payload));
@@ -462,6 +497,19 @@ ipcMain.handle("mnw:downloadUpdate", async () => downloadUpdate());
 ipcMain.handle("mnw:installUpdate", async () => installUpdate());
 
 app.whenReady().then(async () => {
+  if (process.argv.includes("--smoke-test")) {
+    try {
+      const desktopModule = await loadPortableModule("portable/lib/desktop-api.mjs");
+      if (typeof desktopModule.getDesktopInfo !== "function" || typeof desktopModule.saveCampaignStateForDesktop !== "function") {
+        throw new Error("Packaged desktop API exports are incomplete.");
+      }
+      app.exit(0);
+    } catch (error) {
+      console.error(error);
+      app.exit(1);
+    }
+    return;
+  }
   const settings = await loadDesktopSettings();
   await configureUpdater(settings);
   await createWindow();

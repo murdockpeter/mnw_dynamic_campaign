@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from engine.campaign_model import CampaignState, MissionRecord
@@ -52,6 +53,13 @@ class CampaignRuntime:
         return state
 
     def advance_time(self, state: CampaignState, hours: float) -> CampaignState:
+        if hours and state.campaign_clock:
+            try:
+                parsed = datetime.fromisoformat(state.campaign_clock.replace("Z", "+00:00"))
+                advanced = parsed + timedelta(hours=hours)
+                state.campaign_clock = advanced.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+            except ValueError:
+                pass
         for name, module in self.modules.items():
             module.advance_time(state, hours, self.config.module_config.get(name, {}))
         return state

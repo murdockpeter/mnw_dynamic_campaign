@@ -2,9 +2,13 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 import { ensureDir } from "./fs-helpers.mjs";
+import { writeJsonSafely } from "./safe-write.mjs";
+
+export const SETTINGS_SCHEMA_VERSION = 2;
 
 function defaultSettings() {
   return {
+    schemaVersion: SETTINGS_SCHEMA_VERSION,
     gameCampaignPath: "",
     userCampaignPath: "",
     preferredCampaignId: "silent_meridian",
@@ -20,10 +24,10 @@ function defaultSettings() {
       latestSample: null
     },
     updates: {
-      provider: "generic",
+      provider: "github",
       feedUrl: "",
-      githubOwner: "",
-      githubRepo: "",
+      githubOwner: "murdockpeter",
+      githubRepo: "mnw_dynamic_campaign",
       autoCheckOnLaunch: true
     },
     firstLaunchComplete: false
@@ -41,7 +45,8 @@ function mergeSettings(payload = {}) {
     },
     updates: {
       ...defaults.updates,
-      ...(payload.updates || {})
+      ...(payload.updates || {}),
+      provider: payload.updates?.provider || (payload.updates?.feedUrl ? "generic" : defaults.updates.provider)
     }
   };
 }
@@ -58,7 +63,8 @@ export async function loadSettings(settingsPath) {
 
 export async function saveSettings(settingsPath, nextSettings) {
   const merged = mergeSettings(nextSettings);
+  merged.schemaVersion = SETTINGS_SCHEMA_VERSION;
   await ensureDir(path.dirname(settingsPath));
-  await fs.writeFile(settingsPath, `${JSON.stringify(merged, null, 2)}\n`, "utf8");
+  await writeJsonSafely(settingsPath, merged);
   return merged;
 }

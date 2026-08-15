@@ -1,5 +1,30 @@
 # Persistence TODO
 
+## Current Roadmap Status (0.1.5)
+
+The original persistence milestone, beta-feedback backlog, and 0.1.4 feature backlog are implemented. The unchecked 0.1.4 task detail below is retained as historical acceptance criteria; the code and automated tests are the current source of truth.
+
+Completed in 0.1.5:
+
+- [x] Add schema validation for mission results, campaign state, and module configuration.
+- [x] Add atomic JSON writes, timestamped backups, and changed-on-disk conflict protection.
+- [x] Add guarded state-backup discovery and restore from Campaign Tracking.
+- [x] Add `.kyt` deployment preflight that blocks duplicate campaign and mission identities.
+- [x] Add a discoverable persistence-module registry and campaign module controls.
+- [x] Make the portable runtime honor disabled damage and ammunition modules.
+- [x] Add advanced result events, explicit time advancement, and pre-save state-delta preview.
+- [x] Add a guarded structured state editor for mission, clock, world state, unit state, ammunition, and theater assignment.
+- [x] Add an append-only operator audit log.
+- [x] Add redacted support-bundle export with settings, workflow, runtime, and Player.log tail.
+- [x] Add settings schema versioning and upgrade-safe default migration.
+- [x] Add locally indexed MNW DB hull suggestions to player-platform authoring.
+
+Remaining release/content tracks:
+
+- [ ] Validate install and automatic update against a real tagged GitHub prerelease.
+- [ ] Expand local DB-informed selection beyond Virginia hulls into editable friendly, enemy, and support force pools.
+- [ ] Implement bespoke mission-script families for currently experimental content.
+
 This is the agreed line in the sand for the first persistence milestone.
 
 Do not expand scope beyond these items until all are implemented and tested working properly.

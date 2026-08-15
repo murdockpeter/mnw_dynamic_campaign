@@ -3,6 +3,8 @@ import path from "node:path";
 
 import { readJson, writeJson } from "./fs-helpers.mjs";
 import { findTheaterTemplateByName } from "../../shared/campaign-generator.mjs";
+import { listModules, normalizeModulesConfig } from "./module-registry.mjs";
+import { jsonFingerprint, validateCampaignState, validateMissionResult, writeJsonSafely } from "./safe-write.mjs";
 
 async function pathExists(targetPath) {
   try {
@@ -13,7 +15,8 @@ async function pathExists(targetPath) {
   }
 }
 
-function initializeModules(state, modulesConfig) {
+export function initializeModules(state, modulesConfig) {
+  modulesConfig = normalizeModulesConfig(modulesConfig);
   state.enabled_modules = [...modulesConfig.enabled_modules];
   const moduleConfig = modulesConfig.module_config || {};
   state.module_state = state.module_state || {};
@@ -127,7 +130,10 @@ function buildTheaterDebugPayload(campaignConfig, state) {
   };
 }
 
-function ingestResult(state, result, modulesConfig) {
+export function ingestResult(state, result, modulesConfig) {
+  modulesConfig = normalizeModulesConfig(modulesConfig);
+  const damageEnabled = modulesConfig.enabled_modules.includes("damage");
+  const ammoEnabled = modulesConfig.enabled_modules.includes("ammo");
   const allowNegative = Boolean(modulesConfig.module_config?.ammo?.allow_negative);
   const repairRate = Number(modulesConfig.module_config?.damage?.repair_rate_per_day ?? 0.08);
 
@@ -137,19 +143,19 @@ function ingestResult(state, result, modulesConfig) {
     }
 
     const unit = state.order_of_battle[event.unit_id];
-    if (event.event_type === "weapon_expended" && event.weapon_key) {
+    if (ammoEnabled && event.event_type === "weapon_expended" && event.weapon_key) {
       const current = Number(unit.ammo?.[event.weapon_key] ?? 0);
       const nextValue = current - Number(event.amount || 0);
       unit.ammo[event.weapon_key] = allowNegative ? nextValue : Math.max(0, nextValue);
     }
 
-    if (event.event_type === "unit_damaged") {
+    if (damageEnabled && event.event_type === "unit_damaged") {
       const damage = Math.max(0, Math.min(1, Number(unit.damage || 0) + Number(event.amount || 0)));
       unit.damage = damage;
       unit.readiness = Math.max(0, 1 - damage);
     }
 
-    if (event.event_type === "unit_destroyed") {
+    if (damageEnabled && event.event_type === "unit_destroyed") {
       unit.destroyed = true;
       unit.damage = 1.0;
       unit.readiness = 0.0;
@@ -165,15 +171,23 @@ function ingestResult(state, result, modulesConfig) {
     notes: { ...(result.metadata || {}) }
   });
 
-  state.module_state.damage = state.module_state.damage || {};
-  state.module_state.damage.repair_rate_per_day = repairRate;
+  if (damageEnabled) {
+    state.module_state.damage = state.module_state.damage || {};
+    state.module_state.damage.repair_rate_per_day = repairRate;
+  }
 
   return state;
 }
 
-function advanceTime(state, hours, modulesConfig) {
+export function advanceTime(state, hours, modulesConfig) {
+  modulesConfig = normalizeModulesConfig(modulesConfig);
+  const elapsedHours = Number(hours || 0);
+  if (elapsedHours !== 0 && state.campaign_clock && Number.isFinite(Date.parse(state.campaign_clock)) && Number.isFinite(elapsedHours)) {
+    state.campaign_clock = new Date(Date.parse(state.campaign_clock) + elapsedHours * 60 * 60 * 1000).toISOString();
+  }
+  if (!modulesConfig.enabled_modules.includes("damage")) return state;
   const repairRate = Number(modulesConfig.module_config?.damage?.repair_rate_per_day ?? 0.08);
-  const repairDelta = repairRate * (Number(hours || 0) / 24.0);
+  const repairDelta = repairRate * (elapsedHours / 24.0);
   for (const unit of Object.values(state.order_of_battle || {})) {
     if (unit.destroyed || Number(unit.damage || 0) <= 0) {
       continue;
@@ -184,14 +198,63 @@ function advanceTime(state, hours, modulesConfig) {
   return state;
 }
 
-async function ingestMissionResultRecord({ repoRoot, campaignId, result, stateDir, advanceHours = 24.0 }) {
+function summarizeStateDelta(before, after) {
+  const units = [];
+  const unitIds = new Set([...Object.keys(before.order_of_battle || {}), ...Object.keys(after.order_of_battle || {})]);
+  for (const unitId of unitIds) {
+    const prior = before.order_of_battle?.[unitId] || {};
+    const next = after.order_of_battle?.[unitId] || {};
+    const changes = {};
+    for (const key of ["damage", "readiness", "destroyed"]) {
+      if (prior[key] !== next[key]) changes[key] = { before: prior[key], after: next[key] };
+    }
+    const ammoKeys = new Set([...Object.keys(prior.ammo || {}), ...Object.keys(next.ammo || {})]);
+    const ammo = {};
+    for (const key of ammoKeys) {
+      if (prior.ammo?.[key] !== next.ammo?.[key]) ammo[key] = { before: prior.ammo?.[key], after: next.ammo?.[key] };
+    }
+    if (Object.keys(ammo).length) changes.ammo = ammo;
+    if (Object.keys(changes).length) units.push({ unitId, name: next.name || prior.name || unitId, changes });
+  }
+  return {
+    units,
+    missionHistory: {
+      before: before.mission_history?.length || 0,
+      after: after.mission_history?.length || 0
+    },
+    campaignClock: { before: before.campaign_clock || null, after: after.campaign_clock || null }
+  };
+}
+
+export function previewMissionResult({ state, result, modulesConfig, advanceHours = 24 }) {
+  const errors = validateMissionResult(result);
+  if (errors.length) return { valid: false, errors, delta: null, nextState: null };
+  const before = structuredClone(state);
+  const nextState = structuredClone(state);
+  initializeModules(nextState, modulesConfig);
+  ingestResult(nextState, result, modulesConfig);
+  advanceTime(nextState, advanceHours, modulesConfig);
+  return { valid: true, errors: [], delta: summarizeStateDelta(before, nextState), nextState };
+}
+
+async function ingestMissionResultRecord({ repoRoot, campaignId, result, stateDir, advanceHours = 24.0, expectedStateFingerprint = null }) {
   const campaignDir = path.join(repoRoot, "campaigns", campaignId);
   let packageDir = path.join(repoRoot, "src", "packages", campaignId);
   if (!(await pathExists(packageDir))) {
     packageDir = path.join(repoRoot, "src", "package");
   }
-  const modulesConfig = await readJson(path.join(campaignDir, "modules.json"));
+  const modulesConfig = normalizeModulesConfig(await readJson(path.join(campaignDir, "modules.json")));
   const { state, statePath } = await loadOrBootstrapState({ repoRoot, campaignId, stateDir, campaignDir });
+  const loadedStateFingerprint = jsonFingerprint(state);
+  if (expectedStateFingerprint && loadedStateFingerprint !== expectedStateFingerprint) {
+    const error = new Error("Campaign state changed after the result preview. Refresh Campaign Tracking before saving.");
+    error.code = "WRITE_CONFLICT";
+    throw error;
+  }
+  const resultErrors = validateMissionResult(result);
+  if (resultErrors.length) throw new Error(`Invalid mission result: ${resultErrors.join(" ")}`);
+  const stateErrors = validateCampaignState(state);
+  if (stateErrors.length) throw new Error(`Invalid campaign state: ${stateErrors.join(" ")}`);
   initializeModules(state, modulesConfig);
   ingestResult(state, result, modulesConfig);
   advanceTime(state, advanceHours, modulesConfig);
@@ -202,7 +265,7 @@ async function ingestMissionResultRecord({ repoRoot, campaignId, result, stateDi
     : result.mission_id;
   state.current_mission_id = nextMissionId;
 
-  await writeJson(statePath, state);
+  const stateWrite = await writeJsonSafely(statePath, state, { expectedFingerprint: loadedStateFingerprint });
 
   const effectiveStateDir = stateDir || path.join(repoRoot, "state");
   const historyPath = path.join(effectiveStateDir, campaignId, "mission_results.json");
@@ -213,7 +276,7 @@ async function ingestMissionResultRecord({ repoRoot, campaignId, result, stateDi
     history = [];
   }
   history.push(result);
-  await writeJson(historyPath, history);
+  const historyWrite = await writeJsonSafely(historyPath, history);
 
   return {
     campaign_id: campaignId,
@@ -222,7 +285,9 @@ async function ingestMissionResultRecord({ repoRoot, campaignId, result, stateDi
     outcome: result.outcome,
     advance_hours: advanceHours,
     state_path: statePath,
-    results_path: historyPath
+    results_path: historyPath,
+    state_backup_path: stateWrite.backupPath,
+    results_backup_path: historyWrite.backupPath
   };
 }
 
@@ -330,8 +395,8 @@ export async function exportRuntimePayload({ repoRoot, campaignId, stateDir }) {
     packageDir = path.join(repoRoot, "src", "package");
   }
   const campaignConfig = await readJson(path.join(campaignDir, "campaign.json"));
-  const modulesConfig = await readJson(path.join(campaignDir, "modules.json"));
-  const { state } = await loadOrBootstrapState({ repoRoot, campaignId: effectiveCampaignId, stateDir, campaignDir });
+  const modulesConfig = normalizeModulesConfig(await readJson(path.join(campaignDir, "modules.json")));
+  const { state, statePath } = await loadOrBootstrapState({ repoRoot, campaignId: effectiveCampaignId, stateDir, campaignDir });
   initializeModules(state, modulesConfig);
   const { result } = await loadLatestResult({ repoRoot, campaignId: effectiveCampaignId, stateDir, campaignDir });
   const missionChain = await readMissionChain(effectiveCampaignId, packageDir);
@@ -342,8 +407,15 @@ export async function exportRuntimePayload({ repoRoot, campaignId, stateDir }) {
 
   return {
     campaign: campaignConfig,
-    modules: modulesConfig,
+    modules: {
+      ...modulesConfig,
+      registry: listModules()
+    },
     state,
+    persistence: {
+      statePath,
+      stateFingerprint: jsonFingerprint(state)
+    },
     result,
     plan: buildGenerationPlan(state, nextMissionId),
     debug: {
@@ -352,11 +424,11 @@ export async function exportRuntimePayload({ repoRoot, campaignId, stateDir }) {
   };
 }
 
-export async function ingestMissionResult({ repoRoot, campaignId, resultPath, stateDir, advanceHours = 24.0 }) {
+export async function ingestMissionResult({ repoRoot, campaignId, resultPath, stateDir, advanceHours = 24.0, expectedStateFingerprint = null }) {
   const result = await readJson(resultPath);
-  return ingestMissionResultRecord({ repoRoot, campaignId, result, stateDir, advanceHours });
+  return ingestMissionResultRecord({ repoRoot, campaignId, result, stateDir, advanceHours, expectedStateFingerprint });
 }
 
-export async function ingestMissionResultPayload({ repoRoot, campaignId, result, stateDir, advanceHours = 24.0 }) {
-  return ingestMissionResultRecord({ repoRoot, campaignId, result, stateDir, advanceHours });
+export async function ingestMissionResultPayload({ repoRoot, campaignId, result, stateDir, advanceHours = 24.0, expectedStateFingerprint = null }) {
+  return ingestMissionResultRecord({ repoRoot, campaignId, result, stateDir, advanceHours, expectedStateFingerprint });
 }

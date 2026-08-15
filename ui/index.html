@@ -190,6 +190,7 @@
                   <button id="settings-check-updates" type="button">Check For Updates</button>
                   <button id="settings-download-update" type="button">Download Update</button>
                   <button id="settings-install-update" type="button">Restart To Install</button>
+                  <button id="settings-export-support" type="button">Export Support Bundle</button>
                 </div>
                 <div class="update-status-card">
                   <div class="preview-head">Updater Status</div>
@@ -333,7 +334,9 @@
             </div>
             <label class="full-width">
               <span>Player Unit Name</span>
-              <input id="wizard-player-name" type="text" value="USS Annapolis">
+              <input id="wizard-player-name" type="text" value="USS Annapolis" list="wizard-player-hulls">
+              <datalist id="wizard-player-hulls"></datalist>
+              <span id="wizard-player-catalog-status" class="wizard-meta">Curated generator default.</span>
             </label>
             <p id="wizard-status" class="muted builder-help">
               Write campaign files first, then build and deploy. The desktop app also initializes Campaign Tracking for the first mission.
@@ -531,6 +534,10 @@
                     <input id="builder-hours" type="number" min="0" step="0.25" value="1">
                   </label>
                   <label>
+                    <span>Advance Campaign By Hours</span>
+                    <input id="builder-advance-hours" type="number" min="0" step="0.25" value="24">
+                  </label>
+                  <label>
                     <span>Unit</span>
                     <select id="builder-unit"></select>
                   </label>
@@ -555,6 +562,19 @@
                   <span>Metadata Source</span>
                   <input id="builder-source" type="text" value="ui_manual_builder">
                 </label>
+                <details class="full-width" style="margin-top:14px;">
+                  <summary class="collapsible-summary">
+                    <div>
+                      <strong>Advanced Event Rows</strong>
+                      <div class="muted">Add any normalized mission events that are not covered by the quick fields.</div>
+                    </div>
+                    <span class="badge alt">Optional</span>
+                  </summary>
+                  <label class="full-width" style="margin-top:12px;">
+                    <span>Additional Events JSON Array</span>
+                    <textarea id="builder-advanced-events" rows="8" spellcheck="false" placeholder='[{"event_type":"unit_damaged","unit_id":"target","amount":0.25,"metadata":{}}]'>[]</textarea>
+                  </label>
+                </details>
                 <div class="builder-actions">
                   <button id="builder-generate" type="button">Generate Result JSON</button>
                   <button id="builder-save" type="button">Save Result To Campaign</button>
@@ -568,6 +588,8 @@
               <div class="builder-preview">
                 <div class="preview-head">Normalized Result Preview</div>
                 <pre id="builder-json">{}</pre>
+                <div class="preview-head" style="margin-top:14px;">Pre-Save State Delta</div>
+                <pre id="builder-delta-json">Generate a valid result to preview changes.</pre>
               </div>
             </div>
           </section>
@@ -652,6 +674,54 @@
                   <span class="badge">Persistent Units</span>
                 </div>
                 <div id="oob-table-wrap" class="table-wrap"></div>
+              </article>
+            </div>
+
+            <div class="grid one-up collapsible-content">
+              <article class="card nested-card">
+                <div class="card-head">
+                  <h3>Persistence Modules</h3>
+                  <span class="badge">Campaign Controls</span>
+                </div>
+                <p class="muted">Enable campaign systems and tune their settings. Existing module state is retained if a module is disabled.</p>
+                <div id="module-controls" class="stack-list"></div>
+                <div class="builder-actions" style="margin-top:14px;">
+                  <button id="module-controls-save" type="button">Save Module Settings</button>
+                </div>
+                <p id="module-controls-status" class="muted builder-help">Load a runtime snapshot to edit modules.</p>
+              </article>
+            </div>
+
+            <div class="grid one-up collapsible-content">
+              <article class="card nested-card">
+                <div class="card-head">
+                  <h3>Campaign State Editor</h3>
+                  <span class="badge alt">Guarded Repair</span>
+                </div>
+                <p class="muted">Structured edits are validated, conflict-checked, and backed up before saving.</p>
+                <div class="field-grid">
+                  <label><span>Current Mission ID</span><input id="state-editor-mission" type="text"></label>
+                  <label><span>Campaign Clock</span><input id="state-editor-clock" type="text"></label>
+                  <label><span>Escalation State</span><input id="state-editor-escalation" type="text"></label>
+                  <label><span>Rules Of Engagement</span><input id="state-editor-roe" type="text"></label>
+                  <label><span>Unit</span><select id="state-editor-unit"></select></label>
+                  <label><span>Damage Fraction</span><input id="state-editor-damage" type="number" min="0" max="1" step="0.01"></label>
+                  <label><span>Readiness</span><input id="state-editor-readiness" type="number" min="0" max="1" step="0.01"></label>
+                  <label class="toggle"><span>Destroyed</span><input id="state-editor-destroyed" type="checkbox"></label>
+                  <label><span>Current Sector</span><input id="state-editor-sector" type="text"></label>
+                  <label><span>Availability</span><select id="state-editor-availability"><option value="available">Available</option><option value="committed">Committed</option><option value="unavailable">Unavailable</option></select></label>
+                  <label class="full-width"><span>Ammunition JSON Object</span><textarea id="state-editor-ammo" rows="5" spellcheck="false">{}</textarea></label>
+                </div>
+                <div class="builder-actions" style="margin-top:14px;">
+                  <button id="state-editor-preview" type="button">Preview State Edit</button>
+                  <button id="state-editor-save" type="button">Save State Edit</button>
+                </div>
+                <div class="field-grid" style="margin-top:14px;">
+                  <label class="full-width"><span>Restore Timestamped Backup</span><select id="state-editor-backup"><option value="">No backups available</option></select></label>
+                </div>
+                <div class="builder-actions"><button id="state-editor-restore" type="button">Restore Selected Backup</button></div>
+                <p id="state-editor-status" class="muted builder-help">No unsaved state edits.</p>
+                <pre id="state-editor-delta">{}</pre>
               </article>
             </div>
 

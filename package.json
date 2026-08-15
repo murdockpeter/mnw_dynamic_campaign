@@ -1,7 +1,8 @@
 {
   "name": "mnw-dynamic-campaign",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Modern Naval Warfare dynamic campaign generator with legacy scripts and a portable Electron path.",
+  "author": "murdockpeter",
   "main": "electron/main.cjs",
   "license": "MIT",
   "dependencies": {
@@ -9,6 +10,7 @@
     "ws": "^8.21.0"
   },
   "scripts": {
+    "test": "node --test tests/*.mjs && python -m unittest discover -s tests -p test_*.py",
     "desktop:start": "electron .",
     "desktop:dist": "electron-builder",
     "desktop:release": "electron-builder --publish always",
@@ -66,6 +68,10 @@
       {
         "from": "tests",
         "to": "seed/tests"
+      },
+      {
+        "from": "generated/db/virginia-platforms.json",
+        "to": "seed/generated/db/virginia-platforms.json"
       }
     ],
     "directories": {
@@ -79,7 +85,7 @@
       }
     ],
     "win": {
-      "icon": "electron/resources/icon.ico",
+      "icon": "icon.ico",
       "target": "nsis"
     },
     "nsis": {

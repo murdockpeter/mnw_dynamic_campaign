@@ -296,6 +296,21 @@ Design rules:
 - modules mutate shared state and emit directives
 - mission generation remains a separate concern
 
+### Safe Persistence And Operator Controls
+
+Release 0.1.5 adds a guarded desktop editing layer around persistence:
+
+- JSON state/config writes are atomic and create timestamped backups under a sibling `backups/` directory.
+- UI saves carry a content fingerprint and stop if the file changed after it was loaded.
+- Mission results, campaign state, and module configuration are validated before mutation.
+- Persistence modules are discovered from `portable/lib/module-registry.mjs`; campaign-specific enablement remains in `campaigns/<id>/modules.json`.
+- Manual results support quick fields plus additional normalized event rows and show a state-delta preview before save.
+- The structured state editor covers the mission pointer, clock, escalation/ROE, unit readiness/damage/ammunition, and theater assignment.
+- Successful operator mutations append lightweight records to `generated/audit/operator-actions.jsonl`.
+- Setup can export a redacted support ZIP under `generated/support/`.
+
+Deployment now inspects `.kyt` identities before copying. A differently named archive containing an existing campaign or mission identity blocks deployment, preventing the duplicate-core-package failure documented in `docs/rainbow-panda-aukus2-repair.md`.
+
 ## UI Notes
 
 The repository includes a UI layer under `ui/`.

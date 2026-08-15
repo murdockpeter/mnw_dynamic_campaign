@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import zlib from "node:zlib";
 
 function crc32Table() {
   const table = new Uint32Array(256);
@@ -97,4 +98,40 @@ export async function writeStoredZip(targetPath, entries) {
 
   const output = Buffer.concat([...localChunks, ...centralChunks, endRecord]);
   await fs.writeFile(targetPath, output);
+}
+
+export async function readZipEntries(targetPath) {
+  const archive = await fs.readFile(targetPath);
+  const minimumEndOffset = Math.max(0, archive.length - 65557);
+  let endOffset = -1;
+  for (let offset = archive.length - 22; offset >= minimumEndOffset; offset -= 1) {
+    if (archive.readUInt32LE(offset) === 0x06054b50) { endOffset = offset; break; }
+  }
+  if (endOffset < 0) throw new Error(`Invalid ZIP archive: ${targetPath}`);
+  const entryCount = archive.readUInt16LE(endOffset + 10);
+  let centralOffset = archive.readUInt32LE(endOffset + 16);
+  const entries = new Map();
+
+  for (let index = 0; index < entryCount; index += 1) {
+    if (archive.readUInt32LE(centralOffset) !== 0x02014b50) throw new Error(`Invalid ZIP central directory: ${targetPath}`);
+    const method = archive.readUInt16LE(centralOffset + 10);
+    const compressedSize = archive.readUInt32LE(centralOffset + 20);
+    const nameLength = archive.readUInt16LE(centralOffset + 28);
+    const extraLength = archive.readUInt16LE(centralOffset + 30);
+    const commentLength = archive.readUInt16LE(centralOffset + 32);
+    const localOffset = archive.readUInt32LE(centralOffset + 42);
+    const name = archive.subarray(centralOffset + 46, centralOffset + 46 + nameLength).toString("utf8");
+    if (archive.readUInt32LE(localOffset) !== 0x04034b50) throw new Error(`Invalid ZIP local entry: ${name}`);
+    const localNameLength = archive.readUInt16LE(localOffset + 26);
+    const localExtraLength = archive.readUInt16LE(localOffset + 28);
+    const dataOffset = localOffset + 30 + localNameLength + localExtraLength;
+    const compressed = archive.subarray(dataOffset, dataOffset + compressedSize);
+    let data;
+    if (method === 0) data = Buffer.from(compressed);
+    else if (method === 8) data = zlib.inflateRawSync(compressed);
+    else throw new Error(`Unsupported ZIP compression method ${method} for ${name}`);
+    entries.set(name.replaceAll("\\", "/"), data);
+    centralOffset += 46 + nameLength + extraLength + commentLength;
+  }
+  return entries;
 }

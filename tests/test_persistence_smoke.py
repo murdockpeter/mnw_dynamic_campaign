@@ -75,6 +75,7 @@ class PersistenceSmokeTest(unittest.TestCase):
             self.assertEqual(loaded.order_of_battle["uss_north_dakota"].ammo["mk48_mod7"], 9)
             self.assertLess(loaded.order_of_battle["uss_north_dakota"].damage, 0.20)
             self.assertEqual(len(loaded.mission_history), 1)
+            self.assertEqual(loaded.campaign_clock, "2028-03-15T02:30:00Z")
 
             plan = runtime.build_generation_plan(
                 loaded,

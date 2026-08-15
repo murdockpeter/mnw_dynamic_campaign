@@ -11,8 +11,13 @@ import { defaultGamePaths, ensureDir, md5File, readJson, repoRoot, writeJson } f
 import { deployPackage } from "./deploy-package.mjs";
 import { generateCampaign } from "./generate-campaign.mjs";
 import { exportRuntimePayload, ingestMissionResult, ingestMissionResultPayload } from "./runtime.mjs";
+import { previewMissionResult } from "./runtime.mjs";
+import { listModules, normalizeModulesConfig, validateModulesConfig } from "./module-registry.mjs";
+import { jsonFingerprint, listJsonBackups, readJsonDocument, restoreJsonBackup, validateCampaignState, writeJsonSafely } from "./safe-write.mjs";
 import { loadSettings, saveSettings } from "./settings-store.mjs";
 import { ensureWorkspace } from "./workspace-bootstrap.mjs";
+import { writeStoredZip } from "./zip-store.mjs";
+import { appendAuditEvent } from "./audit-log.mjs";
 
 const execFile = promisify(execFileCallback);
 
@@ -452,11 +457,13 @@ export async function deployPackageForDesktop({ packagePath, gameCampaignPath, u
     path.join(roots.workspaceRoot, "dist", `${effectivePackageId}.kyt`),
     effectivePackageId
   );
-  return deployPackage({
+  const result = await deployPackage({
     packagePath: effectivePackagePath,
     gameCampaignPath: gameCampaignPath || settings.gameCampaignPath,
     userCampaignPath: userCampaignPath || settings.userCampaignPath
   });
+  result.auditPath = await appendAuditEvent(roots.workspaceRoot, "package_deployed", { packagePath: effectivePackagePath, deployedPaths: result.deployedPaths });
+  return result;
 }
 
 export async function ingestResultForDesktop({ campaignId, resultPath, stateDir, advanceHours = 24.0, settingsPath, contentRoot, workspaceRoot, appVersion } = {}) {
@@ -468,7 +475,7 @@ export async function ingestResultForDesktop({ campaignId, resultPath, stateDir,
   return { ingest, runtime };
 }
 
-export async function ingestResultPayloadForDesktop({ campaignId, result, stateDir, advanceHours = 24.0, settingsPath, contentRoot, workspaceRoot, appVersion } = {}) {
+export async function ingestResultPayloadForDesktop({ campaignId, result, stateDir, advanceHours = 24.0, expectedStateFingerprint = null, settingsPath, contentRoot, workspaceRoot, appVersion } = {}) {
   const settings = await readDesktopSettings(settingsPath);
   const roots = await resolveRoots({ contentRoot, workspaceRoot, appVersion });
   const effectiveCampaignId = campaignId || settings.preferredCampaignId || "silent_meridian";
@@ -477,7 +484,8 @@ export async function ingestResultPayloadForDesktop({ campaignId, result, stateD
     campaignId: effectiveCampaignId,
     result,
     stateDir,
-    advanceHours
+    advanceHours,
+    expectedStateFingerprint
   });
   const runtime = await exportRuntimeSnapshot({
     campaignId: effectiveCampaignId,
@@ -487,7 +495,162 @@ export async function ingestResultPayloadForDesktop({ campaignId, result, stateD
     workspaceRoot: roots.workspaceRoot,
     appVersion
   });
+  ingest.audit_path = await appendAuditEvent(roots.workspaceRoot, "mission_result_saved", { campaignId: effectiveCampaignId, missionId: result.mission_id, outcome: result.outcome, eventCount: result.events?.length || 0, advanceHours });
   return { ingest, runtime };
+}
+
+function resolveCampaignPaths(workspaceRoot, campaignId, stateDir) {
+  return {
+    campaignDir: path.join(workspaceRoot, "campaigns", campaignId),
+    modulesPath: path.join(workspaceRoot, "campaigns", campaignId, "modules.json"),
+    statePath: path.join(stateDir || path.join(workspaceRoot, "state"), campaignId, "campaign_state.json")
+  };
+}
+
+export async function loadCampaignControlsForDesktop({ campaignId, stateDir, settingsPath, contentRoot, workspaceRoot, appVersion } = {}) {
+  const settings = await readDesktopSettings(settingsPath);
+  const roots = await resolveRoots({ contentRoot, workspaceRoot, appVersion });
+  const effectiveCampaignId = campaignId || settings.preferredCampaignId || "silent_meridian";
+  const paths = resolveCampaignPaths(roots.workspaceRoot, effectiveCampaignId, stateDir);
+  const modulesDocument = await readJsonDocument(paths.modulesPath);
+  let stateDocument;
+  let statePersisted = true;
+  try {
+    stateDocument = await readJsonDocument(paths.statePath);
+  } catch {
+    stateDocument = await readJsonDocument(path.join(paths.campaignDir, "bootstrap_state.json"));
+    statePersisted = false;
+  }
+  return {
+    campaignId: effectiveCampaignId,
+    registry: listModules(),
+    modules: normalizeModulesConfig(modulesDocument.value),
+    modulesFingerprint: modulesDocument.fingerprint,
+    state: stateDocument.value,
+    stateFingerprint: statePersisted ? stateDocument.fingerprint : null,
+    statePersisted,
+    statePath: paths.statePath,
+    stateBackups: await listJsonBackups(paths.statePath)
+  };
+}
+
+export async function saveModuleConfigForDesktop({ campaignId, modules, expectedFingerprint, confirmDisableWithState = false, stateDir, settingsPath, contentRoot, workspaceRoot, appVersion } = {}) {
+  const settings = await readDesktopSettings(settingsPath);
+  const roots = await resolveRoots({ contentRoot, workspaceRoot, appVersion });
+  const effectiveCampaignId = campaignId || settings.preferredCampaignId || "silent_meridian";
+  const paths = resolveCampaignPaths(roots.workspaceRoot, effectiveCampaignId, stateDir);
+  const errors = validateModulesConfig(modules);
+  if (errors.length) throw new Error(`Invalid module configuration: ${errors.join(" ")}`);
+  const normalized = normalizeModulesConfig(modules);
+  const current = normalizeModulesConfig((await readJsonDocument(paths.modulesPath)).value);
+  const disabled = current.enabled_modules.filter((id) => !normalized.enabled_modules.includes(id));
+  let state = null;
+  try { state = (await readJsonDocument(paths.statePath)).value; } catch { /* Bootstrap-only campaign. */ }
+  const meaningful = disabled.filter((id) => state?.module_state?.[id] && Object.keys(state.module_state[id]).length > 0);
+  if (meaningful.length && !confirmDisableWithState) {
+    const error = new Error(`Disabling ${meaningful.join(", ")} leaves existing module state untouched. Confirm the change to continue.`);
+    error.code = "MODULE_STATE_CONFIRMATION_REQUIRED";
+    error.modules = meaningful;
+    throw error;
+  }
+  const write = await writeJsonSafely(paths.modulesPath, normalized, { expectedFingerprint });
+  const auditPath = await appendAuditEvent(roots.workspaceRoot, "module_config_saved", { campaignId: effectiveCampaignId, enabledModules: normalized.enabled_modules });
+  return { campaignId: effectiveCampaignId, modules: normalized, registry: listModules(), auditPath, ...write };
+}
+
+export async function previewMissionResultForDesktop({ campaignId, result, advanceHours = 24, stateDir, settingsPath, contentRoot, workspaceRoot, appVersion } = {}) {
+  const controls = await loadCampaignControlsForDesktop({ campaignId, stateDir, settingsPath, contentRoot, workspaceRoot, appVersion });
+  return {
+    campaignId: controls.campaignId,
+    stateFingerprint: controls.stateFingerprint,
+    ...previewMissionResult({ state: controls.state, result, modulesConfig: controls.modules, advanceHours })
+  };
+}
+
+export async function saveCampaignStateForDesktop({ campaignId, state, expectedFingerprint, stateDir, settingsPath, contentRoot, workspaceRoot, appVersion } = {}) {
+  const settings = await readDesktopSettings(settingsPath);
+  const roots = await resolveRoots({ contentRoot, workspaceRoot, appVersion });
+  const effectiveCampaignId = campaignId || settings.preferredCampaignId || "silent_meridian";
+  if (state?.metadata?.campaign_id !== effectiveCampaignId) throw new Error("Campaign ID in state cannot be changed by the editor.");
+  const errors = validateCampaignState(state);
+  if (errors.length) throw new Error(`Invalid campaign state: ${errors.join(" ")}`);
+  const paths = resolveCampaignPaths(roots.workspaceRoot, effectiveCampaignId, stateDir);
+  const write = await writeJsonSafely(paths.statePath, state, { expectedFingerprint });
+  const auditPath = await appendAuditEvent(roots.workspaceRoot, "campaign_state_saved", { campaignId: effectiveCampaignId, currentMissionId: state.current_mission_id, campaignClock: state.campaign_clock });
+  return { campaignId: effectiveCampaignId, state, auditPath, ...write };
+}
+
+export async function restoreCampaignStateForDesktop({ campaignId, backupPath, expectedFingerprint, stateDir, settingsPath, contentRoot, workspaceRoot, appVersion } = {}) {
+  const settings = await readDesktopSettings(settingsPath);
+  const roots = await resolveRoots({ contentRoot, workspaceRoot, appVersion });
+  const effectiveCampaignId = campaignId || settings.preferredCampaignId || "silent_meridian";
+  const paths = resolveCampaignPaths(roots.workspaceRoot, effectiveCampaignId, stateDir);
+  const backup = await readJsonDocument(backupPath);
+  const errors = validateCampaignState(backup.value);
+  if (errors.length) throw new Error(`Invalid backup state: ${errors.join(" ")}`);
+  if (backup.value.metadata?.campaign_id !== effectiveCampaignId) throw new Error("Backup belongs to a different campaign.");
+  const write = await restoreJsonBackup(paths.statePath, backupPath, { expectedFingerprint });
+  const auditPath = await appendAuditEvent(roots.workspaceRoot, "campaign_state_restored", { campaignId: effectiveCampaignId, backupPath });
+  return { campaignId: effectiveCampaignId, state: backup.value, auditPath, ...write };
+}
+
+function redactSettings(settings) {
+  return {
+    ...settings,
+    ais: {
+      ...(settings.ais || {}),
+      token: settings.ais?.token ? "[REDACTED]" : "",
+      latestSample: settings.ais?.latestSample ? {
+        ...settings.ais.latestSample,
+        contacts: `[${settings.ais.latestSample.contacts?.length || 0} contacts omitted]`
+      } : null
+    }
+  };
+}
+
+export async function exportSupportBundleForDesktop({ campaignId, stateDir, settingsPath, contentRoot, workspaceRoot, appVersion } = {}) {
+  const settings = await readDesktopSettings(settingsPath);
+  const roots = await resolveRoots({ contentRoot, workspaceRoot, appVersion });
+  const effectiveCampaignId = campaignId || settings.preferredCampaignId || "silent_meridian";
+  const workflow = await getWorkflowStatusForDesktop({ campaignId: effectiveCampaignId, stateDir, settingsPath, contentRoot: roots.contentRoot, workspaceRoot: roots.workspaceRoot, appVersion });
+  let runtime = null;
+  try { runtime = await exportRuntimePayload({ repoRoot: roots.workspaceRoot, campaignId: effectiveCampaignId, stateDir }); } catch (error) { runtime = { error: error.message }; }
+  let playerLog = "Player.log was not found.";
+  const playerLogPath = path.join(os.homedir(), "AppData", "LocalLow", "WaveOps", "ModernNavalWarfare", "Player.log");
+  try {
+    const raw = await fs.readFile(playerLogPath, "utf8");
+    playerLog = raw.slice(-250000);
+    if (settings.ais?.token) playerLog = playerLog.replaceAll(settings.ais.token, "[REDACTED]");
+  } catch { /* Keep the explanatory placeholder. */ }
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const outputDir = path.join(roots.workspaceRoot, "generated", "support");
+  await ensureDir(outputDir);
+  const outputPath = path.join(outputDir, `mnw-support-${effectiveCampaignId}-${timestamp}.zip`);
+  const toBuffer = (payload) => Buffer.from(`${JSON.stringify(payload, null, 2)}\n`, "utf8");
+  await writeStoredZip(outputPath, [
+    { name: "summary.json", data: toBuffer({ appVersion, exportedAt: new Date().toISOString(), campaignId: effectiveCampaignId, platform: process.platform }) },
+    { name: "settings.redacted.json", data: toBuffer(redactSettings(settings)) },
+    { name: "workflow.json", data: toBuffer(workflow) },
+    { name: "runtime.json", data: toBuffer(runtime) },
+    { name: "Player.log.tail.txt", data: Buffer.from(playerLog, "utf8") }
+  ]);
+  const auditPath = await appendAuditEvent(roots.workspaceRoot, "support_bundle_exported", { campaignId: effectiveCampaignId, outputPath });
+  return { outputPath, campaignId: effectiveCampaignId, auditPath, entries: ["summary.json", "settings.redacted.json", "workflow.json", "runtime.json", "Player.log.tail.txt"] };
+}
+
+export async function loadLocalPlatformCatalogForDesktop({ contentRoot, workspaceRoot, appVersion } = {}) {
+  const roots = await resolveRoots({ contentRoot, workspaceRoot, appVersion });
+  const candidates = [
+    path.join(roots.workspaceRoot, "generated", "db", "virginia-platforms.json"),
+    path.join(roots.contentRoot, "generated", "db", "virginia-platforms.json")
+  ];
+  for (const candidate of candidates) {
+    try {
+      const payload = await readJson(candidate);
+      return { available: true, sourcePath: candidate, category: payload.category, records: payload.records || [] };
+    } catch { /* Try the next catalog path. */ }
+  }
+  return { available: false, sourcePath: null, category: "submarines", records: [] };
 }
 
 export async function generateCampaignForDesktop({ spec, dryRun = false, settingsPath, contentRoot, workspaceRoot, appVersion } = {}) {

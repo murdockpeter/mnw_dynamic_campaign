@@ -28,7 +28,7 @@ You do not need:
 
 On Windows, use:
 
-- `MNW Dynamic Campaign Console Setup 0.1.4.exe`
+- `MNW Dynamic Campaign Console Setup 0.1.5.exe`
 
 On macOS, use:
 
@@ -139,6 +139,16 @@ Important:
 - that reserved next mission is meant to be rewritten from `Campaign Tracking` before the player launches it
 
 ### Campaign Tracking
+
+The advanced tracking area includes guarded persistence controls:
+
+- enable or disable registered campaign modules and edit their settings
+- preview normalized mission-result state changes before saving
+- add advanced normalized event rows as JSON when the quick result fields are not enough
+- choose exactly how many campaign hours advance after a result
+- repair mission, clock, world-state, unit, ammunition, and theater assignment fields through the structured state editor
+
+State and module saves create backups and reject stale edits. Setup also provides `Export Support Bundle`, which writes a redacted diagnostics ZIP without exposing the saved AIS API key.
 
 Use this after missions.
 

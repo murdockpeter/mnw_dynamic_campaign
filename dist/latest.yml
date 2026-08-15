@@ -1,8 +1,8 @@
-version: 0.1.4
+version: 0.1.5
 files:
-  - url: MNW-Dynamic-Campaign-Console-Setup-0.1.4.exe
-    sha512: neWJYRKff5UzepneSTB4FVl5qR2KgBjQGCZrvn4GTH1dHgp5FRdJvTLYhZsBNH1VD16POhTV32huBjg+ou6RlA==
-    size: 85634115
-path: MNW-Dynamic-Campaign-Console-Setup-0.1.4.exe
-sha512: neWJYRKff5UzepneSTB4FVl5qR2KgBjQGCZrvn4GTH1dHgp5FRdJvTLYhZsBNH1VD16POhTV32huBjg+ou6RlA==
-releaseDate: '2026-07-13T19:03:42.846Z'
+  - url: MNW-Dynamic-Campaign-Console-Setup-0.1.5.exe
+    sha512: 0eNokDOTRJVZrTyNJoXbt8vxWjNO50ya3Wg17F0tqC+EIa1r+e2h4n1uCgpDtbODh/ojdxTRgqajb2xUbBOhhQ==
+    size: 85838459
+path: MNW-Dynamic-Campaign-Console-Setup-0.1.5.exe
+sha512: 0eNokDOTRJVZrTyNJoXbt8vxWjNO50ya3Wg17F0tqC+EIa1r+e2h4n1uCgpDtbODh/ojdxTRgqajb2xUbBOhhQ==
+releaseDate: '2026-08-15T23:08:03.164Z'

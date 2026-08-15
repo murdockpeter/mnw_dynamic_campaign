@@ -22,6 +22,18 @@ let currentOperationalMap = null;
 let currentOperationalMapMode = "vector";
 let currentRuntimePayload = null;
 let currentUpdateState = null;
+let currentCampaignControls = null;
+let latestResultPreviewFingerprint = null;
+let localPlatformCatalog = null;
+
+function escapeMarkup(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
 
 async function loadJson(targetPath) {
   const response = await fetch(targetPath);
@@ -764,6 +776,10 @@ function buildManualResult(data) {
   if (unitId && destroyed) {
     events.push({ event_type: "unit_destroyed", unit_id: unitId, amount: 1, weapon_key: null, metadata: {} });
   }
+  const advancedRaw = document.getElementById("builder-advanced-events")?.value.trim() || "[]";
+  const advancedEvents = JSON.parse(advancedRaw);
+  if (!Array.isArray(advancedEvents)) throw new Error("Advanced events must be a JSON array.");
+  events.push(...advancedEvents);
   return {
     mission_id: missionId || data.state.current_mission_id || "",
     outcome,
@@ -789,6 +805,8 @@ function populateManualBuilderFromPayload(payload, data) {
   document.getElementById("builder-weapon-amount").value = weaponEvent?.amount ?? 0;
   document.getElementById("builder-damage-amount").value = damageEvent?.amount ?? 0;
   document.getElementById("builder-destroyed").checked = Boolean(destroyedEvent);
+  const consumed = new Set([weaponEvent, damageEvent, destroyedEvent].filter(Boolean));
+  document.getElementById("builder-advanced-events").value = JSON.stringify(payload.events.filter((event) => !consumed.has(event)), null, 2);
 }
 
 function renderManualBuilder(data) {
@@ -797,26 +815,46 @@ function renderManualBuilder(data) {
   const missionInput = document.getElementById("builder-mission-id");
   const preview = document.getElementById("builder-json");
   const saveButton = document.getElementById("builder-save");
+  const deltaPreview = document.getElementById("builder-delta-json");
   unitSelect.innerHTML = units.map((unit) => `
     <option value="${unit.unit_id}">${unit.name} (${unit.unit_id})</option>
   `).join("");
   missionInput.value = data.plan.mission_id || data.state.current_mission_id || "";
   setBuilderStatus("Build the result here, then save it directly. Download and copy remain available only if you want a record outside the app.");
 
-  const refreshPreview = () => {
-    const payload = buildManualResult(data);
-    preview.textContent = JSON.stringify(payload, null, 2);
-    return payload;
+  const refreshPreview = async () => {
+    try {
+      const payload = buildManualResult(data);
+      preview.textContent = JSON.stringify(payload, null, 2);
+      if (desktopApi?.previewMissionResult) {
+        const campaignId = document.getElementById("desktop-campaign-id").value.trim() || data.state.metadata.campaign_id;
+        const result = await desktopApi.previewMissionResult({
+          campaignId,
+          result: payload,
+          advanceHours: Number(document.getElementById("builder-advance-hours").value || 0)
+        });
+        latestResultPreviewFingerprint = result.stateFingerprint || null;
+        deltaPreview.textContent = result.valid ? JSON.stringify(result.delta, null, 2) : result.errors.join("\n");
+      } else {
+        deltaPreview.textContent = "State-delta preview is available in the desktop app.";
+      }
+      return payload;
+    } catch (error) {
+      preview.textContent = `Invalid result: ${error.message}`;
+      deltaPreview.textContent = "Fix validation errors before saving.";
+      return null;
+    }
   };
 
-  ["builder-mission-id", "builder-outcome", "builder-hours", "builder-unit", "builder-weapon-key", "builder-weapon-amount", "builder-damage-amount", "builder-destroyed", "builder-source"].forEach((id) => {
+  ["builder-mission-id", "builder-outcome", "builder-hours", "builder-advance-hours", "builder-unit", "builder-weapon-key", "builder-weapon-amount", "builder-damage-amount", "builder-destroyed", "builder-source", "builder-advanced-events"].forEach((id) => {
     const node = document.getElementById(id);
     node.oninput = refreshPreview;
     node.onchange = refreshPreview;
   });
   document.getElementById("builder-generate").onclick = refreshPreview;
-  document.getElementById("builder-download").onclick = () => {
-    const payload = refreshPreview();
+  document.getElementById("builder-download").onclick = async () => {
+    const payload = await refreshPreview();
+    if (!payload) return;
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -828,11 +866,13 @@ function renderManualBuilder(data) {
     URL.revokeObjectURL(url);
   };
   document.getElementById("builder-copy").onclick = async () => {
-    const payload = refreshPreview();
+    const payload = await refreshPreview();
+    if (!payload) return;
     await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
   };
   saveButton.onclick = async () => {
-    const payload = refreshPreview();
+    const payload = await refreshPreview();
+    if (!payload) return;
     if (!desktopApi?.saveManualResult) {
       setBuilderStatus("Desktop app required to save manual results directly into campaign state.");
       return;
@@ -843,21 +883,170 @@ function renderManualBuilder(data) {
     }
     const campaignId = document.getElementById("desktop-campaign-id").value.trim() || data.state.metadata.campaign_id || "silent_meridian";
     setBuilderStatus(`Saving result for ${payload.mission_id} and refreshing Campaign Tracking...`);
-    const result = await desktopApi.saveManualResult({
-      campaignId,
-      result: payload,
-      advanceHours: 24.0
-    });
-    setDesktopOutput(result);
-    setDesktopOpsStatus(`Manual result saved for ${campaignId}.`);
-    setBuilderStatus(`Saved ${payload.outcome} result for ${payload.mission_id}. Campaign Tracking refreshed.`);
-    if (result.runtime?.payload) {
-      hydrateRuntime(result.runtime.payload);
-      setWorkspaceMode("tracking");
+    try {
+      const result = await desktopApi.saveManualResult({
+        campaignId,
+        result: payload,
+        advanceHours: Number(document.getElementById("builder-advance-hours").value || 0),
+        expectedStateFingerprint: latestResultPreviewFingerprint
+      });
+      setDesktopOutput(result);
+      setDesktopOpsStatus(`Manual result saved for ${campaignId}.`);
+      setBuilderStatus(`Saved ${payload.outcome} result for ${payload.mission_id}. Campaign Tracking refreshed.`);
+      if (result.runtime?.payload) {
+        hydrateRuntime(result.runtime.payload);
+        setWorkspaceMode("tracking");
+      }
+      await refreshWorkflowStatus();
+    } catch (error) {
+      setBuilderStatus(`Result was not saved: ${error.message}`);
     }
-    await refreshWorkflowStatus();
   };
   refreshPreview();
+}
+
+function collectModuleConfig() {
+  const enabled_modules = [];
+  const module_config = {};
+  for (const module of currentCampaignControls?.registry || []) {
+    if (document.getElementById(`module-enabled-${module.id}`)?.checked) enabled_modules.push(module.id);
+    module_config[module.id] = {};
+    for (const [key, field] of Object.entries(module.config || {})) {
+      const node = document.getElementById(`module-config-${module.id}-${key}`);
+      module_config[module.id][key] = field.type === "boolean" ? Boolean(node?.checked) : Number(node?.value);
+    }
+  }
+  return { enabled_modules, module_config };
+}
+
+async function renderCampaignControls(data) {
+  const root = document.getElementById("module-controls");
+  if (!root) return;
+  if (!desktopApi?.loadCampaignControls) {
+    root.innerHTML = '<div class="stack-item"><div class="meta">Campaign controls require the desktop app.</div></div>';
+    return;
+  }
+  const campaignId = data.state.metadata.campaign_id;
+  currentCampaignControls = await desktopApi.loadCampaignControls({ campaignId });
+  root.innerHTML = currentCampaignControls.registry.map((module) => {
+    const enabled = currentCampaignControls.modules.enabled_modules.includes(module.id);
+    const fields = Object.entries(module.config || {}).map(([key, field]) => {
+      const value = currentCampaignControls.modules.module_config?.[module.id]?.[key] ?? field.default;
+      if (field.type === "boolean") {
+        return `<label class="toggle"><span>${escapeMarkup(field.label)}</span><input id="module-config-${module.id}-${key}" type="checkbox" ${value ? "checked" : ""}></label>`;
+      }
+      return `<label><span>${escapeMarkup(field.label)}</span><input id="module-config-${module.id}-${key}" type="number" min="${field.min}" max="${field.max}" step="${field.step}" value="${value}"></label>`;
+    }).join("");
+    return `<div class="stack-item"><label class="toggle"><strong>${escapeMarkup(module.label)}</strong><input id="module-enabled-${module.id}" type="checkbox" ${enabled ? "checked" : ""}></label><div class="meta">${escapeMarkup(module.description)}</div><div class="field-grid" style="margin-top:10px;">${fields}</div></div>`;
+  }).join("");
+
+  document.getElementById("module-controls-save").onclick = async () => {
+    const status = document.getElementById("module-controls-status");
+    const payload = { campaignId, modules: collectModuleConfig(), expectedFingerprint: currentCampaignControls.modulesFingerprint };
+    try {
+      const saved = await desktopApi.saveModuleConfig(payload);
+      currentCampaignControls.modules = saved.modules;
+      currentCampaignControls.modulesFingerprint = saved.fingerprint;
+      status.textContent = `Module settings saved. Backup: ${saved.backupPath || "not required"}`;
+      await reloadRuntimeForCampaign(campaignId);
+    } catch (error) {
+      if (String(error.message).includes("Confirm the change")) {
+        const confirmed = globalThis.confirm(`${error.message}\n\nDisable anyway?`);
+        if (confirmed) {
+          const saved = await desktopApi.saveModuleConfig({ ...payload, confirmDisableWithState: true });
+          currentCampaignControls.modules = saved.modules;
+          currentCampaignControls.modulesFingerprint = saved.fingerprint;
+          status.textContent = "Module settings saved with existing state retained.";
+          await reloadRuntimeForCampaign(campaignId);
+        }
+      } else status.textContent = error.message;
+    }
+  };
+  renderStateEditor(currentCampaignControls, data);
+}
+
+function buildEditedState(controls) {
+  const state = structuredClone(controls.state);
+  state.current_mission_id = document.getElementById("state-editor-mission").value.trim();
+  state.campaign_clock = document.getElementById("state-editor-clock").value.trim();
+  state.world_state = state.world_state || {};
+  state.world_state.escalation_key = document.getElementById("state-editor-escalation").value.trim();
+  state.world_state.rules_of_engagement = document.getElementById("state-editor-roe").value.trim();
+  const unit = state.order_of_battle[document.getElementById("state-editor-unit").value];
+  if (unit) {
+    unit.damage = Number(document.getElementById("state-editor-damage").value);
+    unit.readiness = Number(document.getElementById("state-editor-readiness").value);
+    unit.destroyed = document.getElementById("state-editor-destroyed").checked;
+    unit.ammo = JSON.parse(document.getElementById("state-editor-ammo").value || "{}");
+    state.world_state.theater_picture = state.world_state.theater_picture || {};
+    state.world_state.theater_picture.units = state.world_state.theater_picture.units || {};
+    const track = state.world_state.theater_picture.units[unit.unit_id] || {};
+    track.current_sector = document.getElementById("state-editor-sector").value.trim() || null;
+    track.availability = document.getElementById("state-editor-availability").value;
+    state.world_state.theater_picture.units[unit.unit_id] = track;
+  }
+  return state;
+}
+
+function renderStateEditor(controls, data) {
+  const unitSelect = document.getElementById("state-editor-unit");
+  const state = controls.state;
+  document.getElementById("state-editor-mission").value = state.current_mission_id || "";
+  document.getElementById("state-editor-clock").value = state.campaign_clock || "";
+  document.getElementById("state-editor-escalation").value = state.world_state?.escalation_key || "";
+  document.getElementById("state-editor-roe").value = state.world_state?.rules_of_engagement || "";
+  unitSelect.innerHTML = Object.values(state.order_of_battle || {}).map((unit) => `<option value="${escapeMarkup(unit.unit_id)}">${escapeMarkup(unit.name)}</option>`).join("");
+  const loadUnit = () => {
+    const unit = state.order_of_battle[unitSelect.value];
+    document.getElementById("state-editor-damage").value = unit?.damage ?? 0;
+    document.getElementById("state-editor-readiness").value = unit?.readiness ?? 1;
+    document.getElementById("state-editor-destroyed").checked = Boolean(unit?.destroyed);
+    document.getElementById("state-editor-ammo").value = JSON.stringify(unit?.ammo || {}, null, 2);
+    const track = state.world_state?.theater_picture?.units?.[unit?.unit_id] || {};
+    document.getElementById("state-editor-sector").value = track.current_sector || unit?.notes?.current_sector || "";
+    document.getElementById("state-editor-availability").value = track.availability || unit?.notes?.availability || "available";
+  };
+  unitSelect.onchange = loadUnit;
+  loadUnit();
+  const backupSelect = document.getElementById("state-editor-backup");
+  backupSelect.innerHTML = controls.stateBackups?.length
+    ? controls.stateBackups.map((backupPath) => `<option value="${escapeMarkup(backupPath)}">${escapeMarkup(backupPath.split(/[\\/]/).pop())}</option>`).join("")
+    : '<option value="">No backups available</option>';
+  const preview = () => {
+    const edited = buildEditedState(controls);
+    const unitId = unitSelect.value;
+    document.getElementById("state-editor-delta").textContent = JSON.stringify({
+      current_mission_id: { before: state.current_mission_id, after: edited.current_mission_id },
+      campaign_clock: { before: state.campaign_clock, after: edited.campaign_clock },
+      unit: { before: state.order_of_battle[unitId], after: edited.order_of_battle[unitId] }
+    }, null, 2);
+    return edited;
+  };
+  document.getElementById("state-editor-preview").onclick = preview;
+  document.getElementById("state-editor-save").onclick = async () => {
+    const status = document.getElementById("state-editor-status");
+    try {
+      const saved = await desktopApi.saveCampaignState({ campaignId: data.state.metadata.campaign_id, state: preview(), expectedFingerprint: controls.stateFingerprint });
+      controls.state = saved.state;
+      controls.stateFingerprint = saved.fingerprint;
+      status.textContent = `State saved safely. Backup: ${saved.backupPath || "not required"}`;
+      await reloadRuntimeForCampaign(data.state.metadata.campaign_id);
+    } catch (error) { status.textContent = error.message; }
+  };
+  document.getElementById("state-editor-restore").onclick = async () => {
+    const status = document.getElementById("state-editor-status");
+    if (!backupSelect.value) { status.textContent = "No state backup is available to restore."; return; }
+    if (!globalThis.confirm(`Restore ${backupSelect.options[backupSelect.selectedIndex].text}? The current state will also be backed up.`)) return;
+    try {
+      const restored = await desktopApi.restoreCampaignState({
+        campaignId: data.state.metadata.campaign_id,
+        backupPath: backupSelect.value,
+        expectedFingerprint: controls.stateFingerprint
+      });
+      status.textContent = `Backup restored. Previous current state saved to ${restored.backupPath}.`;
+      await reloadRuntimeForCampaign(data.state.metadata.campaign_id);
+    } catch (error) { status.textContent = error.message; }
+  };
 }
 
 function renderDebriefParser(data) {
@@ -1578,20 +1767,24 @@ function renderContinuationPlanner(data) {
     }
     const campaignId = document.getElementById("desktop-campaign-id").value.trim() || data.state.metadata.campaign_id || "silent_meridian";
     setContinuationStatus("Regenerating the reserved next mission, extending the chain by one slot, rebuilding the package, and refreshing runtime state...");
-    const result = await desktopApi.continueCampaign({
-      campaignId,
-      objective: objectiveSelect.value,
-      riskPosture: riskSelect.value,
-      operationalTempo: tempoSelect.value
-    });
-    setDesktopOutput(result);
-    setContinuationStatus(`Regenerated ${result.continuation.mission_name}, preserved a reserved follow-on slot, and refreshed Campaign Tracking.`);
-    if (result.runtime?.payload) {
-      hydrateRuntime(result.runtime.payload);
-    } else if (result.continuation?.runtime) {
-      hydrateRuntime(result.continuation.runtime);
+    try {
+      const result = await desktopApi.continueCampaign({
+        campaignId,
+        objective: objectiveSelect.value,
+        riskPosture: riskSelect.value,
+        operationalTempo: tempoSelect.value
+      });
+      setDesktopOutput(result);
+      setContinuationStatus(`Regenerated ${result.continuation.mission_name}, preserved a reserved follow-on slot, and refreshed Campaign Tracking.`);
+      if (result.runtime?.payload) {
+        hydrateRuntime(result.runtime.payload);
+      } else if (result.continuation?.runtime) {
+        hydrateRuntime(result.continuation.runtime);
+      }
+      await refreshWorkflowStatus();
+    } catch (error) {
+      setContinuationStatus(`Continuation files were generated, but the workflow did not finish: ${error.message}`);
     }
-    await refreshWorkflowStatus();
   };
 }
 
@@ -1789,6 +1982,10 @@ async function initializeWizard() {
   syncWizardDefaultsWithTheater();
   refreshWizardIntensityLabels();
   refreshCurrentWizardBlueprint();
+  if (desktopApi?.loadLocalPlatformCatalog) {
+    localPlatformCatalog = await desktopApi.loadLocalPlatformCatalog();
+    refreshPlayerHullSuggestions(false);
+  }
   document.getElementById("wizard-theater").onchange = () => {
     syncWizardDefaultsWithTheater();
     refreshCurrentWizardBlueprint();
@@ -1829,6 +2026,7 @@ async function initializeWizard() {
     refreshCurrentWizardBlueprint();
   };
   document.getElementById("wizard-plot-seed").onchange = () => refreshCurrentWizardBlueprint();
+  document.getElementById("wizard-player-submarine").addEventListener("change", () => refreshPlayerHullSuggestions(true));
   document.getElementById("wizard-regenerate-seed").onclick = () => {
     setWizardCampaignSeed(generateCampaignSeed(), {
       syncTitle: true,
@@ -1881,12 +2079,16 @@ async function initializeWizard() {
     }
     authoringStageOverride = null;
     const blueprint = currentWizardBlueprint || buildCampaignBlueprint(collectWizardSpec());
-    const result = await desktopApi.deployPackage({
-      packagePath: `${desktopInfo.workspaceRoot}/dist/${blueprint.campaignId}.kyt`
-    });
-    setDesktopOutput(result);
-    setWizardStatus(`Deployed ${blueprint.campaignId}.kyt to the configured campaign targets.`);
-    await refreshWorkflowStatus();
+    try {
+      const result = await desktopApi.deployPackage({
+        packagePath: `${desktopInfo.workspaceRoot}/dist/${blueprint.campaignId}.kyt`
+      });
+      setDesktopOutput(result);
+      setWizardStatus(`Deployed ${blueprint.campaignId}.kyt to the configured campaign targets. Identity preflight passed.`);
+      await refreshWorkflowStatus();
+    } catch (error) {
+      setWizardStatus(`Deployment blocked: ${error.message}`);
+    }
   };
 }
 
@@ -2069,6 +2271,50 @@ function hydrateRuntime(data) {
   renderManualBuilder(data);
   renderDebriefParser(data);
   renderAisSummaryPlaceholder(data);
+  renderCampaignControls(data).catch((error) => {
+    const status = document.getElementById("module-controls-status");
+    if (status) status.textContent = error.message;
+  });
+
+  document.getElementById("settings-export-support")?.addEventListener("click", async () => {
+    try {
+      setSettingsStatus("Building a redacted support bundle...");
+      const campaignId = document.getElementById("settings-campaign-id").value.trim() || "silent_meridian";
+      const result = await desktopApi.exportSupportBundle({ campaignId });
+      setSettingsStatus(`Support bundle written to ${result.outputPath}`);
+      setDesktopOutput(result);
+    } catch (error) {
+      setSettingsStatus(`Support bundle failed: ${error.message}`);
+    }
+  });
+}
+
+function refreshPlayerHullSuggestions(selectRepresentative = false) {
+  const datalist = document.getElementById("wizard-player-hulls");
+  const status = document.getElementById("wizard-player-catalog-status");
+  const selected = getPlayerSubmarineCatalog()[document.getElementById("wizard-player-submarine")?.value];
+  if (!datalist || !status || !selected) return;
+  const record = localPlatformCatalog?.records?.find((item) => Number(item.platformId) === Number(selected.platformDbid));
+  const hulls = record?.hulls || [];
+  datalist.innerHTML = hulls.map((hull) => `<option value="${escapeMarkup(hull.name)}">${escapeMarkup(hull.hullNumber || "")}</option>`).join("");
+  if (hulls.length) {
+    status.textContent = `${hulls.length} locally indexed ${selected.label} hulls available from MNW DB platform ${selected.platformDbid}.`;
+    if (selectRepresentative) {
+      const representative = hulls.find((hull) => hull.name === selected.representativeHull) || hulls[0];
+      document.getElementById("wizard-player-name").value = representative.name;
+      refreshCurrentWizardBlueprint();
+    }
+  } else {
+    status.textContent = localPlatformCatalog?.available
+      ? `No matching hull names found for MNW DB platform ${selected.platformDbid}; free-text naming remains available.`
+      : "Local DB hull catalog not indexed; using curated generator defaults.";
+  }
+}
+
+async function reloadRuntimeForCampaign(campaignId) {
+  if (!desktopApi?.exportRuntime) return;
+  const refreshed = await desktopApi.exportRuntime({ campaignId });
+  if (refreshed?.payload) hydrateRuntime(refreshed.payload);
 }
 
 async function loadInitialRuntime() {

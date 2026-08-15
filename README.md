@@ -27,8 +27,8 @@ Start with:
 
 Typical player artifacts:
 
-- `dist\MNW Dynamic Campaign Console Setup 0.1.4.exe`
-- `dist\MNW Dynamic Campaign Console Setup 0.1.4.exe.blockmap`
+- `dist\MNW Dynamic Campaign Console Setup 0.1.5.exe`
+- `dist\MNW Dynamic Campaign Console Setup 0.1.5.exe.blockmap`
 - `dist\latest.yml`
 - `dist\*.dmg` when a macOS build is produced
 
@@ -102,7 +102,7 @@ Release flow:
 
 1. bump `package.json` version
 2. commit and push
-3. create and push a tag like `v0.1.4`
+3. create and push a tag like `v0.1.5`
 4. GitHub Actions builds the Windows installer and uploads the release artifacts
 
 Expected updater artifacts:
