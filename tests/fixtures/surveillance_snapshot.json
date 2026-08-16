@@ -1,6 +1,6 @@
 {
   "summary": "Confirm which corridor is real before the contact picture widens beyond useful reporting range.",
-  "objective": "Confirm which corridor is real and leave a clean handoff for follow-on forces. Hold fire except in self-defense. Compare the likely contact area against the marked route decision point before committing. Recover once command has a clear route picture for follow-on forces. enemy surface activity is most likely north of your ingress track near Luzon Strait Default Route. Treat that as moderate-confidence cueing (71% assessed confidence), not precise localization.",
+  "objective": "Confirm which corridor is real and leave a clean handoff for follow-on forces. Hold fire except in self-defense. Compare the likely contact area against the marked route decision point before committing. Recover once command has a clear route picture for follow-on forces. enemy surface activity is reported most likely north of your ingress track near Luzon Strait Default Route. Treat that as moderate-confidence cueing (73% assessed confidence) with an estimated 26 km error radius, not precise localization.",
   "success": "Initial Scout is complete. COMSUBPAC has the updated route picture and can shape the next operation from your report.",
   "missionType": "asuw_military"
 }

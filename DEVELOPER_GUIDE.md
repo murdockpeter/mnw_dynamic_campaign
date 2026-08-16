@@ -156,6 +156,14 @@ For each scenario, the generator:
 6. runs deconfliction so generated placements do not overlap
 7. applies authoring constraints such as max distance to primary target
 
+### Realistic Variety Model
+
+Scenario variety is constrained by operational doctrine rather than assembled from independent random units. Each mission resolves a doctrine package—surface transit group, escorted convoy, maritime interdiction, or undersea breakout—with minimum and maximum slots for primary threats, screens, air support, and friendly support. The generator records the package rationale and runs a plausibility check for duplicate identities, valid DBIDs, introduction year, doctrine bounds, helicopter parentage, and protected traffic requirements.
+
+Within a valid package, a seeded tactical behavior profile varies formation spacing, headings, submarine depth, route style, emissions, and likely reaction. These profiles are deterministic for identical campaign inputs, but provide materially different tactical presentations across seeds.
+
+Scenario data deliberately separates `intel.groundTruth` from `intel.assessment`. Mission scripts retain exact geometry needed to run the scenario; player briefings receive an error-bounded reported point, confidence, incomplete contact classification, and sometimes an incorrect route assessment. Do not expose `groundTruth`, exact enemy routes, or exact contact coordinates in player-facing locale text.
+
 ### Current Authoring Controls
 
 The `Authoring` workspace currently exposes:
@@ -291,6 +299,9 @@ Implemented baseline pieces:
 - persistence modules for damage and ammo
 - generation hook for next-mission writers
 - export flow for UI snapshots
+- force-cycle state for sorties, fatigue, transit, rearming, recovery, repair, and permanent losses
+
+After a result is ingested, every on-stage unit leaves the scenario and receives a class-dependent recovery interval. Low ammunition produces a rearm state, meaningful damage produces a repair state, and destruction remains permanent. Advancing campaign time reduces recovery and fatigue; continuation generation selects only operationally available units. Pre-authored mission-slot reservations are distinct from actual runtime unavailability so future placeholder generation does not exhaust the theater pool.
 
 Design rules:
 

@@ -28,7 +28,7 @@ You do not need:
 
 On Windows, use:
 
-- `MNW Dynamic Campaign Console Setup 0.1.6.exe`
+- `MNW Dynamic Campaign Console Setup 0.1.7.exe`
 
 On macOS, use:
 
@@ -209,8 +209,13 @@ It does not call an AI model. Instead, it uses:
 - mission archetype sequences
 - seeded variation
 - bounded geometry constraints
+- doctrine-bounded force packages
+- seeded tactical behavior profiles
+- confidence-bounded intelligence assessments
 
 That means the same inputs will always produce the same campaign or continuation scenario.
+
+The generator can vary the opposition without arbitrary force mixing. A scenario first chooses a credible package for its mission family, then varies formation spacing, route behavior, emissions, depth, and reactions within that package. The briefing describes an assessed contact picture rather than revealing exact scenario truth, so a marked likely-contact area should be treated as cueing with stated uncertainty.
 
 ### Pathing
 
@@ -330,6 +335,7 @@ If you want more detail, open `Advanced Campaign Detail` for:
 
 - recent normalized result data
 - persistent unit state
+- operational state, sortie count, fatigue, and remaining recovery time
 - the theater operational area map
 - debrief text parser
 - AIS debug payloads

@@ -952,6 +952,71 @@ const SUB_HUNT_OPENING_GEOMETRY_PROFILES = [
   }
 ];
 
+const FORCE_DOCTRINE_CATALOG = Object.freeze({
+  surface_transit_group: {
+    label: "Surface Transit Group",
+    family: "surface_shadow",
+    rationale: "A principal surface combatant transits with a bounded escort and aviation screen rather than an independently randomized fleet.",
+    slots: {
+      enemyPrimary: { min: 1, max: 2 },
+      enemySecondary: { min: 0, max: 2 },
+      enemyAir: { min: 0, max: 1 },
+      friendlySurface: { min: 0, max: 2 },
+      friendlyAir: { min: 0, max: 1 }
+    }
+  },
+  escorted_convoy: {
+    label: "Escorted Maritime Convoy",
+    family: "surface_shadow",
+    rationale: "The decisive movement is a protected route package: one or two principal escorts, a limited outer screen, and meaningful civilian density.",
+    slots: {
+      enemyPrimary: { min: 1, max: 2 },
+      enemySecondary: { min: 1, max: 2 },
+      enemyAir: { min: 0, max: 1 },
+      friendlySurface: { min: 0, max: 2 },
+      friendlyAir: { min: 0, max: 1 }
+    }
+  },
+  maritime_interdiction: {
+    label: "Maritime Interdiction Cell",
+    family: "surface_shadow",
+    rationale: "A small designated hostile element operates among protected traffic; additional combatants remain deliberately limited.",
+    slots: {
+      enemyPrimary: { min: 1, max: 1 },
+      enemySecondary: { min: 0, max: 1 },
+      enemyAir: { min: 0, max: 1 },
+      friendlySurface: { min: 0, max: 1 },
+      friendlyAir: { min: 0, max: 1 }
+    }
+  },
+  undersea_breakout: {
+    label: "Undersea Breakout Package",
+    family: "sub_hunt",
+    rationale: "One breakout submarine is the operational center of gravity, with no more than two undersea screens and bounded surface or air support.",
+    slots: {
+      target: { min: 1, max: 1 },
+      screen: { min: 0, max: 2 },
+      enemySurfaceSupport: { min: 0, max: 2 },
+      enemyAir: { min: 0, max: 1 },
+      friendlySurface: { min: 0, max: 2 },
+      friendlyAir: { min: 0, max: 2 }
+    }
+  }
+});
+
+const TACTICAL_BEHAVIOR_PROFILES = Object.freeze({
+  surface_shadow: [
+    { key: "emcon_transit", label: "EMCON Transit", formationSpacingKm: 7, surfaceHeadingOffset: 0, airHeadingOffset: 0, routeStyle: "direct", emissions: "restricted", reaction: "maintain formation and accelerate through the threatened seam" },
+    { key: "layered_screen", label: "Layered Screen", formationSpacingKm: 14, surfaceHeadingOffset: 18, airHeadingOffset: -22, routeStyle: "screened", emissions: "controlled", reaction: "collapse the outer screen toward the principal ship after contact" },
+    { key: "deceptive_turn", label: "Deceptive Route Turn", formationSpacingKm: 10, surfaceHeadingOffset: -24, airHeadingOffset: 28, routeStyle: "deceptive", emissions: "intermittent", reaction: "alter course at the route gate and force a fresh localization" }
+  ],
+  sub_hunt: [
+    { key: "quiet_breakout", label: "Quiet Breakout", targetDepthFeet: -170, screenDepthFeet: -210, headingOffset: 0, routeStyle: "direct", emissions: "silent", reaction: "remain deep and continue toward the egress seam" },
+    { key: "sprint_drift", label: "Sprint And Drift", targetDepthFeet: -130, screenDepthFeet: -190, headingOffset: 26, routeStyle: "deceptive", emissions: "silent", reaction: "change depth and bearing after each likely detection opportunity" },
+    { key: "support_lure", label: "Support-Led Lure", targetDepthFeet: -200, screenDepthFeet: -150, headingOffset: -20, routeStyle: "screened", emissions: "offboard", reaction: "let surface or air support draw attention away from the true breakout axis" }
+  ]
+});
+
 const SUB_HUNT_OPENING_FORCE_PROFILES = [
   {
     key: "paired_breakout",
@@ -2620,9 +2685,16 @@ function buildScenarioIntel(template, geometry, forces, index, rng, missionStanc
     ? geometry.destination
     : geometry.egress;
   const confidence = estimateIntelConfidence(template, geometry, index, rng, missionStanceKey);
-  const likelyBearing = bearingLabelFromDegrees(approximateBearingDegrees(playerReference, likelyContact));
+  const errorRadiusKm = Math.max(6, Math.round(8 + ((100 - confidence) * 0.65)));
+  const errorDegrees = errorRadiusKm / 111;
+  const reportedPoint = jitterPoint(likelyContact, rng, errorDegrees * 0.7, errorDegrees);
+  const likelyBearing = bearingLabelFromDegrees(approximateBearingDegrees(playerReference, reportedPoint));
   const axisBearing = bearingLabelFromDegrees(approximateBearingDegrees(playerReference, axisReference));
-  const sectorLabel = geometry.routeVariantLabel || forces?.sector || "main axis";
+  const actualSectorLabel = geometry.routeVariantLabel || forces?.sector || "main axis";
+  const sectors = getTheaterSectorCatalog(template);
+  const actualSectorIndex = Math.max(0, sectors.findIndex((sector) => sector.id === forces?.sector || sector.label === actualSectorLabel));
+  const alternateSector = sectors.length > 1 ? sectors[(actualSectorIndex + 1 + Math.floor(rng() * (sectors.length - 1))) % sectors.length] : null;
+  const sectorLabel = confidence < 62 && alternateSector ? alternateSector.label : actualSectorLabel;
   const confidenceLabel = confidence >= 78
     ? "high-confidence"
     : confidence >= 62
@@ -2631,9 +2703,16 @@ function buildScenarioIntel(template, geometry, forces, index, rng, missionStanc
   const likelyEnemy = template.family === "surface_shadow"
     ? "enemy surface activity"
     : "enemy submarine activity";
-  const likelyLocationText = `${likelyEnemy} is most likely ${likelyBearing} of your ingress track near ${sectorLabel}`;
+  const likelyLocationText = `${likelyEnemy} is reported most likely ${likelyBearing} of your ingress track near ${sectorLabel}`;
   const confidenceText = `${confidenceLabel} cueing (${confidence}% assessed confidence)`;
-  const prose = `${likelyLocationText}. Treat that as ${confidenceText}, not precise localization.`;
+  const prose = `${likelyLocationText}. Treat that as ${confidenceText} with an estimated ${errorRadiusKm} km error radius, not precise localization.`;
+  const truthContacts = [
+    ...(forces.enemyPrimary || []),
+    ...(forces.enemySecondary || []),
+    ...(forces.enemySurfaceSupport || []),
+    ...(forces.enemyAir || [])
+  ].map((unit) => ({ unitId: unit.unitId, name: unit.name, platformType: unit.platformType, role: unit.role || unit.notes?.role || null }));
+  const disclosedContactCount = confidence >= 78 ? Math.min(2, truthContacts.length) : Math.min(1, truthContacts.length);
   return {
     confidence,
     confidenceLabel,
@@ -2642,7 +2721,24 @@ function buildScenarioIntel(template, geometry, forces, index, rng, missionStanc
     sectorLabel,
     likelyLocationText,
     confidenceText,
-    prose
+    prose,
+    groundTruth: {
+      contactPoint: [...likelyContact],
+      routeSector: forces?.sector || null,
+      routeLabel: actualSectorLabel,
+      contacts: truthContacts
+    },
+    assessment: {
+      reportedPoint,
+      errorRadiusKm,
+      routeSector: confidence < 62 && alternateSector ? alternateSector.id : forces?.sector || null,
+      routeLabel: sectorLabel,
+      routeCorrect: sectorLabel === actualSectorLabel,
+      knownContacts: truthContacts.slice(0, disclosedContactCount).map((contact) => ({
+        classification: confidence >= 78 ? contact.platformType : `probable ${contact.platformType}`,
+        role: contact.role
+      }))
+    }
   };
 }
 
@@ -2758,9 +2854,9 @@ function buildScenarioAnnotations(template, geometry, forces, missionDef, missio
   const missionTypeKey = normalizeMissionTypeKey(options.missionTypeKey, template.family, { enabled: true });
   const missionType = MISSION_TYPE_CATALOG[missionTypeKey] || MISSION_TYPE_CATALOG[defaultMissionTypeForFamily(template.family)];
   const scenarioTarget = resolveScenarioTarget(template, forces);
-  const likelyContactPoint = template.family === "surface_shadow"
+  const likelyContactPoint = intel.assessment?.reportedPoint || (template.family === "surface_shadow"
     ? geometry.datum
-    : geometry.yasen;
+    : geometry.yasen);
   const interceptPoint = template.family === "surface_shadow"
     ? geometry.destination
     : geometry.egress;
@@ -3045,7 +3141,11 @@ function initializeTheaterPicture(template, unitCatalog, rng, previous = null) {
     const prior = priorUnits[unit.unitId] || {};
     units[unit.unitId] = {
       current_sector: prior.current_sector || fallbackSector,
-      availability: prior.availability || "available",
+      availability: prior.availability === "committed" ? "available" : prior.availability || "available",
+      operational_state: prior.operational_state === "on_station" ? "in_transit" : prior.operational_state || "available",
+      fatigue: Math.max(0, Math.min(1, Number(prior.fatigue || 0))),
+      sorties: Math.max(0, Number(prior.sorties || 0)),
+      recovery_hours_remaining: Math.max(0, Number(prior.recovery_hours_remaining || 0)),
       last_mission_id: prior.last_mission_id || null,
       last_assigned_index: Number.isFinite(prior.last_assigned_index) ? prior.last_assigned_index : -1,
       on_stage: false
@@ -3074,7 +3174,14 @@ function selectUnitsForMission(pool = [], theaterPicture, scenarioSector, desire
 
   const available = pool.filter((unit) => {
     const track = theaterPicture.units[unit.unitId] || {};
-    return track.availability !== "unavailable" && track.availability !== "destroyed";
+    const operationalState = track.operational_state || "available";
+    const priorPlanningAssignment = track.availability === "committed"
+      && operationalState === "on_station"
+      && Number(track.last_assigned_index ?? -1) < missionIndex;
+    return (track.availability === undefined || track.availability === "available" || priorPlanningAssignment)
+      && !["unavailable", "destroyed"].includes(track.availability)
+      && !["destroyed", "repairing", "rearming"].includes(operationalState)
+      && Number(track.recovery_hours_remaining || 0) <= 0;
   });
   const selected = [];
   const exactSectorScore = Number.isFinite(selectionOptions.exactSectorScore) ? selectionOptions.exactSectorScore : 100;
@@ -3089,8 +3196,9 @@ function selectUnitsForMission(pool = [], theaterPicture, scenarioSector, desire
         const recentlyUsed = Number.isFinite(track.last_assigned_index) ? Math.max(0, missionIndex - track.last_assigned_index) : 8;
         const recencyScore = Math.min(8, recentlyUsed);
         const availabilityScore = track.availability === "available" ? 2 : 0;
+        const fatiguePenalty = Math.max(0, Math.min(1, Number(track.fatigue || 0))) * 18;
         const jitter = rng();
-        const score = (exactSector ? exactSectorScore : nonExactSectorScore) + (recencyScore * 5) + availabilityScore + jitter;
+        const score = (exactSector ? exactSectorScore : nonExactSectorScore) + (recencyScore * 5) + availabilityScore - fatiguePenalty + jitter;
         return { unit, score, exactSector, recentIndex: track.last_assigned_index ?? -1 };
       })
       .sort((left, right) => {
@@ -3119,6 +3227,8 @@ function selectUnitsForMission(pool = [], theaterPicture, scenarioSector, desire
       ...(theaterPicture.units[unit.unitId] || {}),
       current_sector: scenarioSector,
       availability: "committed",
+      operational_state: "on_station",
+      fatigue: Math.max(0, Math.min(1, Number(theaterPicture.units[unit.unitId]?.fatigue || 0))),
       last_assigned_index: missionIndex,
       on_stage: true
     };
@@ -3208,11 +3318,125 @@ function buildAisMerchantTraffic(family, geometry, density, authoringConstraints
   }));
 }
 
-function buildScenarioForces(template, geometry, index, theaterPicture, rng, authoringConstraints = {}, aisSnapshot = null, missionTypeKey = null, forceBias = {}, forcePoolPolicy = null) {
+function doctrineForScenario(template, missionTypeKey) {
+  if (template.family === "sub_hunt") return { key: "undersea_breakout", ...FORCE_DOCTRINE_CATALOG.undersea_breakout };
+  if (["asuw_convoy", "civilian_defense", "blockade_relief", "submerged_escort"].includes(missionTypeKey)) {
+    return { key: "escorted_convoy", ...FORCE_DOCTRINE_CATALOG.escorted_convoy };
+  }
+  if (["counter_piracy", "counter_terror", "spec_ops"].includes(missionTypeKey)) {
+    return { key: "maritime_interdiction", ...FORCE_DOCTRINE_CATALOG.maritime_interdiction };
+  }
+  return { key: "surface_transit_group", ...FORCE_DOCTRINE_CATALOG.surface_transit_group };
+}
+
+function doctrineCount(doctrine, slot, desired) {
+  const bounds = doctrine.slots?.[slot];
+  if (!bounds) return Math.max(0, desired);
+  return Math.max(bounds.min || 0, Math.min(bounds.max, Math.max(0, desired)));
+}
+
+function pickTacticalBehavior(template, geometry, index, missionTypeKey, rng) {
+  const catalog = TACTICAL_BEHAVIOR_PROFILES[template.family] || [];
+  const seed = hashSeed(`${template.id}:${geometry?.routeVariantId || "main"}:${index}:${missionTypeKey}:behavior`);
+  const randomOffset = Math.floor((rng?.() || 0) * Math.max(1, catalog.length));
+  return structuredClone(catalog[(seed + randomOffset) % catalog.length] || { key: "standard", label: "Standard", routeStyle: "direct", emissions: "controlled", reaction: "continue assigned tasking" });
+}
+
+function forceUnitsForValidation(forces = {}) {
+  return [
+    ...(forces.friendlySurface || []),
+    ...(forces.friendlyAir || []),
+    ...(forces.enemyPrimary || []),
+    ...(forces.enemySecondary || []),
+    ...(forces.enemySurfaceSupport || []),
+    ...(forces.enemyAir || [])
+  ];
+}
+
+export function validateScenarioPlausibility({ family, missionType, year, forces = {}, doctrine = null } = {}) {
+  const errors = [];
+  const warnings = [];
+  const effectiveDoctrine = doctrine || (family === "sub_hunt"
+    ? { key: "undersea_breakout", ...FORCE_DOCTRINE_CATALOG.undersea_breakout }
+    : { key: "surface_transit_group", ...FORCE_DOCTRINE_CATALOG.surface_transit_group });
+  const units = forceUnitsForValidation(forces);
+  const seenIds = new Set();
+  const seenNamedUnits = new Set();
+
+  for (const unit of units) {
+    if (!unit?.unitId || seenIds.has(unit.unitId)) errors.push(`Duplicate or missing unit identity: ${unit?.name || "unknown unit"}.`);
+    if (unit?.unitId) seenIds.add(unit.unitId);
+    const namedKey = String(unit?.name || "").trim().toLowerCase();
+    if (namedKey && seenNamedUnits.has(namedKey)) errors.push(`Named unit appears more than once: ${unit.name}.`);
+    if (namedKey) seenNamedUnits.add(namedKey);
+    if (!Number.isInteger(Number(unit?.dbid)) || Number(unit.dbid) <= 0) errors.push(`${unit?.name || "Unit"} has an invalid database ID.`);
+    if (unit?.introYear && Number(unit.introYear) > Number(year)) errors.push(`${unit.name} is not available by ${year}.`);
+  }
+
+  const counts = family === "sub_hunt"
+    ? {
+      target: (forces.enemyPrimary || []).filter((unit) => unit.role === "target" || unit.notes?.role === "target").length,
+      screen: (forces.enemyPrimary || []).filter((unit) => unit.role !== "target" && unit.notes?.role !== "target").length,
+      enemySurfaceSupport: (forces.enemySurfaceSupport || []).length,
+      enemyAir: (forces.enemyAir || []).length,
+      friendlySurface: (forces.friendlySurface || []).length,
+      friendlyAir: (forces.friendlyAir || []).length
+    }
+    : {
+      enemyPrimary: (forces.enemyPrimary || []).length,
+      enemySecondary: (forces.enemySecondary || []).length,
+      enemyAir: (forces.enemyAir || []).length,
+      friendlySurface: (forces.friendlySurface || []).length,
+      friendlyAir: (forces.friendlyAir || []).length
+    };
+
+  for (const [slot, bounds] of Object.entries(effectiveDoctrine.slots || {})) {
+    const count = counts[slot] || 0;
+    if (count < (bounds.min || 0)) errors.push(`${slot} requires at least ${bounds.min}; generated ${count}.`);
+    if (count > bounds.max) errors.push(`${slot} permits at most ${bounds.max}; generated ${count}.`);
+  }
+
+  const helicopterSupport = (forces.enemyAir || []).some((unit) => unit.platformType === "helicopter");
+  const hostileSurfaceCount = (forces.enemyPrimary || []).filter((unit) => unit.platformType === "surface_combatant").length
+    + (forces.enemySecondary || []).length
+    + (forces.enemySurfaceSupport || []).length;
+  if (helicopterSupport && hostileSurfaceCount === 0) warnings.push("Hostile helicopter support has no on-stage surface parent; treat it as shore-based only if the theater supports that assumption.");
+  if (["asuw_convoy", "civilian_defense", "blockade_relief"].includes(missionType) && Number(forces.ambientMerchantCount || 0) < 2) {
+    errors.push("Convoy or civilian-defense doctrine requires at least two merchant contacts.");
+  }
+
+  return {
+    valid: errors.length === 0,
+    doctrineKey: effectiveDoctrine.key,
+    counts,
+    errors,
+    warnings
+  };
+}
+
+function finalizeScenarioForces({ template, missionType, year, forces, doctrine, behavior }) {
+  const plausibility = validateScenarioPlausibility({ family: template.family, missionType, year, forces, doctrine });
+  return {
+    ...forces,
+    doctrine: {
+      key: doctrine.key,
+      label: doctrine.label,
+      rationale: doctrine.rationale,
+      slots: structuredClone(doctrine.slots)
+    },
+    tacticalBehavior: behavior,
+    selectionRationale: `${doctrine.label}: ${doctrine.rationale} Tactical posture: ${behavior.label}; expected reaction is to ${behavior.reaction}.`,
+    plausibility
+  };
+}
+
+function buildScenarioForces(template, geometry, index, theaterPicture, rng, authoringConstraints = {}, aisSnapshot = null, missionTypeKey = null, forceBias = {}, forcePoolPolicy = null, year = null) {
   const pools = effectiveForcePools(template, forcePoolPolicy);
   const scenarioSector = pickScenarioSector(template, geometry, index);
   const density = Number(geometry?.density || 1);
   const resolvedMissionType = normalizeMissionTypeKey(missionTypeKey, template.family);
+  const doctrine = doctrineForScenario(template, resolvedMissionType);
+  const tacticalBehavior = pickTacticalBehavior(template, geometry, index, resolvedMissionType, rng);
   const aisMerchantTraffic = buildAisMerchantTraffic(template.family, geometry, density, authoringConstraints, aisSnapshot);
   const merchantTrafficIntensity = authoringConstraints.merchantTrafficIntensity;
   const biologicClutterIntensity = authoringConstraints.biologicClutterIntensity;
@@ -3222,7 +3446,7 @@ function buildScenarioForces(template, geometry, index, theaterPicture, rng, aut
   const normalizedForceBias = normalizeForceBias(forceBias);
 
   if (template.family === "surface_shadow") {
-    const desiredPrimaryCount = Math.max(1, (resolvedMissionType === "submerged_escort" ? 1 : 2) + normalizedForceBias.enemyPrimary);
+    const desiredPrimaryCount = doctrineCount(doctrine, "enemyPrimary", Math.max(1, (resolvedMissionType === "submerged_escort" ? 1 : 2) + normalizedForceBias.enemyPrimary));
     const enemyPrimary = selectUnitsForMission(
       [...(pools.enemySurface || [])],
       theaterPicture,
@@ -3234,21 +3458,21 @@ function buildScenarioForces(template, geometry, index, theaterPicture, rng, aut
     const usedEnemyIds = new Set(enemyPrimary.map((unit) => unit.unitId));
     const barrierCandidates = (pools.enemySurface || []).filter((unit) => !usedEnemyIds.has(unit.unitId));
     const enemySecondaryBaseCount = (resolvedMissionType === "asuw_convoy" ? 2 : 1) + normalizedForceBias.enemySecondary;
-    const enemySecondaryDesired = resolveSupportCount(
+    const enemySecondaryDesired = doctrineCount(doctrine, "enemySecondary", resolveSupportCount(
       enemySecondaryBaseCount,
       hostileSurfaceSupportIntensity,
       barrierCandidates.length
-    );
+    ));
     const enemySecondary = density >= 2 || resolvedMissionType === "asuw_convoy" || resolvedMissionType === "civilian_defense" || resolvedMissionType === "blockade_relief"
       ? selectUnitsForMission(barrierCandidates, theaterPicture, scenarioSector, enemySecondaryDesired, index, rng)
       : [];
-    const enemyAirDesired = resolveSupportCount(Math.max(0, 1 + normalizedForceBias.enemyAir), hostileAirSupportIntensity, (pools.enemyAir || []).length);
+    const enemyAirDesired = doctrineCount(doctrine, "enemyAir", resolveSupportCount(Math.max(0, 1 + normalizedForceBias.enemyAir), hostileAirSupportIntensity, (pools.enemyAir || []).length));
     const enemyAir = selectUnitsForMission(pools.enemyAir || [], theaterPicture, scenarioSector, enemyAirDesired, index, rng);
-    const friendlySurfaceDesired = resolveSupportCount(
+    const friendlySurfaceDesired = doctrineCount(doctrine, "friendlySurface", resolveSupportCount(
       Math.max(0, (resolvedMissionType === "submerged_escort" || resolvedMissionType === "blockade_relief" ? 2 : 1) + normalizedForceBias.friendlySurface),
       friendlySupportIntensity,
       (pools.friendlySurface || []).length
-    );
+    ));
     const friendlySurface = selectUnitsForMission(
       pools.friendlySurface || [],
       theaterPicture,
@@ -3257,10 +3481,10 @@ function buildScenarioForces(template, geometry, index, theaterPicture, rng, aut
       index,
       rng
     );
-    const friendlyAirDesired = resolveSupportCount(Math.max(0, 1 + normalizedForceBias.friendlyAir), friendlySupportIntensity, (pools.friendlyAir || []).length);
+    const friendlyAirDesired = doctrineCount(doctrine, "friendlyAir", resolveSupportCount(Math.max(0, 1 + normalizedForceBias.friendlyAir), friendlySupportIntensity, (pools.friendlyAir || []).length));
     const friendlyAir = selectUnitsForMission(pools.friendlyAir || [], theaterPicture, scenarioSector, friendlyAirDesired, index, rng);
     const extraMerchantTraffic = resolvedMissionType === "asuw_convoy" || resolvedMissionType === "civilian_defense" || resolvedMissionType === "blockade_relief" ? 3 : 0;
-    return {
+    return finalizeScenarioForces({ template, missionType: resolvedMissionType, year, doctrine, behavior: tacticalBehavior, forces: {
       sector: scenarioSector,
       missionType: resolvedMissionType,
       friendlySurface,
@@ -3281,11 +3505,12 @@ function buildScenarioForces(template, geometry, index, theaterPicture, rng, aut
       ),
       offstageEnemy: summarizeOffstageUnits([...(pools.enemySurface || []), ...(pools.enemyAir || [])], [...enemyPrimary, ...enemySecondary, ...enemyAir]),
       offstageFriendly: summarizeOffstageUnits([...(pools.friendlySurface || []), ...(pools.friendlyAir || [])], [...friendlySurface, ...friendlyAir])
-    };
+    } });
   }
 
-  const targetPool = (pools.enemySubsurface || []).filter((unit) => unit.role === "target");
-  const screenPool = (pools.enemySubsurface || []).filter((unit) => unit.role !== "target");
+  const subsurfacePool = [...(pools.enemySubsurface || [])];
+  const preferredTargetPool = subsurfacePool.filter((unit) => unit.role === "target");
+  const fallbackTargetPool = subsurfacePool.filter((unit) => unit.role !== "target");
   const openingForceProfile = index === 0
     ? SUB_HUNT_OPENING_FORCE_PROFILES[Math.floor(rng() * SUB_HUNT_OPENING_FORCE_PROFILES.length) % SUB_HUNT_OPENING_FORCE_PROFILES.length]
     : null;
@@ -3296,44 +3521,60 @@ function buildScenarioForces(template, geometry, index, theaterPicture, rng, aut
       pickWindowDelta: openingForceProfile.pickWindowDelta
     }
     : undefined;
-  const enemyPrimary = [
-    ...selectUnitsForMission(
-      targetPool,
+  const desiredTargetCount = doctrineCount(doctrine, "target", openingForceProfile?.targetCount ?? 1);
+  const preferredTargets = selectUnitsForMission(
+      preferredTargetPool,
       theaterPicture,
       scenarioSector,
-      openingForceProfile?.targetCount ?? 1,
+      desiredTargetCount,
       index,
       rng,
       openingSelectionOptions
-    ),
-    ...selectUnitsForMission(
-      screenPool,
+    );
+  const fallbackTargets = preferredTargets.length < desiredTargetCount
+    ? selectUnitsForMission(
+      fallbackTargetPool,
       theaterPicture,
       scenarioSector,
-      openingForceProfile?.screenCount ?? 1,
+      desiredTargetCount - preferredTargets.length,
       index,
       rng,
       openingSelectionOptions
     )
+    : [];
+  const selectedTargets = [...preferredTargets, ...fallbackTargets].map((unit) => ({ ...unit, role: "target" }));
+  const selectedTargetIds = new Set(selectedTargets.map((unit) => unit.unitId));
+  const screenPool = subsurfacePool.filter((unit) => !selectedTargetIds.has(unit.unitId));
+  const enemyPrimary = [
+    ...selectedTargets,
+    ...selectUnitsForMission(
+      screenPool,
+      theaterPicture,
+      scenarioSector,
+      doctrineCount(doctrine, "screen", openingForceProfile?.screenCount ?? 1),
+      index,
+      rng,
+      openingSelectionOptions
+    ).map((unit) => ({ ...unit, role: "screen" }))
   ];
   const enemySurfaceSupport = selectUnitsForMission(
     pools.enemySurfaceSupport || [],
     theaterPicture,
     scenarioSector,
-    resolveSupportCount(
+    doctrineCount(doctrine, "enemySurfaceSupport", resolveSupportCount(
       Math.max(0, (openingForceProfile?.enemySurfaceSupportBase ?? (density >= 3 ? 2 : 1)) + normalizedForceBias.enemySurfaceSupport),
       hostileSurfaceSupportIntensity,
       (pools.enemySurfaceSupport || []).length
-    ),
+    )),
     index,
     rng,
     openingSelectionOptions
   );
-  const enemyAirDesired = resolveSupportCount(
+  const enemyAirDesired = doctrineCount(doctrine, "enemyAir", resolveSupportCount(
     Math.max(0, (openingForceProfile?.enemyAirBase ?? 1) + normalizedForceBias.enemyAir),
     hostileAirSupportIntensity,
     (pools.enemyAir || []).length
-  );
+  ));
   const enemyAir = openingForceProfile
     ? selectUnitsForMission(
       pools.enemyAir || [],
@@ -3354,11 +3595,11 @@ function buildScenarioForces(template, geometry, index, theaterPicture, rng, aut
         rng
       )
       : [];
-  const friendlySurfaceDesired = resolveSupportCount(
+  const friendlySurfaceDesired = doctrineCount(doctrine, "friendlySurface", resolveSupportCount(
     Math.max(0, (openingForceProfile?.friendlySurfaceBase ?? (resolvedMissionType === "submerged_escort" ? 2 : 1)) + normalizedForceBias.friendlySurface),
     friendlySupportIntensity,
     (pools.friendlySurface || []).length
-  );
+  ));
   const friendlySurface = selectUnitsForMission(
     pools.friendlySurface || [],
     theaterPicture,
@@ -3372,16 +3613,16 @@ function buildScenarioForces(template, geometry, index, theaterPicture, rng, aut
     pools.friendlyAir || [],
     theaterPicture,
     scenarioSector,
-    resolveSupportCount(
+    doctrineCount(doctrine, "friendlyAir", resolveSupportCount(
       Math.max(0, (openingForceProfile?.friendlyAirBase ?? 1) + normalizedForceBias.friendlyAir),
       friendlySupportIntensity,
       (pools.friendlyAir || []).length
-    ),
+    )),
     index,
     rng,
     openingSelectionOptions
   );
-  return {
+  return finalizeScenarioForces({ template, missionType: resolvedMissionType, year, doctrine, behavior: tacticalBehavior, forces: {
     sector: scenarioSector,
     missionType: resolvedMissionType,
     friendlySurface,
@@ -3406,7 +3647,7 @@ function buildScenarioForces(template, geometry, index, theaterPicture, rng, aut
       [...enemyPrimary, ...enemySurfaceSupport, ...enemyAir]
     ),
     offstageFriendly: summarizeOffstageUnits([...(pools.friendlySurface || []), ...(pools.friendlyAir || [])], [...friendlySurface, ...friendlyAir])
-  };
+  } });
 }
 
 function applyAuthoringPostureToGeometry(template, family, geometry, postureKey) {
@@ -3689,7 +3930,7 @@ function buildScenarioRecord(
       missionSlug: missionDef.slug || missionDef.name || "opening"
     })
     : finalizedGeometry;
-  const forces = buildScenarioForces(template, geometry, index, theaterPicture, rng, authoringConstraints, aisSnapshot, resolvedMissionType, forceBias, options?.forcePoolPolicy || null);
+  const forces = buildScenarioForces(template, geometry, index, theaterPicture, rng, authoringConstraints, aisSnapshot, resolvedMissionType, forceBias, options?.forcePoolPolicy || null, year);
   const intel = buildScenarioIntel(template, geometry, forces, index, rng, normalizedMissionStance);
   const tasking = buildScenarioAnnotations(template, geometry, forces, missionDef, normalizedMissionStance, intel, {
     escalationKey,
@@ -3962,7 +4203,8 @@ export function buildContinuationScenario({
     aisSnapshot,
     resolvedMissionType,
     continuationVariation.forceBias,
-    normalizedForcePoolPolicy
+    normalizedForcePoolPolicy,
+    year
   );
   const continuationMissionDef = {
     taskType: derivedTaskType,

@@ -389,6 +389,9 @@ function theaterStatusPill(unit) {
   if ((unit.availability || "").toLowerCase() === "committed") {
     return '<span class="pill warn">Committed</span>';
   }
+  if (["repairing", "rearming", "in_transit"].includes(unit.operationalState)) {
+    return `<span class="pill warn">${unit.operationalState.replace("_", " ")}</span>`;
+  }
   return '<span class="pill alt">Off Stage</span>';
 }
 
@@ -502,6 +505,9 @@ function renderTheaterTracking(data) {
         <div><span>Damage</span><strong>${Math.round((Number(unit.damage) || 0) * 100)}%</strong></div>
         <div><span>Availability</span><strong>${unit.availability || "-"}</strong></div>
         <div><span>Status</span><strong>${unit.status || "-"}</strong></div>
+        <div><span>Fatigue</span><strong>${Math.round((Number(unit.fatigue) || 0) * 100)}%</strong></div>
+        <div><span>Sorties</span><strong>${Number(unit.sorties) || 0}</strong></div>
+        <div><span>Recovery</span><strong>${Math.ceil(Number(unit.recoveryHoursRemaining) || 0)}h</strong></div>
       </div>
       <div class="muted theater-unit-foot">
         Allowed Sectors: ${unit.allowedSectors?.length ? unit.allowedSectors.join(", ") : "None"}${unit.lastMissionId ? ` | Last Mission: ${unit.lastMissionId}` : ""}

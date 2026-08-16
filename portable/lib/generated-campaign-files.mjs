@@ -213,6 +213,7 @@ function diplomacyLineForScenario(scenario) {
 
 function buildSurfaceMissionScript(blueprint, scenario) {
   const g = scenario.geometry;
+  const behavior = scenario.forces?.tacticalBehavior || { formationSpacingKm: 8, surfaceHeadingOffset: 0, airHeadingOffset: 0 };
   const operationType = operationTypeForScenario(blueprint, scenario);
   const diplomacyLine = diplomacyLineForScenario(scenario);
   const playerPlatform = resolvePlayerPlatform(blueprint);
@@ -245,8 +246,8 @@ function buildSurfaceMissionScript(blueprint, scenario) {
   const friendlySurfacePositions = buildDeconflictedPositions({
     center: g.ddg,
     count: friendlySurfaceUnits.length,
-    radiusKm: 8,
-    minSpacingKm: 3,
+    radiusKm: Math.max(5, Number(behavior.formationSpacingKm || 8)),
+    minSpacingKm: Math.max(3, Number(behavior.formationSpacingKm || 8) / 2),
     seedKey: `${scenario.missionId}:surface:friendly_surface`
   });
   const friendlyAirPositions = buildDeconflictedPositions({
@@ -259,8 +260,8 @@ function buildSurfaceMissionScript(blueprint, scenario) {
   const enemySurfacePositions = [g.lead, g.escort, g.barrier, ...buildDeconflictedPositions({
     center: g.center,
     count: Math.max(0, enemySurfaceUnits.length - 3),
-    radiusKm: 18,
-    minSpacingKm: 5,
+    radiusKm: Math.max(12, Number(behavior.formationSpacingKm || 8) * 1.5),
+    minSpacingKm: Math.max(5, Number(behavior.formationSpacingKm || 8) / 1.5),
     seedKey: `${scenario.missionId}:surface:enemy_surface`
   })];
   const enemyAirPositions = buildDeconflictedPositions({
@@ -274,7 +275,7 @@ function buildSurfaceMissionScript(blueprint, scenario) {
   const friendlySurfaceBlock = friendlySurfaceUnits.map((unit, index) => {
     const variable = `friendly_surface_${index}`;
     const block = `${variable}_props = Element.Props.FromDatabaseID(${factionRuntimeId(unit.faction)}, ${pythonStringLiteral(unit.name)}, ElementCategory.Ship, ${unit.dbid}, ${formatGc(friendlySurfacePositions[index])})
-${variable}_element = Element(${variable}_props).SetElevation(0).SetHeading(310).SetHVU(True)
+${variable}_element = Element(${variable}_props).SetElevation(0).SetHeading(${(310 + Number(behavior.surfaceHeadingOffset || 0) + 360) % 360}).SetHVU(True)
 ${variable}_spawn = _P.Element.Spawn(${friendlyAnchor}, ${variable}_element, ${variable}_element.Position)
 ${variable}_plot = _P.Element.Plot(${variable}_spawn, ${variable}_element, Waypoint(friendly_ddg_dest))`;
     friendlyAnchor = `${variable}_plot`;
@@ -283,7 +284,7 @@ ${variable}_plot = _P.Element.Plot(${variable}_spawn, ${variable}_element, Waypo
   const friendlyAirBlock = friendlyAirUnits.map((unit, index) => {
     const variable = `friendly_air_${index}`;
     const block = `${variable}_props = Element.Props.FromDatabaseID(${factionRuntimeId(unit.faction)}, ${pythonStringLiteral(unit.name)}, ElementCategory.Aircraft, ${unit.dbid}, ${formatGc(friendlyAirPositions[index])})
-${variable}_element = Element(${variable}_props).SetElevation(5200).SetHeading(255)
+${variable}_element = Element(${variable}_props).SetElevation(5200).SetHeading(${(255 + Number(behavior.airHeadingOffset || 0) + 360) % 360})
 ${variable}_spawn = _P.Element.Spawn(${friendlyAnchor}, ${variable}_element, ${variable}_element.Position)
 ${variable}_plot = _P.Element.Plot(${variable}_spawn, ${variable}_element, Waypoint(${formatGc(g.datum)}))`;
     friendlyAnchor = `${variable}_plot`;
@@ -294,7 +295,7 @@ ${variable}_plot = _P.Element.Plot(${variable}_spawn, ${variable}_element, Waypo
     const variable = `enemy_surface_${index}`;
     const destination = index === 0 ? "enemy_dest" : formatGc(index === 1 ? g.destination : g.withdrawal);
     const block = `${variable}_props = Element.Props.FromDatabaseID(${factionRuntimeId(unit.faction)}, ${pythonStringLiteral(unit.name)}, ElementCategory.Ship, ${unit.dbid}, ${formatGc(enemySurfacePositions[index])})
-${variable}_element = Element(${variable}_props).SetElevation(0).SetHeading(${index < 2 ? 150 : 205}).SetHVU(${index < 2 ? "True" : "False"})
+${variable}_element = Element(${variable}_props).SetElevation(0).SetHeading(${((index < 2 ? 150 : 205) + Number(behavior.surfaceHeadingOffset || 0) + 360) % 360}).SetHVU(${index < 2 ? "True" : "False"})
 ${variable}_spawn = _P.Element.Spawn(${enemyAnchor}, ${variable}_element, ${variable}_element.Position)
 ${variable}_plot = _P.Element.Plot(${variable}_spawn, ${variable}_element, Waypoint(${destination}))`;
     enemyAnchor = `${variable}_plot`;
@@ -303,7 +304,7 @@ ${variable}_plot = _P.Element.Plot(${variable}_spawn, ${variable}_element, Waypo
   const enemyAirBlock = enemyAirUnits.map((unit, index) => {
     const variable = `enemy_air_${index}`;
     const block = `${variable}_props = Element.Props.FromDatabaseID(${factionRuntimeId(unit.faction)}, ${pythonStringLiteral(unit.name)}, ElementCategory.Aircraft, ${unit.dbid}, ${formatGc(enemyAirPositions[index])})
-${variable}_element = Element(${variable}_props).SetElevation(950).SetHeading(190).SetHVU(True)
+${variable}_element = Element(${variable}_props).SetElevation(950).SetHeading(${(190 + Number(behavior.airHeadingOffset || 0) + 360) % 360}).SetHVU(True)
 ${variable}_spawn = _P.Element.Spawn(${enemyAnchor}, ${variable}_element, ${variable}_element.Position)
 ${variable}_plot = _P.Element.Plot(${variable}_spawn, ${variable}_element, Waypoint(${formatGc(g.barrier)}))`;
     enemyAnchor = `${variable}_plot`;
@@ -317,9 +318,42 @@ ${variable}_plot = _P.Element.Plot(${variable}_spawn, ${variable}_element, Waypo
     ? scenario.missionType
     : "surface_shadow";
   const protectedMerchantExists = aisMerchantTraffic.length + merchantPositions.length > 0;
+  const protectedMerchantElements = [
+    ...aisMerchantTraffic.map((_, index) => `ais_cargo_${index}_element`),
+    ...merchantPositions.map((_, index) => `merchant_${index}_element`)
+  ];
+  const allProtectedTrafficFailureBlock = protectedMerchantExists
+    ? `${protectedMerchantElements.map((elementName, index) => `protected_traffic_${index}_lost = _T.Manual()\n${elementName}.NotifyUponDeath(protected_traffic_${index}_lost)`).join("\n")}
+protected_traffic_lost = ${protectedMerchantElements.length === 1 ? "protected_traffic_0_lost" : `_T.Or([${protectedMerchantElements.map((_, index) => `protected_traffic_${index}_lost`).join(", ")}])`}
+protected_traffic_failure = _P.Objective.Status(protected_traffic_lost, objectives[0], ObjectiveStatus.Failed)`
+    : "";
+  const taskKey = scenario.tasking?.primaryTask?.key || "classify_trail";
   const standardObjectiveBlock = `withdrawal_antenna_trigger = _T.AntennasRaised(True)
 player_element.NotifyOnAntennaRaised(withdrawal_antenna_trigger)
 withdrawal_complete = _P.Objective.Status(withdrawal_antenna_trigger, objectives[0], ObjectiveStatus.Completed)`;
+  const stableObjectiveBlock = taskKey === "designated_strike" && enemySurfaceUnits.length
+    ? `designated_target_destroyed = _T.Manual()
+enemy_surface_0_element.NotifyUponDeath(designated_target_destroyed)
+designated_strike_complete = _P.Objective.Status(designated_target_destroyed, objectives[0], ObjectiveStatus.Completed)`
+    : taskKey === "break_contact_escape"
+      ? `withdrawal_zone = _Z.Circular("Withdrawal Completion Zone", withdrawal_poi_pos, 6000)
+withdrawal_zone_props = _T.Zone.Props(_T.ZoneEvent.IsInside, _T.AnyAll.Any)
+withdrawal_zone_trigger = _T.Zone(withdrawal_zone, [player_element], withdrawal_zone_props)
+withdrawal_complete = _P.Objective.Status(withdrawal_zone_trigger, objectives[0], ObjectiveStatus.Completed)`
+      : taskKey === "hold_barrier"
+        ? `barrier_hold_zone = _Z.Circular("Barrier Hold Station", barrier_pos, 7000)
+barrier_hold_props = _T.Zone.Props(_T.ZoneEvent.IsInside, _T.AnyAll.Any)
+barrier_hold_trigger = _T.Zone(barrier_hold_zone, [player_element], barrier_hold_props)
+barrier_hold_complete = _P.Objective.Status(barrier_hold_trigger, objectives[0], ObjectiveStatus.Completed)`
+        : taskKey === "intercept_gate"
+          ? `intercept_gate_zone = _Z.Circular("Intercept Gate", enemy_dest, 8000)
+intercept_gate_props = _T.Zone.Props(_T.ZoneEvent.IsInside, _T.AnyAll.Any)
+intercept_gate_trigger = _T.Zone(intercept_gate_zone, [player_element], intercept_gate_props)
+intercept_gate_complete = _P.Objective.Status(intercept_gate_trigger, objectives[0], ObjectiveStatus.Completed)`
+          : standardObjectiveBlock;
+  const protectedTrafficFailureBlock = protectedMerchantExists && ["civilian_defense", "blockade_relief", "asuw_convoy"].includes(scenario.missionType)
+    ? allProtectedTrafficFailureBlock
+    : "";
   const missionObjectiveBlock = scenario.missionType === "spec_ops"
     ? `insertion_support_zone = _Z.Circular("Special Operations Insertion Support Area", datum_pos, 5000)
 insertion_support_props = _T.Zone.Props(_T.ZoneEvent.IsInside, _T.AnyAll.Any)
@@ -329,19 +363,17 @@ insertion_support_complete = _P.Objective.Status(insertion_support_trigger, obje
       ? `interdiction_target_destroyed = _T.Manual()
 enemy_surface_0_element.NotifyUponDeath(interdiction_target_destroyed)
 interdiction_complete = _P.Objective.Status(interdiction_target_destroyed, objectives[0], ObjectiveStatus.Completed)
-${protectedMerchantExists ? `protected_traffic_lost = _T.Manual()
-cargo_element.NotifyUponDeath(protected_traffic_lost)
-interdiction_failed = _P.Objective.Status(protected_traffic_lost, objectives[0], ObjectiveStatus.Failed)` : ""}`
-      : standardObjectiveBlock;
+${protectedMerchantExists ? allProtectedTrafficFailureBlock : ""}`
+      : stableObjectiveBlock;
   const biologicBlock = biologicPositions.map((point, idx) => `bio_props = Element.Props.FromDatabaseID(civ_fact, "Biologic ${idx}", ElementCategory.Biologic, 1, ${formatGc(point)})
 bio_element = Element(bio_props).SetElevation(${-60 - (idx * 40)}).SetHeading(random.randrange(0, 359))
 _P.Element.Spawn(player_spawn_process, bio_element, bio_element.Position)`).join("\n");
-  const aisMerchantBlock = aisMerchantTraffic.map((contact, idx) => `cargo_props = Element.Props.FromDatabaseID(civ_fact, "${String(contact.name || `AIS Merchant ${idx + 1}`).replaceAll("\"", "")}", ElementCategory.Ship, ${pickGenericCargoDbid(contact.mmsi || contact.id || `${scenario.missionId}:ais:${idx}`)}, ${formatGc(contact.point)})
-cargo_element = Element(cargo_props).SetHeading(random.randrange(180, 280))
-_P.Element.Spawn(player_spawn_process, cargo_element, cargo_element.Position)`).join("\n");
-  const merchantBlock = merchantPositions.map((point, idx) => `cargo_props = Element.Props.FromDatabaseID(civ_fact, "Merchant ${aisMerchantTraffic.length + idx + 1}", ElementCategory.Ship, _get_random_cargo(), ${formatGc(point)})
-cargo_element = Element(cargo_props).SetHeading(random.randrange(180, 280))
-_P.Element.Spawn(player_spawn_process, cargo_element, cargo_element.Position)`).join("\n");
+  const aisMerchantBlock = aisMerchantTraffic.map((contact, idx) => `ais_cargo_${idx}_props = Element.Props.FromDatabaseID(civ_fact, "${String(contact.name || `AIS Merchant ${idx + 1}`).replaceAll("\"", "")}", ElementCategory.Ship, ${pickGenericCargoDbid(contact.mmsi || contact.id || `${scenario.missionId}:ais:${idx}`)}, ${formatGc(contact.point)})
+ais_cargo_${idx}_element = Element(ais_cargo_${idx}_props).SetHeading(random.randrange(180, 280))
+_P.Element.Spawn(player_spawn_process, ais_cargo_${idx}_element, ais_cargo_${idx}_element.Position)`).join("\n");
+  const merchantBlock = merchantPositions.map((point, idx) => `merchant_${idx}_props = Element.Props.FromDatabaseID(civ_fact, "Merchant ${aisMerchantTraffic.length + idx + 1}", ElementCategory.Ship, _get_random_cargo(), ${formatGc(point)})
+merchant_${idx}_element = Element(merchant_${idx}_props).SetHeading(random.randrange(180, 280))
+_P.Element.Spawn(player_spawn_process, merchant_${idx}_element, merchant_${idx}_element.Position)`).join("\n");
   return `import random
 
 ##
@@ -455,6 +487,8 @@ ${enemyAirBlock}
 
 ${missionObjectiveBlock}
 
+${protectedTrafficFailureBlock}
+
 player_death_trigger = _T.Manual()
 player_nop_trigger = _T.NonOperational()
 player_element.NotifyUponDeath(player_death_trigger)
@@ -484,6 +518,7 @@ end_transmission_process = _P.Element.Radio(end_message_process, sat_element, en
 
 function buildSubHuntMissionScript(blueprint, scenario) {
   const g = scenario.geometry;
+  const behavior = scenario.forces?.tacticalBehavior || { targetDepthFeet: -120, screenDepthFeet: -150, headingOffset: 0 };
   const operationType = operationTypeForScenario(blueprint, scenario);
   const diplomacyLine = diplomacyLineForScenario(scenario);
   const supportUnits = Math.max(1, scenario.geometry.density);
@@ -492,8 +527,9 @@ function buildSubHuntMissionScript(blueprint, scenario) {
   // Stock MNW missions commonly use about -50 ft for initial sub spawns, so we stay
   // in that shallow-start regime and rely on the explicit Dive process after spawn.
   const playerDepthFeet = -90;
-  const targetDepthFeet = -120;
-  const escortDepthFeet = -150;
+  const targetDepthFeet = Number(behavior.targetDepthFeet || -120);
+  const escortDepthFeet = Number(behavior.screenDepthFeet || -150);
+  const enemyHeading = (245 + Number(behavior.headingOffset || 0) + 360) % 360;
   const annotationPoiLines = buildAnnotationPoiList(scenario.tasking?.annotations || []);
   const annotationPoiAttachList = buildAnnotationPoiAttachList(scenario.tasking?.annotations || []);
   const biologicPositions = buildDeconflictedPositions({
@@ -567,7 +603,7 @@ _P.Element.Spawn(${ambientSpawnAnchor}, cargo_element, cargo_element.Position)`)
   const escortBlock = escortUnit
     ? `escort_spawn_zone = _Z.Circular("Escort Spawn Zone", escort_spawn_pos, 10000)
 escort_props = Element.Props.FromDatabaseID(${factionRuntimeId(escortUnit.faction)}, ${pythonStringLiteral(escortUnit.name)}, ElementCategory.Submarine, ${escortUnit.dbid}, escort_spawn_pos)
-escort_element = Element(escort_props).SetElevation(${escortDepthFeet}).SetHeading(245).SetHVU(True)
+escort_element = Element(escort_props).SetElevation(${escortDepthFeet}).SetHeading(${enemyHeading}).SetHVU(True)
 escort_spawn = _P.Element.Spawn(yasen_spawn, escort_element, escort_element.Position)
 escort_dive = _P.Element.Dive(escort_spawn, escort_element)
 
@@ -598,6 +634,30 @@ ${variable}_plot = _P.Element.Plot(${variable}_spawn, ${variable}_element, Waypo
 }).join("\n")}
 `
     : "";
+  const taskKey = scenario.tasking?.primaryTask?.key || "classify_trail";
+  const reportObjectiveBlock = `report_trigger = _T.AntennasRaised(True)
+player_element.NotifyOnAntennaRaised(report_trigger)
+report_complete = _P.Objective.Status(report_trigger, objectives[0], ObjectiveStatus.Completed)`;
+  const missionObjectiveBlock = taskKey === "designated_strike"
+    ? `designated_target_destroyed = _T.Manual()
+yasen_element.NotifyUponDeath(designated_target_destroyed)
+designated_strike_complete = _P.Objective.Status(designated_target_destroyed, objectives[0], ObjectiveStatus.Completed)`
+    : taskKey === "break_contact_escape"
+      ? `withdrawal_zone = _Z.Circular("Withdrawal Completion Zone", withdrawal_zone_pos, 6000)
+withdrawal_zone_props = _T.Zone.Props(_T.ZoneEvent.IsInside, _T.AnyAll.Any)
+withdrawal_zone_trigger = _T.Zone(withdrawal_zone, [player_element], withdrawal_zone_props)
+withdrawal_complete = _P.Objective.Status(withdrawal_zone_trigger, objectives[0], ObjectiveStatus.Completed)`
+      : taskKey === "hold_barrier"
+        ? `barrier_hold_zone = _Z.Circular("Barrier Hold Station", support_group_dest, 7000)
+barrier_hold_props = _T.Zone.Props(_T.ZoneEvent.IsInside, _T.AnyAll.Any)
+barrier_hold_trigger = _T.Zone(barrier_hold_zone, [player_element], barrier_hold_props)
+barrier_hold_complete = _P.Objective.Status(barrier_hold_trigger, objectives[0], ObjectiveStatus.Completed)`
+        : ["intercept_gate", "reacquire_contact"].includes(taskKey)
+          ? `contact_gate_zone = _Z.Circular("Contact Reacquisition Gate", ${taskKey === "intercept_gate" ? "egress_pos" : "datum_pos"}, 8000)
+contact_gate_props = _T.Zone.Props(_T.ZoneEvent.IsInside, _T.AnyAll.Any)
+contact_gate_trigger = _T.Zone(contact_gate_zone, [player_element], contact_gate_props)
+contact_gate_complete = _P.Objective.Status(contact_gate_trigger, objectives[0], ObjectiveStatus.Completed)`
+          : reportObjectiveBlock;
   return `import random
 
 ##
@@ -708,7 +768,7 @@ ${merchantBlock}
 
 yasen_spawn_zone = _Z.Circular("Yasen Spawn Zone", yasen_spawn_pos, 12000)
 yasen_props = Element.Props.FromDatabaseID(${factionRuntimeId(primaryTarget.faction)}, ${pythonStringLiteral(primaryTarget.name)}, ElementCategory.Submarine, yasen_id, yasen_spawn_pos)
-yasen_element = Element(yasen_props).SetElevation(${targetDepthFeet}).SetHeading(245)
+yasen_element = Element(yasen_props).SetElevation(${targetDepthFeet}).SetHeading(${enemyHeading})
 yasen_spawn = _P.Element.Spawn(${ambientSpawnAnchor}, yasen_element, yasen_element.Position)
 yasen_dive = _P.Element.Dive(yasen_spawn, yasen_element)
 
@@ -716,9 +776,7 @@ ${escortBlock}
 
 ${supportGroupBlock}
 
-withdrawal_antenna_trigger = _T.AntennasRaised(True)
-player_element.NotifyOnAntennaRaised(withdrawal_antenna_trigger)
-withdrawal_complete = _P.Objective.Status(withdrawal_antenna_trigger, objectives[0], ObjectiveStatus.Completed)
+${missionObjectiveBlock}
 
 player_death_trigger = _T.Manual()
 player_nop_trigger = _T.NonOperational()
@@ -780,6 +838,10 @@ export function buildScenarioPackageArtifacts({ blueprint, scenario }) {
   const isReservedScenario = Boolean(scenario.reserved || scenario.continuation?.reserved);
   const commandAuthority = getTheaterCommandAuthority(blueprint.theaterId);
   const intelLine = scenario.intel?.prose || "Enemy activity is assessed along the current route family, but cueing remains imprecise.";
+  const oppositionAssessmentLine = scenario.forces?.tacticalBehavior
+    ? `${scenario.forces.tacticalBehavior.label}: ${scenario.forces.tacticalBehavior.emissions}; likely reaction is to ${scenario.forces.tacticalBehavior.reaction}.`
+    : "No reliable opposition behavior profile is available.";
+  const assessedRouteLine = scenario.intel?.assessment?.routeLabel || "Route unresolved";
   const taskLine = scenario.tasking?.primaryTask?.objectiveLine || "Build the tactical picture and preserve the boat.";
   const mapIntentLine = scenario.tasking?.primaryTask?.mapIntent || "Use the marked cues as geometry aids rather than exact truth.";
   const stanceLine = scenario.tasking?.missionStance?.cue || scenario.tasking?.posture?.cue || "Command expects disciplined use of the available route and contact cues.";
@@ -795,7 +857,7 @@ export function buildScenarioPackageArtifacts({ blueprint, scenario }) {
     mission_to: blueprint.player.name.toUpperCase(),
     mission_objectives: isReservedScenario
       ? `BT\nSUBJ: ${scenario.name.toUpperCase()} - PLACEHOLDER\n\n1. This mission slot is reserved so the campaign chain always has a valid next node.\n\n2. If you do not want to continue the campaign, treat the previous mission as the campaign conclusion.\n\n3. If you do want to continue, do not play this scenario yet.\n\n4. Return to Campaign Tracking.\n\n5. Save the result from the previous mission.\n\n6. Click Continue Campaign so the app can rewrite this scenario with updated tasking, geometry, and supporting forces.\n\n7. Rebuild and redeploy if prompted.\n\n8. Launch this scenario only after the tracker confirms it was regenerated.\n\n9. Current placeholder route summary:\n   ${scenario.geometry.routeSummary}\n\n10. Current placeholder enemy transit:\n   ${scenario.geometry.enemyTransitSummary}`
-      : `BT\nSUBJ: ${scenario.name.toUpperCase()}\n\n1. Situation:\n   ${scenario.summary}\n\n2. Mission Type:\n   ${missionTypeLine}\n\n3. Scenario Time:\n   ${temporalLine}\n\n4. Primary Task:\n   ${taskLine}\n\n5. Alert State:\n   ${scenario.tasking?.escalation?.label || "Operational Patrol"}\n   ${escalationLine}\n\n6. Rules Of Engagement:\n   ${scenario.tasking?.rulesOfEngagement?.label || "Command Controlled"}\n   ${roeLine}\n\n7. Mission Stance:\n   ${scenario.tasking?.missionStance?.label || scenario.tasking?.posture?.label || "Deliberate Search"}\n   ${stanceLine}\n\n8. Designated Target:\n   ${designatedTargetLine}\n\n9. Intel Cue:\n   ${intelLine}\n\n10. Marked Cues:\n   ${annotationLines || "No additional marked cues."}\n\n11. Expected Action:\n   ${mapIntentLine}\n\n12. End State:\n   ${endConditionLine}\n\n13. Route Summary:\n   ${scenario.geometry.routeSummary}\n\n14. Enemy Transit:\n   ${scenario.geometry.enemyTransitSummary}\n\n15. Report to ${commandAuthority} only after the ordered task is complete and the boat remains combat effective.`,
+      : `BT\nSUBJ: ${scenario.name.toUpperCase()}\n\n1. Situation:\n   ${scenario.summary}\n\n2. Mission Type:\n   ${missionTypeLine}\n\n3. Scenario Time:\n   ${temporalLine}\n\n4. Primary Task:\n   ${taskLine}\n\n5. Alert State:\n   ${scenario.tasking?.escalation?.label || "Operational Patrol"}\n   ${escalationLine}\n\n6. Rules Of Engagement:\n   ${scenario.tasking?.rulesOfEngagement?.label || "Command Controlled"}\n   ${roeLine}\n\n7. Mission Stance:\n   ${scenario.tasking?.missionStance?.label || scenario.tasking?.posture?.label || "Deliberate Search"}\n   ${stanceLine}\n\n8. Designated Target:\n   ${designatedTargetLine}\n\n9. Intel Cue:\n   ${intelLine}\n\n10. Marked Cues:\n   ${annotationLines || "No additional marked cues."}\n\n11. Assessed Opposition Behavior:\n   ${oppositionAssessmentLine}\n\n12. Expected Action:\n   ${mapIntentLine}\n\n13. End State:\n   ${endConditionLine}\n\n14. Assessed Route:\n   ${assessedRouteLine}\n\n15. Report to ${commandAuthority} only after the ordered task is complete and the boat remains combat effective.`,
     mission_success: `BT\nSUBJ: MISSION STATUS - SUCCESS\n\n${scenario.successText}`
   };
   const metadata = missionMetadataRecord(
@@ -925,6 +987,9 @@ export async function buildGeneratedCampaignFiles({ templateRoot, spec }) {
       rules_of_engagement: blueprint.requestedRoe || "weapons_tight",
       route_family: blueprint.family,
       theater_picture: blueprint.theaterPicture,
+      force_doctrine: blueprint.scenarios[0]?.forces?.doctrine || null,
+      tactical_behavior: blueprint.scenarios[0]?.forces?.tacticalBehavior || null,
+      intel_assessment: blueprint.scenarios[0]?.intel?.assessment || null,
       authoring_constraints: blueprint.authoringConstraints,
       force_pool_policy: blueprint.forcePoolPolicy || null,
       experimental_features: blueprint.experimentalFeatures || { enabled: false, plotSeed: "none", plotSeedLabel: "None" }

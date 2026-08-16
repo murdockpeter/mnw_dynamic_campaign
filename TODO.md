@@ -1,6 +1,6 @@
 # Persistence TODO
 
-## Current Roadmap Status (0.1.5)
+## Current Roadmap Status (0.1.7)
 
 The original persistence milestone, beta-feedback backlog, and 0.1.4 feature backlog are implemented. The unchecked 0.1.4 task detail below is retained as historical acceptance criteria; the code and automated tests are the current source of truth.
 
@@ -24,6 +24,15 @@ Remaining release/content tracks:
 - [x] Validate install and automatic update against a real tagged GitHub prerelease.
 - [x] Expand local DB-informed selection beyond Virginia hulls into editable friendly, enemy, and support force pools.
 - [x] Implement bespoke mission-objective scripts for Spec Ops, Counter-Piracy, and Counter-Terror experimental content; keep Land Attack gated until shore-target and weapon scripting are supportable.
+
+Completed realistic-variety track:
+
+- [x] Replace unconstrained force mixing with doctrine-bounded force packages, selection rationale, year/DB validation, and composition plausibility checks.
+- [x] Give stable mission tasks objective-specific completion and failure triggers instead of a universal report trigger.
+- [x] Add deterministic tactical behavior profiles that vary spacing, headings, depths, emissions, route style, and likely reaction inside credible bounds.
+- [x] Separate scenario ground truth from player-facing assessed intelligence, including positional error, confidence, incomplete classification, and occasional route uncertainty.
+- [x] Persist sortie count, fatigue, transit, rearm, recovery, repair, and permanent-loss state into continuation force selection and Campaign Tracking.
+- [x] Add seeded diversity sampling and regression tests that reject implausible packages while requiring meaningful composition and behavior variety.
 
 Local force-pool selection now indexes the player's installed `.core` archive at runtime, normalizes selectable surface, subsurface, air, and merchant records, filters them by theater side and campaign year, and exposes editable pools in Advanced Authoring. Selected pools drive both mission families, persist into campaign/bootstrap/continuation state, and honor permanent unit losses. No extracted MNW database catalog is bundled with the installer.
 

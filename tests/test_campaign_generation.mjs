@@ -6,7 +6,8 @@ import { fileURLToPath } from "node:url";
 
 import {
   buildCampaignBlueprint,
-  buildContinuationScenario
+  buildContinuationScenario,
+  validateScenarioPlausibility
 } from "../shared/campaign-generator.mjs";
 import { buildGeneratedCampaignFiles, buildScenarioPackageArtifacts } from "../portable/lib/generated-campaign-files.mjs";
 
@@ -509,7 +510,8 @@ test("local DB force-pool policy drives theater OOB, scenario forces, and persis
   };
   const blueprint = buildCampaignBlueprint(spec);
   assert.equal(blueprint.forcePoolPolicy.source, "local_mnw_db");
-  assert.deepEqual(new Set(blueprint.scenarios[0].forces.enemyPrimary.map((unit) => unit.dbid)), new Set([667, 34]));
+  assert.ok(blueprint.scenarios[0].forces.enemyPrimary.length >= 1);
+  assert.equal(blueprint.scenarios[0].forces.enemyPrimary.every((unit) => [667, 34].includes(unit.dbid)), true);
   assert.equal(blueprint.scenarios[0].forces.enemySurfaceSupport.length, 0);
   assert.ok(blueprint.theaterUnits.some((unit) => unit.unitId === "db_enemySubsurface_ru_667"));
 
@@ -520,8 +522,7 @@ test("local DB force-pool policy drives theater OOB, scenario forces, and persis
   const generatedMission = generated.packageFiles[generatedMissionPath];
   assert.equal(campaignConfig.force_pool_policy.indexedArchive, "test.core");
   assert.equal(bootstrapState.world_state.force_pool_policy.pools.enemySubsurface.length, 2);
-  assert.match(generatedMission, /Project 885M Yasen-M/);
-  assert.match(generatedMission, /Project 971M Akula III/);
+  assert.equal(/Project 885M Yasen-M|Project 971M Akula III/.test(generatedMission), true);
   assert.doesNotMatch(generatedMission, /USS Spruance|P-8A Poseidon|Akula Screen/);
 
   const priorPicture = structuredClone(blueprint.theaterPicture);
@@ -539,6 +540,9 @@ test("local DB force-pool policy drives theater OOB, scenario forces, and persis
     forcePoolPolicy
   });
   assert.ok(continuation.forces.enemyPrimary.every((unit) => unit.dbid !== 667));
+  assert.equal(continuation.forces.enemyPrimary[0].dbid, 34);
+  assert.equal(continuation.forces.enemyPrimary[0].role, "target");
+  assert.equal(continuation.forces.plausibility.valid, true);
   assert.equal(continuation.forcePoolPolicy.indexedArchive, "test.core");
 });
 
@@ -617,6 +621,105 @@ test("experimental surface mission types use bespoke objective scripts", () => {
     assert.match(scenario.objectiveText, entry.objectivePattern);
     assert.match(blueprint.warnings[0], /bespoke experimental objective script/i);
   }
+});
+
+test("doctrinal packages remain plausible while deterministic behaviors provide bounded variety", () => {
+  const behaviorKeys = new Set();
+  const forceSignatures = new Set();
+  for (const theater of ["luzon_strait", "south_china_sea", "norwegian_sea"]) {
+    for (let seedIndex = 0; seedIndex < 32; seedIndex += 1) {
+      const spec = {
+        title: "Plausibility Sample",
+        campaignId: `plausibility_${theater}_${seedIndex}`,
+        campaignSeed: `sample-${seedIndex}`,
+        theater,
+        campaignClimate: seedIndex % 2 ? "surveillance" : "breakout_hunt",
+        scenarioCount: 4,
+        playerName: "USS Test"
+      };
+      const blueprint = buildCampaignBlueprint(spec);
+      const repeated = buildCampaignBlueprint(spec);
+      assert.deepEqual(blueprint.scenarios, repeated.scenarios);
+      for (const scenario of blueprint.scenarios) {
+        const validation = validateScenarioPlausibility({
+          family: blueprint.family,
+          missionType: scenario.missionType,
+          year: blueprint.year,
+          forces: scenario.forces,
+          doctrine: scenario.forces.doctrine
+        });
+        assert.equal(validation.valid, true, validation.errors.join(" "));
+        assert.equal(scenario.forces.plausibility.valid, true);
+        assert.match(scenario.forces.selectionRationale, /Tactical posture:/);
+        behaviorKeys.add(scenario.forces.tacticalBehavior.key);
+        forceSignatures.add([
+          theater,
+          scenario.forces.enemyPrimary.map((unit) => unit.unitId).join("+"),
+          scenario.forces.enemyAir.length,
+          scenario.forces.friendlySurface.length
+        ].join("|"));
+      }
+    }
+  }
+  assert.ok(behaviorKeys.size >= 5, `expected broad tactical variety, received ${[...behaviorKeys].join(", ")}`);
+  assert.ok(forceSignatures.size >= 8, "expected force composition variety within doctrinal bounds");
+});
+
+test("player briefings use assessed intel while mission packages retain ground truth", () => {
+  const blueprint = buildCampaignBlueprint({
+    title: "Intel Separation",
+    campaignId: "intel_separation",
+    campaignSeed: "intel-separation-seed",
+    theater: "south_china_sea",
+    scenarioCount: 2,
+    playerName: "USS Test"
+  });
+  const scenario = blueprint.scenarios[0];
+  assert.notDeepEqual(scenario.intel.assessment.reportedPoint, scenario.intel.groundTruth.contactPoint);
+  assert.ok(scenario.intel.assessment.errorRadiusKm >= 6);
+  const artifacts = buildScenarioPackageArtifacts({ blueprint, scenario });
+  const briefingRows = artifacts.localeRows.join("\n");
+  assert.match(briefingRows, /Assessed Opposition Behavior:/);
+  assert.match(briefingRows, /Assessed Route:/);
+  assert.doesNotMatch(briefingRows, /Route Summary:/);
+  assert.doesNotMatch(briefingRows, new RegExp(scenario.intel.groundTruth.contactPoint[0].toFixed(6).replace(".", "\\.")));
+});
+
+test("stable missions script objective-specific completion and failure conditions", () => {
+  const surfaceBlueprint = buildCampaignBlueprint({
+    title: "Objective Scripts",
+    campaignId: "objective_scripts",
+    theater: "luzon_strait",
+    scenarioCount: 4,
+    playerName: "USS Test"
+  });
+  const surfaceScenario = structuredClone(surfaceBlueprint.scenarios[0]);
+  const surfacePatterns = {
+    designated_strike: /designated_target_destroyed/,
+    break_contact_escape: /withdrawal_zone_trigger/,
+    hold_barrier: /barrier_hold_trigger/,
+    intercept_gate: /intercept_gate_trigger/
+  };
+  for (const [taskKey, pattern] of Object.entries(surfacePatterns)) {
+    surfaceScenario.tasking.primaryTask.key = taskKey;
+    const artifacts = buildScenarioPackageArtifacts({ blueprint: surfaceBlueprint, scenario: surfaceScenario });
+    const missionPath = Object.keys(artifacts.files).find((key) => key.endsWith(`${surfaceScenario.slug}.mis`));
+    const mission = artifacts.files[missionPath];
+    assert.match(mission, pattern);
+  }
+
+  const subBlueprint = buildCampaignBlueprint({
+    title: "Sub Objective Scripts",
+    campaignId: "sub_objective_scripts",
+    theater: "south_china_sea",
+    scenarioCount: 4,
+    playerName: "USS Test"
+  });
+  const subScenario = structuredClone(subBlueprint.scenarios[0]);
+  subScenario.tasking.primaryTask.key = "reacquire_contact";
+  const subArtifacts = buildScenarioPackageArtifacts({ blueprint: subBlueprint, scenario: subScenario });
+  const subMissionPath = Object.keys(subArtifacts.files).find((key) => key.endsWith(`${subScenario.slug}.mis`));
+  assert.match(subArtifacts.files[subMissionPath], /contact_gate_trigger/);
 });
 
 test("surveillance snapshot remains stable", async () => {

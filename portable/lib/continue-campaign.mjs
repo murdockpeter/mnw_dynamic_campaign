@@ -40,15 +40,36 @@ function missionSlugFromId(missionId) {
   return String(missionId || "").split(".").pop() || null;
 }
 
-function theaterPictureWithPersistentLosses(state) {
+function theaterPictureWithPersistentForceState(state) {
   const picture = structuredClone(state.world_state?.theater_picture || {});
   picture.units = picture.units || {};
   for (const unit of Object.values(state.order_of_battle || {})) {
-    if (!unit.destroyed) continue;
+    const track = picture.units[unit.unit_id] || {};
+    const nextTrack = {
+      ...track,
+      unit_id: unit.unit_id,
+      fatigue: Number(track.fatigue || 0),
+      sorties: Number(track.sorties || 0),
+      recovery_hours_remaining: Number(track.recovery_hours_remaining || 0)
+    };
+    if (unit.destroyed) {
+      Object.assign(nextTrack, {
+        operational_state: "destroyed",
+        availability: "destroyed",
+        on_stage: false,
+        recovery_hours_remaining: 0
+      });
+    } else if (Number(unit.damage || 0) >= 0.25) {
+      Object.assign(nextTrack, {
+        operational_state: "repairing",
+        availability: "unavailable",
+        on_stage: false,
+        recovery_hours_remaining: Math.max(nextTrack.recovery_hours_remaining, Math.ceil(Number(unit.damage || 0) * 120))
+      });
+    }
     picture.units[unit.unit_id] = {
       ...(picture.units[unit.unit_id] || {}),
-      availability: "destroyed",
-      on_stage: false
+      ...nextTrack
     };
   }
   return picture;
@@ -103,7 +124,7 @@ export async function appendContinuationScenario({
     operationalTempo,
     priorMissionCount: currentSlotIndex + 1,
     lastOutcome: latestResult?.outcome || "success",
-    theaterPicture: theaterPictureWithPersistentLosses(state),
+    theaterPicture: theaterPictureWithPersistentForceState(state),
     posture: state.world_state?.posture || "wide_area_search",
     missionStance: state.world_state?.mission_stance || state.world_state?.posture || "wide_area_search",
     missionType: state.world_state?.mission_type || campaignConfig.mission_type || null,
@@ -209,6 +230,9 @@ export async function appendContinuationScenario({
   state.world_state.rules_of_engagement = scenario.continuation?.roeKey || state.world_state.rules_of_engagement || campaignConfig.rules_of_engagement || "weapons_tight";
   state.world_state.authoring_constraints = state.world_state.authoring_constraints || campaignConfig.authoring_constraints || {};
   state.world_state.force_pool_policy = scenario.forcePoolPolicy || state.world_state.force_pool_policy || campaignConfig.force_pool_policy || null;
+  state.world_state.force_doctrine = scenario.forces?.doctrine || null;
+  state.world_state.tactical_behavior = scenario.forces?.tacticalBehavior || null;
+  state.world_state.intel_assessment = scenario.intel?.assessment || null;
   state.world_state.experimental_features = scenario.continuation?.experimentalEnabled
     ? {
       enabled: true,

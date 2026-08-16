@@ -6,7 +6,7 @@ import path from "node:path";
 
 import { normalizeModulesConfig, validateModulesConfig } from "../portable/lib/module-registry.mjs";
 import { listJsonBackups, readJsonDocument, restoreJsonBackup, validateMissionResult, writeJsonSafely } from "../portable/lib/safe-write.mjs";
-import { ingestMissionResultPayload } from "../portable/lib/runtime.mjs";
+import { advanceTime, ingestMissionResultPayload, ingestResult } from "../portable/lib/runtime.mjs";
 
 test("safe JSON writes create backups and reject stale fingerprints", async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "mnw-safe-write-"));
@@ -94,4 +94,42 @@ test("portable runtime honors disabled damage and ammo modules", async () => {
   assert.deepEqual(persisted.enabled_modules, []);
   assert.equal(persisted.campaign_clock, "2028-01-02T00:00:00.000Z");
   await fs.rm(root, { recursive: true, force: true });
+});
+
+test("mission participation drives transit, rearm, repair, fatigue, and sortie recovery", () => {
+  const state = {
+    campaign_clock: "2028-01-01T00:00:00Z",
+    order_of_battle: {
+      aircraft: { unit_id: "aircraft", class: "aircraft", ammo: { torpedo: 3 }, damage: 0, readiness: 1, destroyed: false },
+      escort: { unit_id: "escort", class: "surface_combatant", ammo: { missile: 1 }, damage: 0, readiness: 1, destroyed: false },
+      damaged_sub: { unit_id: "damaged_sub", class: "submarine", ammo: { torpedo: 4 }, damage: 0.4, readiness: 0.6, destroyed: false }
+    },
+    mission_history: [],
+    module_state: {},
+    world_state: {
+      theater_picture: {
+        units: {
+          aircraft: { unit_id: "aircraft", on_stage: true, availability: "committed" },
+          escort: { unit_id: "escort", on_stage: true, availability: "committed" },
+          damaged_sub: { unit_id: "damaged_sub", on_stage: true, availability: "committed" }
+        }
+      }
+    }
+  };
+  const modules = { enabled_modules: ["damage", "ammo"], module_config: { damage: { repair_rate_per_day: 0.08 }, ammo: {} } };
+  ingestResult(state, { mission_id: "cycle.one", outcome: "success", events: [] }, modules);
+  assert.equal(state.world_state.theater_picture.units.aircraft.operational_state, "in_transit");
+  assert.equal(state.world_state.theater_picture.units.aircraft.recovery_hours_remaining, 18);
+  assert.equal(state.world_state.theater_picture.units.escort.operational_state, "rearming");
+  assert.equal(state.world_state.theater_picture.units.damaged_sub.operational_state, "repairing");
+  assert.equal(state.world_state.theater_picture.units.aircraft.sorties, 1);
+  assert.equal(state.world_state.theater_picture.units.aircraft.fatigue, 0.2);
+
+  advanceTime(state, 18, modules);
+  assert.equal(state.world_state.theater_picture.units.aircraft.availability, "available");
+  assert.equal(state.world_state.theater_picture.units.escort.availability, "unavailable");
+  assert.ok(state.world_state.theater_picture.units.aircraft.fatigue < 0.2);
+  advanceTime(state, 12, modules);
+  assert.equal(state.world_state.theater_picture.units.escort.availability, "available");
+  assert.equal(state.world_state.theater_picture.units.damaged_sub.operational_state, "repairing");
 });

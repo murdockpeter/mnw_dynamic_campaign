@@ -61,6 +61,15 @@ function summarizeTheaterStatus(unit, track) {
   if (track?.on_stage) {
     return "On stage";
   }
+  if (track?.operational_state === "repairing") {
+    return `Repairing (${Math.ceil(Number(track.recovery_hours_remaining || 0))}h)`;
+  }
+  if (track?.operational_state === "rearming") {
+    return `Rearming (${Math.ceil(Number(track.recovery_hours_remaining || 0))}h)`;
+  }
+  if (track?.operational_state === "in_transit") {
+    return `In transit (${Math.ceil(Number(track.recovery_hours_remaining || 0))}h)`;
+  }
   if (track?.availability === "committed") {
     return "Committed";
   }
@@ -93,12 +102,16 @@ function buildTheaterDebugPayload(campaignConfig, state) {
       currentSector: track.current_sector || unit.notes?.current_sector || allowedSectors[0] || null,
       allowedSectors,
       availability: track.availability || unit.notes?.availability || "available",
+      operationalState: track.operational_state || "available",
       onStage: Boolean(track.on_stage),
       lastMissionId: track.last_mission_id || null,
       lastAssignedIndex: Number.isFinite(track.last_assigned_index) ? track.last_assigned_index : null,
       destroyed: Boolean(unit.destroyed),
       damage: Number(unit.damage || 0),
       readiness: Number(unit.readiness ?? 1),
+      fatigue: Number(track.fatigue || 0),
+      sorties: Number(track.sorties || 0),
+      recoveryHoursRemaining: Number(track.recovery_hours_remaining || 0),
       status: summarizeTheaterStatus(unit, track)
     };
   });
@@ -162,6 +175,50 @@ export function ingestResult(state, result, modulesConfig) {
     }
   }
 
+  const theaterUnits = state.world_state?.theater_picture?.units || {};
+  for (const track of Object.values(theaterUnits)) {
+    if (!track?.unit_id) continue;
+    const unit = state.order_of_battle?.[track.unit_id];
+    if (!unit) continue;
+    const isPlayer = Array.isArray(unit.tags) && unit.tags.includes("player");
+    if (!track.on_stage && !isPlayer) continue;
+
+    const unitClass = String(unit.class || unit.unit_type || track.class || "").toLowerCase();
+    const baseRecovery = unitClass.includes("air") || unitClass.includes("helicopter")
+      ? 18
+      : unitClass.includes("sub")
+        ? 14
+        : 30;
+    const ammoValues = Object.values(unit.ammo || {}).map(Number).filter(Number.isFinite);
+    const lowAmmo = ammoEnabled && ammoValues.length > 0 && ammoValues.reduce((sum, value) => sum + value, 0) <= 2;
+    const damaged = Number(unit.damage || 0) >= 0.25;
+    const recoveryHours = damaged
+      ? Math.max(baseRecovery, Math.ceil(Number(unit.damage || 0) * 240))
+      : lowAmmo
+        ? Math.max(baseRecovery, 24)
+        : baseRecovery;
+
+    track.on_stage = false;
+    track.last_mission_id = result.mission_id || null;
+    track.sorties = Number(track.sorties || 0) + 1;
+    track.fatigue = Math.min(1, Number(track.fatigue || 0) + 0.2);
+    track.recovery_hours_remaining = Math.max(Number(track.recovery_hours_remaining || 0), recoveryHours);
+    if (unit.destroyed) {
+      track.operational_state = "destroyed";
+      track.availability = "destroyed";
+      track.recovery_hours_remaining = 0;
+    } else if (damaged) {
+      track.operational_state = "repairing";
+      track.availability = "unavailable";
+    } else if (lowAmmo) {
+      track.operational_state = "rearming";
+      track.availability = "unavailable";
+    } else {
+      track.operational_state = "in_transit";
+      track.availability = "unavailable";
+    }
+  }
+
   state.mission_history = state.mission_history || [];
   state.mission_history.push({
     mission_id: result.mission_id,
@@ -172,6 +229,7 @@ export function ingestResult(state, result, modulesConfig) {
   });
 
   if (damageEnabled) {
+    state.module_state = state.module_state || {};
     state.module_state.damage = state.module_state.damage || {};
     state.module_state.damage.repair_rate_per_day = repairRate;
   }
@@ -185,15 +243,41 @@ export function advanceTime(state, hours, modulesConfig) {
   if (elapsedHours !== 0 && state.campaign_clock && Number.isFinite(Date.parse(state.campaign_clock)) && Number.isFinite(elapsedHours)) {
     state.campaign_clock = new Date(Date.parse(state.campaign_clock) + elapsedHours * 60 * 60 * 1000).toISOString();
   }
-  if (!modulesConfig.enabled_modules.includes("damage")) return state;
-  const repairRate = Number(modulesConfig.module_config?.damage?.repair_rate_per_day ?? 0.08);
-  const repairDelta = repairRate * (elapsedHours / 24.0);
-  for (const unit of Object.values(state.order_of_battle || {})) {
-    if (unit.destroyed || Number(unit.damage || 0) <= 0) {
+  const damageEnabled = modulesConfig.enabled_modules.includes("damage");
+  if (damageEnabled) {
+    const repairRate = Number(modulesConfig.module_config?.damage?.repair_rate_per_day ?? 0.08);
+    const repairDelta = repairRate * (elapsedHours / 24.0);
+    for (const unit of Object.values(state.order_of_battle || {})) {
+      if (unit.destroyed || Number(unit.damage || 0) <= 0) continue;
+      unit.damage = Math.max(0, Number(unit.damage || 0) - repairDelta);
+      unit.readiness = Math.max(0, 1 - unit.damage);
+    }
+  }
+
+  for (const track of Object.values(state.world_state?.theater_picture?.units || {})) {
+    const unit = state.order_of_battle?.[track.unit_id];
+    if (!unit) continue;
+    if (unit.destroyed) {
+      track.operational_state = "destroyed";
+      track.availability = "destroyed";
+      track.on_stage = false;
+      track.recovery_hours_remaining = 0;
       continue;
     }
-    unit.damage = Math.max(0, Number(unit.damage || 0) - repairDelta);
-    unit.readiness = Math.max(0, 1 - unit.damage);
+
+    track.fatigue = Math.max(0, Number(track.fatigue || 0) - Math.max(0, elapsedHours) / 120);
+    track.recovery_hours_remaining = Math.max(0, Number(track.recovery_hours_remaining || 0) - Math.max(0, elapsedHours));
+    if (track.recovery_hours_remaining > 0) continue;
+
+    if (Number(unit.damage || 0) >= 0.25) {
+      track.operational_state = "repairing";
+      track.availability = "unavailable";
+      track.recovery_hours_remaining = Math.max(12, Math.ceil(Number(unit.damage || 0) * 120));
+    } else {
+      track.operational_state = "available";
+      track.availability = "available";
+      track.on_stage = false;
+    }
   }
   return state;
 }
