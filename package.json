@@ -28,7 +28,7 @@
   },
   "build": {
     "appId": "com.waveops.mnwdynamiccampaign",
-    "productName": "MNW Dynamic Campaign Console",
+    "productName": "MNW Dynamic Campaign",
     "files": [
       "electron/**/*",
       "portable/**/*",
@@ -87,7 +87,8 @@
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
+    "allowToChangeInstallationDirectory": true,
+    "shortcutName": "MNW Dynamic Campaign",
       "installerIcon": "electron/resources/icon.ico",
       "uninstallerIcon": "electron/resources/icon.ico",
       "installerHeaderIcon": "electron/resources/icon.ico"

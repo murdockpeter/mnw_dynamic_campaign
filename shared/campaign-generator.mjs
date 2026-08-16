@@ -277,30 +277,33 @@ const EXPERIMENTAL_PLOT_SEED_CATALOG = {
 
 const PLAYER_SUBMARINE_CATALOG = {
   virginia_block_i: {
-    label: "Virginia Block I",
+    label: "USS Virginia (SSN-774) — Virginia Block I",
     shortLabel: "Virginia B1",
-    dbid: 1004,
+    dbid: 1001,
     platformDbid: 74,
-    representativeHull: "USS North Carolina",
+    representativeHull: "USS Virginia",
     verifiedDb: true,
+    playerCapable: true,
     dbFallback: false
   },
   virginia_block_ii: {
-    label: "Virginia Block II",
+    label: "USS Mississippi (SSN-782) — Virginia Block II",
     shortLabel: "Virginia B2",
-    dbid: 1005,
+    dbid: 1009,
     platformDbid: 551,
-    representativeHull: "USS New Hampshire",
+    representativeHull: "USS Mississippi",
     verifiedDb: true,
+    playerCapable: true,
     dbFallback: false
   },
   virginia_block_iii: {
-    label: "Virginia Block III",
+    label: "USS Colorado (SSN-788) — Virginia Block III",
     shortLabel: "Virginia B3",
-    dbid: 1011,
+    dbid: 1015,
     platformDbid: 552,
-    representativeHull: "USS North Dakota",
+    representativeHull: "USS Colorado",
     verifiedDb: true,
+    playerCapable: true,
     dbFallback: false
   }
 };
@@ -1960,7 +1963,9 @@ function materializePlayerPlatform(basePlayer = {}, playerName, playerSubmarineK
   const variant = resolvePlayerSubmarineDefinition(variantKey);
   return {
     ...basePlayer,
-    name: playerName,
+    // Player-capable named hulls have deck/ownship assets tied to their exact
+    // element-name IDs. Keep the displayed name and spawned ID together.
+    name: variant.representativeHull,
     dbid: variant.dbid,
     platformDbid: variant.platformDbid || null,
     variantKey,
@@ -1968,6 +1973,7 @@ function materializePlayerPlatform(basePlayer = {}, playerName, playerSubmarineK
     platformShortLabel: variant.shortLabel,
     representativeHull: variant.representativeHull || null,
     verifiedDb: Boolean(variant.verifiedDb),
+    playerCapable: Boolean(variant.playerCapable),
     dbFallback: Boolean(variant.dbFallback)
   };
 }

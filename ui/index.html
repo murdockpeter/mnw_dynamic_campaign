@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>MNW Campaign Console</title>
+  <title>MNW Dynamic Campaign</title>
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
@@ -14,7 +14,7 @@
           <img class="brand-image" src="../src/mnw_leadin_screen.png" alt="Modern Naval Warfare lead-in screen">
         </div>
         <div class="brand-kicker">Modern Naval Warfare</div>
-        <h1>Campaign Console</h1>
+        <h1>MNW Dynamic Campaign</h1>
         <p>Persistence-aware UI scaffold for modular dynamic campaigns.</p>
       </div>
 
@@ -330,19 +330,17 @@
                 <input id="wizard-friendly-support-intensity" type="range" min="0" max="4" step="1" value="2">
               </label>
               <label>
-                <span>Player Submarine</span>
+                <span>Player Submarine (tested hulls only)</span>
                 <select id="wizard-player-submarine"></select>
               </label>
             </div>
             <div class="wizard-meta" style="margin-top:12px;">
               Keep <strong>Campaign Seed</strong> unique unless you want the EXACT same generated campaign again. This value drives deterministic scenario variety.
             </div>
-            <label class="full-width">
-              <span>Player Unit Name</span>
-              <input id="wizard-player-name" type="text" value="USS Annapolis" list="wizard-player-hulls">
-              <datalist id="wizard-player-hulls"></datalist>
-              <span id="wizard-player-catalog-status" class="wizard-meta">Curated generator default.</span>
-            </label>
+            <input id="wizard-player-name" type="hidden" value="USS Colorado">
+            <div id="wizard-player-catalog-status" class="wizard-meta" style="margin-top:12px;">
+              Only hulls confirmed to include MNW player-deck/ownship assets are listed.
+            </div>
             <details class="card nested-card" style="margin-top:16px;">
               <summary class="collapsible-summary">
                 <div>

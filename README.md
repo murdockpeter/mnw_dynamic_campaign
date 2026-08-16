@@ -28,8 +28,8 @@ Start with:
 
 Typical player artifacts:
 
-- `dist\MNW Dynamic Campaign Console Setup 0.1.8.exe`
-- `dist\MNW Dynamic Campaign Console Setup 0.1.8.exe.blockmap`
+- `dist\MNW Dynamic Campaign Setup 0.1.8.exe`
+- `dist\MNW Dynamic Campaign Setup 0.1.8.exe.blockmap`
 - `dist\latest.yml`
 - `dist\*.dmg` when a macOS build is produced
 
@@ -110,8 +110,8 @@ Release flow:
 Expected updater artifacts:
 
 - `latest.yml`
-- `MNW Dynamic Campaign Console Setup <version>.exe`
-- `MNW Dynamic Campaign Console Setup <version>.exe.blockmap`
+- `MNW Dynamic Campaign Setup <version>.exe`
+- `MNW Dynamic Campaign Setup <version>.exe.blockmap`
 
 The Electron app can use either:
 

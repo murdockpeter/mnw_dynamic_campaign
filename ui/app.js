@@ -1961,7 +1961,7 @@ function populateWizardSelectors() {
     <option value="${key}">${timeOfDay.label}</option>
   `).join("");
   playerSubmarineSelect.innerHTML = Object.entries(getPlayerSubmarineCatalog())
-    .filter(([, playerSubmarine]) => playerSubmarine.verifiedDb !== false)
+    .filter(([, playerSubmarine]) => playerSubmarine.verifiedDb !== false && playerSubmarine.playerCapable === true)
     .map(([key, playerSubmarine]) => `
     <option value="${key}">${playerSubmarine.label}</option>
   `).join("");
@@ -2014,10 +2014,13 @@ function syncWizardDefaultsWithTheater() {
     return;
   }
   document.getElementById("wizard-year").value = theater.defaultYear;
-  document.getElementById("wizard-player-name").value = theater.player.name;
   const playerSubmarineSelect = document.getElementById("wizard-player-submarine");
   if (playerSubmarineSelect && playerSubmarineSelect.querySelector('option[value="virginia_block_iii"]')) {
     playerSubmarineSelect.value = "virginia_block_iii";
+  }
+  const selectedPlayerHull = getPlayerSubmarineCatalog()[playerSubmarineSelect?.value];
+  if (selectedPlayerHull) {
+    document.getElementById("wizard-player-name").value = selectedPlayerHull.representativeHull;
   }
   const missionTypeSelect = document.getElementById("wizard-mission-type");
   if (missionTypeSelect) {
@@ -2112,6 +2115,7 @@ async function initializeWizard() {
     forceTitle: true
   });
   syncWizardDefaultsWithTheater();
+  refreshPlayerHullSuggestions(false);
   refreshWizardIntensityLabels();
   refreshCurrentWizardBlueprint();
   if (desktopApi?.loadLocalPlatformCatalog) {
@@ -2443,23 +2447,14 @@ function hydrateRuntime(data) {
 }
 
 function refreshPlayerHullSuggestions(selectRepresentative = false) {
-  const datalist = document.getElementById("wizard-player-hulls");
   const status = document.getElementById("wizard-player-catalog-status");
   const selected = getPlayerSubmarineCatalog()[document.getElementById("wizard-player-submarine")?.value];
-  if (!datalist || !status || !selected) return;
-  const hulls = (localPlatformCatalog?.catalog?.units || []).filter((item) => Number(item.platformId) === Number(selected.platformDbid) && item.namedHull);
-  datalist.innerHTML = hulls.map((hull) => `<option value="${escapeMarkup(hull.name)}">${escapeMarkup(hull.hullNumber || "")}</option>`).join("");
-  if (hulls.length) {
-    status.textContent = `${hulls.length} locally indexed ${selected.label} hulls available from MNW DB platform ${selected.platformDbid}.`;
-    if (selectRepresentative) {
-      const representative = hulls.find((hull) => hull.name === selected.representativeHull) || hulls[0];
-      document.getElementById("wizard-player-name").value = representative.name;
-      refreshCurrentWizardBlueprint();
-    }
-  } else {
-    status.textContent = localPlatformCatalog?.available
-      ? `No matching hull names found for MNW DB platform ${selected.platformDbid}; free-text naming remains available.`
-      : "Local DB hull catalog not indexed; using curated generator defaults.";
+  if (!status || !selected) return;
+  const playerName = document.getElementById("wizard-player-name");
+  if (playerName) playerName.value = selected.representativeHull;
+  status.textContent = `${selected.representativeHull} is an allowlisted player-capable hull (element ID ${selected.dbid}).`;
+  if (selectRepresentative) {
+    refreshCurrentWizardBlueprint();
   }
 }
 

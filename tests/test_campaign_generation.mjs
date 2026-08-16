@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import {
   buildCampaignBlueprint,
   buildContinuationScenario,
+  getPlayerSubmarineCatalog,
   validateScenarioPlausibility
 } from "../shared/campaign-generator.mjs";
 import { buildGeneratedCampaignFiles, buildScenarioPackageArtifacts } from "../portable/lib/generated-campaign-files.mjs";
@@ -282,7 +283,16 @@ test("campaign seed controls deterministic variety independently from campaign i
   );
 });
 
-test("verified Virginia block catalog resolves to distinct MNW hull ids", () => {
+test("player submarine catalog resolves only to allowlisted player-capable hull ids", () => {
+  const catalog = getPlayerSubmarineCatalog();
+  assert.deepEqual(
+    Object.values(catalog).map(({ dbid, representativeHull, playerCapable }) => ({ dbid, representativeHull, playerCapable })),
+    [
+      { dbid: 1001, representativeHull: "USS Virginia", playerCapable: true },
+      { dbid: 1009, representativeHull: "USS Mississippi", playerCapable: true },
+      { dbid: 1015, representativeHull: "USS Colorado", playerCapable: true }
+    ]
+  );
   const blockI = buildCampaignBlueprint({
     title: "Virginia B1",
     campaignId: "virginia_b1",
@@ -304,12 +314,17 @@ test("verified Virginia block catalog resolves to distinct MNW hull ids", () => 
 
   assert.deepEqual(
     [blockI.player.dbid, blockII.player.dbid, blockIII.player.dbid],
-    [1004, 1005, 1011]
+    [1001, 1009, 1015]
   );
   assert.deepEqual(
     [blockI.player.platformDbid, blockII.player.platformDbid, blockIII.player.platformDbid],
     [74, 551, 552]
   );
+  assert.deepEqual(
+    [blockI.player.name, blockII.player.name, blockIII.player.name],
+    ["USS Virginia", "USS Mississippi", "USS Colorado"]
+  );
+  assert.ok([blockI, blockII, blockIII].every((blueprint) => blueprint.player.playerCapable));
 });
 
 test("first breakout-hunt mission now produces materially different opening packages across fresh campaigns", () => {
@@ -428,8 +443,9 @@ test("player submarine selection persists into blueprint metadata and mission sc
   });
 
   assert.equal(blueprint.playerSubmarine, "virginia_block_ii");
-  assert.equal(blueprint.player.dbid, 1005);
+  assert.equal(blueprint.player.dbid, 1009);
   assert.equal(blueprint.player.platformDbid, 551);
+  assert.equal(blueprint.player.name, "USS Mississippi");
   assert.equal(blueprint.player.platformShortLabel, "Virginia B2");
   assert.doesNotMatch(blueprint.warnings.join(" "), /fallback/i);
 
@@ -438,8 +454,8 @@ test("player submarine selection persists into blueprint metadata and mission sc
   const scriptPath = Object.keys(artifacts.files).find((key) => key.endsWith(`${scenario.slug}.mis`));
   const script = artifacts.files[scriptPath];
 
-  assert.match(script, /\(Player\) USS Test \| Virginia B2/);
-  assert.match(script, /virginia_id = 1005/);
+  assert.match(script, /\(Player\) USS Mississippi \| Virginia B2/);
+  assert.match(script, /virginia_id = 1009/);
 });
 
 test("season and time-of-day controls affect scenario clocks and briefing text", () => {

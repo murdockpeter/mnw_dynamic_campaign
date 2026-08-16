@@ -1,6 +1,6 @@
 # Desktop App Guide
 
-This guide is for players or operators who want to use the packaged `MNW Campaign Console` desktop app without building anything from source.
+This guide is for players or operators who want to use the packaged `MNW Dynamic Campaign` desktop app without building anything from source.
 
 ## What This App Is For
 
@@ -28,7 +28,7 @@ You do not need:
 
 On Windows, use:
 
-- `MNW Dynamic Campaign Console Setup 0.1.8.exe`
+- `MNW Dynamic Campaign Setup 0.1.8.exe`
 
 On macOS, use:
 

@@ -54,7 +54,7 @@ function resolvePlayerPlatform(blueprint = {}) {
     shortLabel: player.platformShortLabel || player.platformLabel || "Virginia B3",
     label: player.platformLabel || "Virginia Block III",
     variantKey: player.variantKey || "virginia_block_iii",
-    name: player.name || "USS North Dakota"
+    name: player.name || "USS Colorado"
   };
 }
 
