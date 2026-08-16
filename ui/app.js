@@ -12,6 +12,7 @@ import {
   getTheaterTemplates,
   getTimeOfDayCatalog,
 } from "../shared/campaign-generator.mjs";
+import { updateModalPresentation } from "./update-modal.mjs";
 
 const desktopApi = globalThis.mnwDesktop ?? null;
 let currentWizardBlueprint = null;
@@ -23,6 +24,10 @@ let currentOperationalMap = null;
 let currentOperationalMapMode = "vector";
 let currentRuntimePayload = null;
 let currentUpdateState = null;
+let startupUpdateModalEnabled = false;
+let startupUpdateModalDismissed = false;
+let startupUpdateApplyRequested = false;
+let startupUpdateInstallRequested = false;
 let currentCampaignControls = null;
 let latestResultPreviewFingerprint = null;
 let localPlatformCatalog = null;
@@ -1381,6 +1386,116 @@ function summarizeUpdateState(state) {
   return state.message || "Updater is idle.";
 }
 
+function dismissStartupUpdateModal() {
+  startupUpdateApplyRequested = false;
+  startupUpdateModalDismissed = true;
+  const modal = document.getElementById("startup-update-modal");
+  if (modal) modal.hidden = true;
+}
+
+async function installStartupUpdate() {
+  if (startupUpdateInstallRequested || !desktopApi?.installUpdate) return;
+  startupUpdateInstallRequested = true;
+  const primaryButton = document.getElementById("startup-update-primary");
+  const bypassButton = document.getElementById("startup-update-bypass");
+  const status = document.getElementById("startup-update-status");
+  if (primaryButton) {
+    primaryButton.disabled = true;
+    primaryButton.textContent = "Restarting To Apply Update...";
+  }
+  if (bypassButton) bypassButton.disabled = true;
+  if (status) status.textContent = "The update is ready. Closing the app and applying it now.";
+  try {
+    await desktopApi.installUpdate();
+  } catch (error) {
+    startupUpdateInstallRequested = false;
+    startupUpdateApplyRequested = false;
+    renderUpdateState({
+      ...(currentUpdateState || {}),
+      status: "error",
+      message: error.message || "Update installation failed.",
+      error: error.message || String(error)
+    });
+  }
+}
+
+function renderStartupUpdateModal(state) {
+  const modal = document.getElementById("startup-update-modal");
+  if (!modal || !startupUpdateModalEnabled || startupUpdateModalDismissed) return;
+  const presentation = updateModalPresentation(state);
+  if (!presentation.visible) {
+    modal.hidden = true;
+    return;
+  }
+
+  const wasHidden = modal.hidden;
+  modal.hidden = false;
+  const title = document.getElementById("startup-update-title");
+  const status = document.getElementById("startup-update-status");
+  const primaryButton = document.getElementById("startup-update-primary");
+  const bypassButton = document.getElementById("startup-update-bypass");
+  const progress = document.getElementById("startup-update-progress");
+  const progressBar = document.getElementById("startup-update-progress-bar");
+  const progressLabel = document.getElementById("startup-update-progress-label");
+  if (title) title.textContent = presentation.title;
+  if (status) status.textContent = presentation.status;
+  if (primaryButton) {
+    primaryButton.textContent = presentation.primaryLabel;
+    primaryButton.dataset.updateAction = presentation.primaryAction;
+    primaryButton.disabled = presentation.primaryDisabled || startupUpdateInstallRequested;
+    if (wasHidden && !primaryButton.disabled) queueMicrotask(() => primaryButton.focus());
+  }
+  if (bypassButton) {
+    bypassButton.disabled = presentation.bypassDisabled || startupUpdateInstallRequested;
+    if (wasHidden && primaryButton?.disabled && !bypassButton.disabled) queueMicrotask(() => bypassButton.focus());
+  }
+  if (progress) progress.hidden = !presentation.progressVisible;
+  if (progressBar) progressBar.style.width = `${presentation.progressPercent}%`;
+  if (progressLabel) {
+    progressLabel.hidden = !presentation.progressVisible;
+    progressLabel.textContent = `${Math.round(presentation.progressPercent)}%`;
+  }
+
+  if (startupUpdateApplyRequested && (state?.status === "downloaded" || state?.updateDownloaded)) {
+    void installStartupUpdate();
+  }
+}
+
+async function runStartupUpdateAction(action) {
+  if (action === "dismiss") {
+    dismissStartupUpdateModal();
+    return;
+  }
+  try {
+    if (action === "check") {
+      await desktopApi.checkForUpdates();
+    } else if (action === "download") {
+      startupUpdateApplyRequested = true;
+      const primaryButton = document.getElementById("startup-update-primary");
+      const bypassButton = document.getElementById("startup-update-bypass");
+      if (primaryButton) {
+        primaryButton.disabled = true;
+        primaryButton.textContent = "Starting Download...";
+      }
+      if (bypassButton) bypassButton.disabled = true;
+      await desktopApi.downloadUpdate();
+      if (currentUpdateState?.status === "downloaded" || currentUpdateState?.updateDownloaded) {
+        await installStartupUpdate();
+      }
+    } else if (action === "install") {
+      await installStartupUpdate();
+    }
+  } catch (error) {
+    startupUpdateApplyRequested = false;
+    renderUpdateState({
+      ...(currentUpdateState || {}),
+      status: "error",
+      message: error.message || "The update operation failed.",
+      error: error.message || String(error)
+    });
+  }
+}
+
 function renderUpdateState(state) {
   currentUpdateState = state;
   const summary = document.getElementById("settings-update-summary");
@@ -1404,6 +1519,7 @@ function renderUpdateState(state) {
   if (installButton) {
     installButton.disabled = !state?.canInstall;
   }
+  renderStartupUpdateModal(state);
 }
 
 async function initializeAppUpdates() {
@@ -1423,6 +1539,11 @@ async function initializeAppUpdates() {
     return;
   }
 
+  startupUpdateModalEnabled = true;
+  document.getElementById("startup-update-primary")?.addEventListener("click", (event) => {
+    void runStartupUpdateAction(event.currentTarget.dataset.updateAction || "none");
+  });
+  document.getElementById("startup-update-bypass")?.addEventListener("click", dismissStartupUpdateModal);
   renderUpdateState(await desktopApi.getUpdateState());
   desktopApi.onUpdateState?.((state) => {
     renderUpdateState(state);

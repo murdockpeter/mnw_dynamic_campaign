@@ -28,7 +28,7 @@ You do not need:
 
 On Windows, use:
 
-- `MNW Dynamic Campaign Console Setup 0.1.7.exe`
+- `MNW Dynamic Campaign Console Setup 0.1.8.exe`
 
 On macOS, use:
 
@@ -105,6 +105,15 @@ Notes:
 - the `Use Latest Generated Campaign` button can repoint the saved defaults to the newest generated package tree
 - preview releases are enabled by default during prerelease testing and can be disabled under App Updates
 - the GitHub preview update path was live-tested from installed version 0.1.5 to 0.1.6, including check, download, restart-to-install, and post-update launch
+
+### Startup Update Prompt
+
+Packaged builds check the configured release channel during launch and present the normal update workflow in a modal, so Advanced Setup is not required for routine updates.
+
+- `Download & Apply Update` downloads the release, shows progress, and restarts the app to install it.
+- `Bypass Update` dismisses the prompt for the current launch and keeps the installed version running.
+- A bypassed or previously downloaded update is not silently installed when the app closes; applying it always requires an explicit update action.
+- Advanced Setup retains the provider, prerelease, manual check, download, and restart controls for configuration and troubleshooting.
 
 ### Authoring
 

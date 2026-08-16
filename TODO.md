@@ -1,6 +1,6 @@
 # Persistence TODO
 
-## Current Roadmap Status (0.1.7)
+## Current Roadmap Status (0.1.8)
 
 The original persistence milestone, beta-feedback backlog, and 0.1.4 feature backlog are implemented. The unchecked 0.1.4 task detail below is retained as historical acceptance criteria; the code and automated tests are the current source of truth.
 
@@ -33,6 +33,7 @@ Completed realistic-variety track:
 - [x] Separate scenario ground truth from player-facing assessed intelligence, including positional error, confidence, incomplete classification, and occasional route uncertainty.
 - [x] Persist sortie count, fatigue, transit, rearm, recovery, repair, and permanent-loss state into continuation force selection and Campaign Tracking.
 - [x] Add seeded diversity sampling and regression tests that reject implausible packages while requiring meaningful composition and behavior variety.
+- [x] Add a packaged-launch update modal with combined download/apply, visible progress, and a session-only bypass that never installs silently on quit.
 
 Local force-pool selection now indexes the player's installed `.core` archive at runtime, normalizes selectable surface, subsurface, air, and merchant records, filters them by theater side and campaign year, and exposes editable pools in Advanced Authoring. Selected pools drive both mission families, persist into campaign/bootstrap/continuation state, and honor permanent unit losses. No extracted MNW database catalog is bundled with the installer.
 

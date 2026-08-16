@@ -272,7 +272,7 @@ async function configureUpdater(settings) {
 
   attachUpdaterListeners();
   autoUpdater.autoDownload = false;
-  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.autoInstallOnAppQuit = false;
   autoUpdater.allowPrerelease = settings?.updates?.allowPrerelease !== false;
   autoUpdater.setFeedURL(providerConfig);
   updaterConfigured = true;
@@ -295,9 +295,7 @@ async function configureUpdater(settings) {
 
   if (!autoCheckAttempted && settings?.updates?.autoCheckOnLaunch !== false) {
     autoCheckAttempted = true;
-    try {
-      await autoUpdater.checkForUpdates();
-    } catch (error) {
+    void autoUpdater.checkForUpdates().catch((error) => {
       setUpdateState({
         status: "error",
         message: error?.message || "Update check failed.",
@@ -305,7 +303,7 @@ async function configureUpdater(settings) {
         canCheck: true,
         error: error?.message || String(error)
       });
-    }
+    });
   }
 }
 

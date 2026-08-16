@@ -851,6 +851,23 @@
     </main>
   </div>
 
+  <section id="startup-update-modal" class="startup-update-modal" role="dialog" aria-modal="true" aria-labelledby="startup-update-title" hidden>
+    <div class="startup-update-dialog">
+      <div class="eyebrow">Application Update</div>
+      <h2 id="startup-update-title">Check For Application Updates?</h2>
+      <p id="startup-update-status" class="muted" aria-live="polite">Checking the configured release channel.</p>
+      <div id="startup-update-progress" class="startup-update-progress" hidden>
+        <div id="startup-update-progress-bar" class="startup-update-progress-bar"></div>
+      </div>
+      <div id="startup-update-progress-label" class="startup-update-progress-label muted" hidden>0%</div>
+      <div class="startup-update-actions">
+        <button id="startup-update-primary" type="button">Check For Updates</button>
+        <button id="startup-update-bypass" type="button" class="ghost-button">Bypass Update</button>
+      </div>
+      <p class="startup-update-note muted">Bypassing keeps the currently installed version running for this launch only.</p>
+    </div>
+  </section>
+
   <script type="module" src="./app.js"></script>
 </body>
 </html>
