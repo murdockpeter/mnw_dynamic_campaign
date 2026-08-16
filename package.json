@@ -1,6 +1,6 @@
 {
   "name": "mnw-dynamic-campaign",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Modern Naval Warfare dynamic campaign generator with legacy scripts and a portable Electron path.",
   "author": "murdockpeter",
   "main": "electron/main.cjs",
@@ -87,8 +87,8 @@
     },
     "nsis": {
       "oneClick": false,
-    "allowToChangeInstallationDirectory": true,
-    "shortcutName": "MNW Dynamic Campaign",
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "MNW Dynamic Campaign",
       "installerIcon": "electron/resources/icon.ico",
       "uninstallerIcon": "electron/resources/icon.ico",
       "installerHeaderIcon": "electron/resources/icon.ico"

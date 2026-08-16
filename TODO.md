@@ -1,6 +1,12 @@
 # Persistence TODO
 
-## Current Roadmap Status (0.1.8)
+## Current Roadmap Status (0.1.9)
+
+Completed in 0.1.9:
+
+- [x] Resolve continuation slots from the latest saved mission result so stale current-mission state cannot overwrite Mission 01.
+- [x] Reject continuation before a completed mission result has been saved.
+- [x] Add regression coverage for stale continuation state and opening-mission overwrite protection.
 
 The original persistence milestone, beta-feedback backlog, and 0.1.4 feature backlog are implemented. The unchecked 0.1.4 task detail below is retained as historical acceptance criteria; the code and automated tests are the current source of truth.
 

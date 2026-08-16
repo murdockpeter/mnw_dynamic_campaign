@@ -40,6 +40,31 @@ function missionSlugFromId(missionId) {
   return String(missionId || "").split(".").pop() || null;
 }
 
+function resolveContinuationSlot(state, missionChain, campaignId) {
+  const missionHistory = Array.isArray(state.mission_history) ? state.mission_history : [];
+  const latestCompletedMission = missionHistory[missionHistory.length - 1] || null;
+  if (!latestCompletedMission?.mission_id) {
+    throw new Error(`No saved mission result is available to continue ${campaignId}. Save the completed mission result first.`);
+  }
+
+  const completedSlotIndex = missionChain.indexOf(latestCompletedMission.mission_id);
+  if (completedSlotIndex < 0) {
+    throw new Error(`The latest completed mission ${latestCompletedMission.mission_id} is not present in the campaign chain for ${campaignId}.`);
+  }
+
+  const targetSlotIndex = completedSlotIndex + 1;
+  const targetMissionId = missionChain[targetSlotIndex] || null;
+  if (!targetMissionId) {
+    throw new Error(`No reserved mission slot follows ${latestCompletedMission.mission_id} in ${campaignId}. Rebuild the campaign package before continuing.`);
+  }
+
+  return {
+    latestCompletedMission,
+    targetMissionId,
+    targetSlotIndex
+  };
+}
+
 function theaterPictureWithPersistentForceState(state) {
   const picture = structuredClone(state.world_state?.theater_picture || {});
   picture.units = picture.units || {};
@@ -100,11 +125,11 @@ export async function appendContinuationScenario({
   if (!playerUnit) {
     throw new Error("Unable to resolve the player unit from campaign state.");
   }
-  const currentMissionId = state.current_mission_id || missionChain[missionChain.length - 1] || null;
-  const currentSlotIndex = missionChain.indexOf(currentMissionId);
-  if (currentSlotIndex < 0) {
-    throw new Error(`Unable to resolve the current reserved mission slot for ${campaignId}.`);
-  }
+  const {
+    latestCompletedMission,
+    targetMissionId: currentMissionId,
+    targetSlotIndex: currentSlotIndex
+  } = resolveContinuationSlot(state, missionChain, campaignId);
   const hasTailSlot = currentSlotIndex < missionChain.length - 1;
   const currentSlotSlug = missionSlugFromId(currentMissionId);
 
@@ -123,7 +148,7 @@ export async function appendContinuationScenario({
     riskPosture,
     operationalTempo,
     priorMissionCount: currentSlotIndex + 1,
-    lastOutcome: latestResult?.outcome || "success",
+    lastOutcome: latestCompletedMission.outcome || latestResult?.outcome || "success",
     theaterPicture: theaterPictureWithPersistentForceState(state),
     posture: state.world_state?.posture || "wide_area_search",
     missionStance: state.world_state?.mission_stance || state.world_state?.posture || "wide_area_search",

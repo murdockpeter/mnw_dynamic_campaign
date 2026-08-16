@@ -28,7 +28,7 @@ You do not need:
 
 On Windows, use:
 
-- `MNW Dynamic Campaign Setup 0.1.8.exe`
+- `MNW Dynamic Campaign Setup 0.1.9.exe`
 
 On macOS, use:
 
